@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import cast
 
 from sqlalchemy import delete, or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import RefreshToken
@@ -21,17 +23,17 @@ class RefreshTokenRepository:
         await s.flush()  # so token.id exists for replaced_by_id
 
     async def revoke_family(self, s: AsyncSession, family_id: uuid.UUID, reason: str, now: datetime) -> int:
-        result = await s.execute(
+        result = cast(CursorResult, await s.execute(
             update(RefreshToken)
             .where(RefreshToken.family_id == family_id, RefreshToken.revoked_at.is_(None))
             .values(revoked_at=now, revoked_reason=reason)
-        )
+        ))
         return result.rowcount or 0
 
     async def delete_expired(self, s: AsyncSession, before: datetime) -> int:
-        result = await s.execute(
+        result = cast(CursorResult, await s.execute(
             delete(RefreshToken).where(
                 or_(RefreshToken.expires_at < before, RefreshToken.family_expires_at < before)
             )
-        )
+        ))
         return result.rowcount or 0

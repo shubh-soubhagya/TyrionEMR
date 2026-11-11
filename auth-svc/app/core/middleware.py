@@ -9,7 +9,7 @@ import uuid
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.core.context import request_id_var
+from app.core.context import request_id_var, route_template
 
 log = logging.getLogger("nephro.access")
 _VALID_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
@@ -59,7 +59,7 @@ class RequestContextMiddleware:
                 await send_wrapper({"type": "http.response.body", "body": body})
         finally:
             # Route template (never the raw path, which may hold ids) and never the query string.
-            template = getattr(scope.get("route"), "path", None) or "unmatched"
+            template = route_template(scope)
             client = scope.get("client")
             log.info("http.request", extra={
                 "method": scope["method"],

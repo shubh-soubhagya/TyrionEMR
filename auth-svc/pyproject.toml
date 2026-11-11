@@ -37,11 +37,15 @@ testpaths = ["tests"]
 markers = ["api: needs the real Postgres test database"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency-injection idiom: Depends(...) / require_role(...) in defaults is intended
+extend-immutable-calls = ["fastapi.Depends", "app.core.security.require_role"]
 
 [tool.mypy]
 python_version = "3.12"

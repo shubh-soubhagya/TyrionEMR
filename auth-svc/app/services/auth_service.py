@@ -17,8 +17,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core import metrics
 from app.core.config import Settings
 from app.core.errors import (
-    AccountDisabled, AccountLocked, EmailTaken, InvalidCredentials, NotFound, PasswordPolicyError,
-    RefreshExpired, RefreshInvalid, RefreshRace, RefreshReused, SignupDisabled,
+    AccountDisabled,
+    AccountLocked,
+    EmailTaken,
+    InvalidCredentials,
+    NotFound,
+    PasswordPolicyError,
+    RefreshExpired,
+    RefreshInvalid,
+    RefreshRace,
+    RefreshReused,
+    SignupDisabled,
 )
 from app.domain.clock import Clock
 from app.domain.password_policy import check_password

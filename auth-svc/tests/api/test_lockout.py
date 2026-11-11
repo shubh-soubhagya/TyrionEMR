@@ -60,8 +60,9 @@ async def test_success_resets_the_counter(client, make_user, app):
 async def test_lockout_reveal_false_returns_401_while_locked(make_app):
     app = await make_app(lockout_reveal=False)
     async with app.state.sessionmaker() as s, s.begin():
-        from app.models import User
         import uuid
+
+        from app.models import User
         s.add(User(id=uuid.uuid4(), email=EMAIL, full_name="Dr. Rao", role="clinician",
                    password_hash=await app.state.hasher.hash(GOOD_PASSWORD),
                    created_at=app.state.clock(), updated_at=app.state.clock()))

@@ -7,6 +7,8 @@ from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Histogram, generate_latest
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.context import route_template
+
 HTTP_DURATION = Histogram(
     "http_request_duration_seconds",
     "HTTP request duration",
@@ -35,7 +37,7 @@ class MetricsMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            route = getattr(scope.get("route"), "path", None) or "unmatched"
+            route = route_template(scope)
             if route != "/metrics":
                 HTTP_DURATION.labels(route, scope["method"], str(status)).observe(time.perf_counter() - start)
 
