@@ -1,0 +1,81 @@
+"""App factory and lifespan (LLD §20.2). CORS is NOT configured here: the gateway owns it."""
+from __future__ import annotations
+
+import asyncio
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+from app.api.cookies import clear_refresh_cookie
+from app.api.routes import auth as routes_auth
+from app.api.routes import health as routes_health
+from app.api.routes import wellknown as routes_wellknown
+from app.core.common_setup import install_common_middleware
+from app.core.config import Settings, get_settings
+from app.core.errors import AuthError, error_response
+from app.core.logging import configure_logging
+from app.core.metrics import mount_metrics
+from app.db.session import create_engine, create_sessionmaker
+from app.domain.clock import Clock, utcnow
+from app.domain.password_policy import load_common_passwords
+from app.jobs.cleanup import run_cleanup_forever
+from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.user_repository import UserRepository
+from app.services.auth_service import AuthService
+from app.services.keystore import KeyStore
+from app.services.password_hasher import PasswordHasherService
+from app.services.token_service import TokenService
+
+
+def build_state(app: FastAPI, settings: Settings, clock: Clock, keystore: KeyStore | None = None) -> None:
+    """Creates everything the app needs. Separate from the lifespan so tests can call it directly."""
+    app.state.settings = settings
+    app.state.clock = clock
+    app.state.keystore = keystore or KeyStore.from_files(
+        settings.jwt_private_key_path, settings.jwt_additional_public_key_paths)   # fails fast if missing
+    app.state.hasher = PasswordHasherService(settings)
+    app.state.engine = create_engine(settings)
+    app.state.sessionmaker = create_sessionmaker(app.state.engine)
+    tokens = TokenService(app.state.keystore, settings, clock)
+    app.state.auth_service = AuthService(
+        app.state.sessionmaker, UserRepository(), RefreshTokenRepository(), app.state.hasher, tokens,
+        settings, load_common_passwords(), clock)
+
+
+async def _auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
+    resp = error_response(exc.status_code, exc.code, exc.message, exc.details, exc.headers)
+    if exc.clear_cookie:
+        clear_refresh_cookie(resp, request.app.state.settings)   # RefreshRace deliberately does not clear
+    return resp
+
+
+def create_app(settings: Settings | None = None, clock: Clock = utcnow,
+               keystore: KeyStore | None = None) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        s = settings or get_settings()
+        configure_logging(s.service_name, s.log_level)
+        build_state(app, s, clock, keystore)
+        cleanup = asyncio.create_task(run_cleanup_forever(app.state.sessionmaker, s, clock))
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+            await app.state.engine.dispose()
+
+    app = FastAPI(title="auth-svc", version="1.0.0", lifespan=lifespan)
+    install_common_middleware(app)
+    app.add_exception_handler(AuthError, _auth_error_handler)  # type: ignore[arg-type]
+    app.include_router(routes_auth.router, prefix="/auth", tags=["auth"])
+    app.include_router(routes_wellknown.router)
+    app.include_router(routes_health.router)
+    mount_metrics(app)
+    return app
+
+
+def _default_app() -> FastAPI:
+    return create_app()
+
+
+app = _default_app()

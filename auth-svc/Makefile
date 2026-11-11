@@ -28,7 +28,7 @@ migrate:
 revision:
 	$(PY) -m alembic revision -m "$(m)"
 seed:
-	$(PY) -m app.cli.seed_users
+	$(PY) -m app.cli.seed_users --force
 
 run:
 	$(PY) -m uvicorn app.main:app --reload --port 8001
