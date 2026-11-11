@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NephroCare EMR - Prototype</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e6b75'/%3E%3Cpath d='M6 17h5l3-8 4 14 3-6h5' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f7;--surface:#fff;--line:#e1e7ea;--line-2:#cdd6db;
+  --ink:#10202b;--ink-2:#3d5260;--ink-3:#6b7f8c;
+  --teal:#0e6b75;--teal-700:#0a555d;--teal-50:#e6f3f4;--teal-100:#cde7ea;
+  --nav:#0c2a31;--nav-2:#143b44;--nav-ink:#a9c4ca;
+  --ai:#5b3fd1;--ai-50:#f0edfc;--ai-100:#ded7f8;
+  --ok:#12805c;--ok-50:#e5f5ee;--warn:#a86400;--warn-50:#fff3dc;--bad:#be2f3b;--bad-50:#fcebed;--info:#1560a8;--info-50:#e6f0fa;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}
+h1,h2,h3,h4{margin:0;line-height:1.25;font-weight:600}
+h1{font-size:22px;letter-spacing:-.01em}h2{font-size:16px}h3{font-size:14px}
+p{margin:0}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+.ic{flex:none;vertical-align:middle}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}.small{font-size:12.5px}.nowrap{white-space:nowrap}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+
+/* shell */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.sidebar{background:var(--nav);color:var(--nav-ink);padding:18px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;padding:4px 8px 22px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:var(--teal);display:grid;place-items:center;color:#fff}
+.brand b{display:block;font-size:15px;letter-spacing:-.005em}.brand small{display:block;font-size:12px;color:var(--nav-ink)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--nav-ink);font-weight:500;margin-bottom:2px}
+.nav-item:hover{background:var(--nav-2);color:#fff;text-decoration:none}
+.nav-item.active{background:var(--nav-2);color:#fff;box-shadow:inset 3px 0 0 #5fc4cf}
+.side-foot{margin-top:auto;padding:10px}
+.sim-note{display:flex;gap:8px;font-size:12px;line-height:1.45;color:#8fb0b7;border-top:1px solid #1c4953;padding-top:12px}
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 24px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.gsearch{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:0 10px;width:min(380px,100%);height:36px;color:var(--ink-3)}
+.gsearch input{border:0;background:transparent;outline:none;flex:1;height:34px}
+.gsearch:focus-within{border-color:var(--teal);background:#fff}
+.mnav{display:none;gap:12px}
+.pills{display:flex;gap:6px;margin-left:auto}
+.svc-pill{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:#fff}
+.svc-pill i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.svc-pill.busy{border-color:var(--teal);color:var(--teal-700);background:var(--teal-50)}
+.svc-pill.busy i{background:var(--teal);animation:pulse .7s infinite alternate}
+@keyframes pulse{from{opacity:.35}to{opacity:1}}
+.user-menu{position:relative}
+.user-btn{display:flex;align-items:center;gap:9px;background:none;border:0;padding:3px 6px;border-radius:8px}
+.user-btn:hover{background:var(--bg)}
+.user-btn .who{text-align:left;line-height:1.2}.user-btn .who b{display:block;font-size:13px}.user-btn .who span{font-size:12px;color:var(--ink-3)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--teal-100);color:var(--teal-700);display:grid;place-items:center;font-weight:600;font-size:12px;flex:none}
+.avatar.lg{width:44px;height:44px;font-size:15px}
+.menu{position:absolute;right:0;top:44px;background:#fff;border:1px solid var(--line);border-radius:10px;min-width:230px;box-shadow:0 10px 30px rgba(12,42,49,.15);padding:6px;display:none;z-index:40}
+.menu.open{display:block}
+.menu .m-head{padding:8px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu button,.menu a{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px;color:var(--ink);font-size:13.5px}
+.menu button:hover,.menu a:hover{background:var(--bg);text-decoration:none}
+.view{padding:24px;max-width:1360px;width:100%}
+
+/* page structure */
+.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.page-h p{color:var(--ink-3);margin-top:3px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-main{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0;overflow-x:auto}.grid>*{min-width:0}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.panel-h h2,.panel-h h3{display:flex;align-items:center;gap:8px}
+.panel-b{padding:16px}
+.panel-b.flush{padding:0}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:16px}
+.kpi{padding:14px 16px;border-right:1px solid var(--line)}.kpi:last-child{border-right:0}
+.kpi .n{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.kpi .l{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.kpi.hot .n{color:var(--bad)}.user-menu{margin-left:auto}
+
+/* buttons & forms */
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);background:#fff;color:var(--ink);font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}.btn.primary:hover{background:var(--teal-700)}
+.btn.ai{background:var(--ai);border-color:var(--ai);color:#fff}.btn.ai:hover{background:#4a31b5}
+.btn.danger{color:var(--bad);border-color:#e5b9be}.btn.danger:hover{background:var(--bad-50)}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:var(--bg)}
+.btn.sm{height:30px;padding:0 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.loading{pointer-events:none;opacity:.8}
+.icon-btn{width:30px;height:30px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:6px;color:var(--ink-2)}
+.icon-btn:hover{background:var(--bg)}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;min-width:0}
+.fld-l{font-weight:500;font-size:13px;color:var(--ink-2)}.req{color:var(--bad);margin-left:2px}
+.fld input,.fld select,.fld textarea,.inp{width:100%;border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;background:#fff;min-height:36px}
+.fld textarea{resize:vertical;min-height:70px;line-height:1.45}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.inp:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
+.fld .invalid{border-color:var(--bad)}
+.hint{font-size:12px;color:var(--ink-3)}.err{font-size:12px;color:var(--bad);min-height:0}
+.inp.sm{min-height:32px;padding:5px 9px;width:auto}
+.f-row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--line);margin-top:6px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13.5px}.chk input{width:16px;height:16px}
+.switch{position:relative;width:38px;height:22px;display:inline-block;flex:none}
+.switch input{opacity:0;width:0;height:0}.switch span{position:absolute;inset:0;background:var(--line-2);border-radius:999px;transition:.15s}
+.switch span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+.switch input:checked+span{background:var(--teal)}.switch input:checked+span:before{transform:translateX(16px)}
+.switch input:disabled+span{opacity:.5}
+
+/* chips, alerts */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--bg);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--ok-50);color:var(--ok);border-color:#bfe5d3}
+.chip.warn{background:var(--warn-50);color:var(--warn);border-color:#f0d9a6}
+.chip.danger{background:var(--bad-50);color:var(--bad);border-color:#f0c2c7}
+.chip.info{background:var(--info-50);color:var(--info);border-color:#bcd6ee}
+.chip.teal{background:var(--teal-50);color:var(--teal-700);border-color:var(--teal-100)}
+.chip.ai{background:var(--ai-50);color:var(--ai);border-color:var(--ai-100)}
+.chip.ref{cursor:pointer;font-size:12px;background:#fff;color:var(--ai);border-color:var(--ai-100)}
+.chip.ref:hover{background:var(--ai-50)}
+.chip button{border:0;background:none;padding:0 0 0 2px;color:inherit;font-size:14px;line-height:1}
+.alert{display:flex;gap:10px;padding:11px 14px;border-radius:8px;border:1px solid;font-size:13.5px;align-items:flex-start}
+.alert.warn{background:var(--warn-50);border-color:#f0d9a6;color:#6e4400}
+.alert.danger{background:var(--bad-50);border-color:#f0c2c7;color:#80202a}
+.alert.info{background:var(--info-50);border-color:#bcd6ee;color:#0f4478}
+.alert.ok{background:var(--ok-50);border-color:#bfe5d3;color:#0c5c42}
+.alert .ic{margin-top:2px}
+
+/* tables */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:500;font-size:12.5px;color:var(--ink-3);padding:9px 14px;border-bottom:1px solid var(--line);background:#fafcfc;white-space:nowrap}
+th.sortable{cursor:pointer}th.sortable:hover{color:var(--ink)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tr.click{cursor:pointer}tr.click:hover td{background:#f8fbfb}
+td.num,th.num{text-align:right}
+.cell-name{display:flex;align-items:center;gap:10px}
+.cell-name b{display:block;font-weight:600}.cell-name span{font-size:12.5px;color:var(--ink-3)}
+.empty{padding:36px 20px;text-align:center;color:var(--ink-3)}
+.empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.toolbar .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:8px;padding:0 10px;height:36px;flex:1;min-width:220px;max-width:420px;color:var(--ink-3)}
+.toolbar .search input{border:0;outline:none;flex:1;height:34px;background:transparent}
+.toolbar .search:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-50)}
+
+/* patient header + tabs */
+.crumbs{font-size:13px;color:var(--ink-3);margin-bottom:10px}
+.pt-head{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.pt-id{display:flex;gap:14px;align-items:center}
+.pt-id h1{margin-bottom:5px}
+.pt-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line-2);margin-bottom:18px;overflow-x:auto}
+.tab{padding:10px 14px;color:var(--ink-2);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tab:hover{color:var(--ink);text-decoration:none;background:#eef3f4;border-radius:6px 6px 0 0}
+.tab.active{color:var(--teal-700);border-bottom-color:var(--teal)}
+.tab .ct{font-size:11.5px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--ink-3)}
+.tab.ai-tab.active{color:var(--ai);border-bottom-color:var(--ai)}
+.dl{display:grid;grid-template-columns:150px 1fr;gap:9px 14px;margin:0}
+.dl dt{color:var(--ink-3)}.dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.nd{color:var(--ink-3);font-style:italic}
+.list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.sect-label{padding:9px 16px;background:#fafcfc;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-2)}
+
+/* labs */
+.ckd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:14px}
+.ckd-cell{padding:14px 16px;border-right:1px solid var(--line)}.ckd-cell:last-child{border-right:0}
+.ckd-cell .t{font-size:12.5px;color:var(--ink-3)}
+.ckd-cell .v{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:3px 0}
+.latest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:14px;overflow:hidden}
+.lt{padding:12px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.lt:nth-child(4n){border-right:0}.lt:nth-last-child(-n+4){border-bottom:0}
+.lt .t{font-size:12.5px;color:var(--ink-3);display:flex;justify-content:space-between;gap:6px}
+.lt .v{font-family:var(--mono);font-size:21px;font-weight:500;margin:4px 0 2px}.lt .v small{font-size:12px;color:var(--ink-3);font-family:var(--font)}
+.lt.abn{background:#fffaf0}.lt.crit{background:#fff5f6}
+.chart-wrap{padding:10px 14px 14px}
+.chart-wrap svg{width:100%;height:auto;display:block;overflow:visible}
+.ax text{font-size:11px;fill:var(--ink-3);font-family:var(--font)}
+.grid-l{stroke:#e6ecef;stroke-width:1}
+.band{fill:#e5f5ee;opacity:.75}
+.stage-l{stroke:#b8c6cd;stroke-dasharray:3 4;stroke-width:1}
+.stage-t{font-size:10.5px;fill:#6b7f8c}
+.series{fill:none;stroke:var(--teal);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.pt{stroke:#fff;stroke-width:2;cursor:pointer}
+.xhair{stroke:#9fb0b8;stroke-width:1;stroke-dasharray:3 3;opacity:0;pointer-events:none}
+.stat-row{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 14px}
+#tooltip{position:fixed;z-index:200;pointer-events:none;background:#10202b;color:#fff;font-size:12.5px;padding:7px 10px;border-radius:8px;line-height:1.4;opacity:0;transition:opacity .08s;max-width:260px}
+#tooltip.show{opacity:1}
+
+/* ai */
+.ai-panel{border:1px solid var(--ai-100);border-left:4px solid var(--ai);border-radius:10px;background:linear-gradient(0deg,#fff,#fff);}
+.ai-banner{display:flex;align-items:center;gap:10px;background:var(--ai-50);padding:10px 16px;border-bottom:1px solid var(--ai-100);color:var(--ai);font-weight:600;border-radius:0 9px 0 0}
+.ai-sec{padding:14px 16px;border-bottom:1px dashed var(--ai-100)}.ai-sec:last-of-type{border-bottom:0}
+.ai-sec h3{margin-bottom:6px;color:#2f2268}
+.ai-sec p{line-height:1.6;max-width:78ch}
+.refs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.disclaimer{display:flex;gap:10px;padding:12px 16px;background:#faf9ff;border-top:1px solid var(--ai-100);font-size:13px;color:#3a2f78;border-radius:0 0 9px 0}
+.fu{padding:10px 0;border-bottom:1px solid #eee9fb}.fu:last-child{border-bottom:0}
+.fu b{display:block;font-weight:600}.fu span{color:var(--ink-2);font-size:13px}
+.steps{list-style:none;margin:0;padding:6px 0}
+.step{display:flex;gap:12px;padding:10px 16px;align-items:flex-start}
+.step .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-2);display:grid;place-items:center;flex:none;margin-top:1px;color:#fff;background:#fff}
+.step.active .dot{border-color:var(--ai);border-top-color:transparent;animation:spin .8s linear infinite}
+.step.done .dot{background:var(--ok);border-color:var(--ok)}.step.failed .dot{background:var(--bad);border-color:var(--bad)}
+.step.warn .dot{background:var(--warn);border-color:var(--warn)}.step.skipped .dot{background:var(--bg)}
+.step .t{font-weight:500}.step .d{font-size:12.5px;color:var(--ink-3)}.step .ms{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+details.fold{border-top:1px solid var(--line)}
+details.fold summary{padding:11px 16px;cursor:pointer;font-weight:500;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:8px}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold[open] summary{border-bottom:1px solid var(--line)}
+pre.code{margin:0;padding:14px 16px;background:#0f1d24;color:#d6e6ea;font-family:var(--mono);font-size:12px;overflow:auto;max-height:340px;line-height:1.55}
+
+/* modal, toast, net */
+.backdrop{position:fixed;inset:0;background:rgba(10,28,34,.5);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow:auto;z-index:100}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 24px 70px rgba(10,28,34,.35)}
+.modal.lg{max-width:860px}.modal.sm{max-width:420px}
+.modal-h{display:flex;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal-h p{color:var(--ink-3);font-size:13px;margin-top:2px}
+.modal-b{padding:18px 20px 20px}
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:300}
+.toast{background:#10202b;color:#fff;padding:10px 14px;border-radius:8px;font-size:13.5px;display:flex;gap:9px;align-items:center;min-width:240px;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:tin .18s ease-out}
+.toast.ok .ic{color:#6ee0b2}.toast.err .ic{color:#ff8e98}.toast.info .ic{color:#8fd3ff}
+@keyframes tin{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.net{position:fixed;left:240px;right:0;bottom:0;background:#fff;border-top:1px solid var(--line-2);box-shadow:0 -10px 30px rgba(12,42,49,.12);z-index:60;display:none;max-height:42vh;flex-direction:column}
+.net.open{display:flex}
+.net-h{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.net-h .sp{margin-left:auto}
+.net-b{overflow:auto}
+.net table td,.net table th{padding:6px 12px;font-size:12.5px}
+.dx-row{display:grid;grid-template-columns:110px 1fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
+.sym-box{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.vit{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.vit-tile{border:1px solid var(--line);border-radius:8px;padding:9px 11px}.vit-tile .t{font-size:12px;color:var(--ink-3)}.vit-tile .v{font-family:var(--mono);font-size:17px}
+
+/* auth */
+.auth{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1.05fr) minmax(420px,1fr)}
+.auth-art{background:var(--nav);color:#d3e4e8;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth-art h1{font-size:34px;line-height:1.15;color:#fff;max-width:14ch;letter-spacing:-.02em}
+.auth-art ul{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:14px;max-width:44ch}
+.auth-art li{display:flex;gap:12px;color:#b6ced3}.auth-art li b{color:#fff;display:block;font-weight:600}
+.trace{position:absolute;right:-40px;bottom:30px;width:420px;opacity:.5}
+.auth-form{display:grid;place-items:center;padding:32px}
+.auth-card{width:100%;max-width:400px}
+.auth-card h2{font-size:22px;margin-bottom:6px}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:8px;padding:3px;margin-bottom:20px;background:#fff}
+.seg a{flex:1;text-align:center;padding:7px;border-radius:6px;color:var(--ink-2);font-weight:500}.seg a.on{background:var(--teal);color:#fff}.seg a:hover{text-decoration:none}
+.pw-rules{display:grid;gap:3px;font-size:12px;color:var(--ink-3);margin:-4px 0 14px}.pw-rules .ok{color:var(--ok)}
+.demo-box{margin-top:18px;border:1px dashed var(--line-2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--ink-2)}
+
+/* architecture */
+.flow-svg{width:100%;height:auto;display:block}
+.node rect{fill:#fff;stroke:#b6c5cc;stroke-width:1.4}
+.node.gw rect{fill:#e8f2f3;stroke:var(--teal)}.node.db rect{fill:#f4f7f8}.node.ext rect{fill:#f5f2fd;stroke:#b8aaec}
+.node text.nt{font-size:14px;font-weight:600;fill:var(--ink)}.node text.ns{font-size:11.5px;fill:var(--ink-3)}
+.node.active rect{stroke:var(--teal);stroke-width:2.6;fill:var(--teal-50)}.node.ext.active rect{stroke:var(--ai);fill:var(--ai-50)}
+.edge{fill:none;stroke:#a5b4bc;stroke-width:1.6}.edge.dash{stroke-dasharray:5 4}.edge.on{stroke:var(--teal);stroke-width:2.8}.edge.dash.ai-e{stroke:#8f7ae0}
+.jr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.jr button{border:1px solid var(--line-2);background:#fff;border-radius:999px;padding:6px 13px;font-weight:500;color:var(--ink-2)}
+.jr button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.jstep{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.jstep:last-child{border-bottom:0}.jstep.on{background:var(--teal-50)}
+.jstep .n{width:24px;height:24px;border-radius:50%;background:var(--bg);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+.jstep.on .n{background:var(--teal);color:#fff}
+.decision{padding:14px 16px;border-bottom:1px solid var(--line)}.decision:last-child{border-bottom:0}
+.decision b{display:block;margin-bottom:2px}.decision p{color:var(--ink-2);font-size:13.5px}
+.skel{height:14px;border-radius:6px;background:linear-gradient(90deg,#eef2f4,#f7f9fa,#eef2f4);background-size:200% 100%;animation:sk 1.1s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+
+@media(max-width:1100px){.g4,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.g-main,.g3{grid-template-columns:1fr}.latest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lt:nth-child(4n){border-right:1px solid var(--line)}.lt:nth-child(2n){border-right:0}}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{display:none}.mnav{display:flex}.net{left:0}.g2{grid-template-columns:1fr}.auth{grid-template-columns:1fr}.auth-art{display:none}.pills{display:none}.ckd-grid{grid-template-columns:1fr}.vit{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.demo-opt{margin-top:18px;font-size:12.5px;color:var(--ink-3)}.demo-opt summary{cursor:pointer;padding:6px 0;width:max-content}
+.demo-opt>div{border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:6px;max-width:460px}
+.kf-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:2px}
+.ckd-strip{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.ckd-strip .k{font-size:12px;color:var(--ink-3);margin-bottom:3px}
+.spark{display:block}
+.hbar{display:grid;grid-template-columns:150px 1fr 26px;gap:10px;align-items:center;padding:5px 0;font-size:13px}
+.hbar .track{height:16px;background:var(--bg);border-radius:4px;overflow:hidden}.hbar .fill{height:100%;border-radius:0 4px 4px 0}
+.hbar .ct{text-align:right;font-weight:600}
+.att-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.att-item:last-child{border-bottom:0}.att-item .why{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.clinic{padding:12px;border-radius:10px;background:var(--nav-2);color:#fff;font-size:13px}.clinic small{display:block;color:var(--nav-ink);font-size:12px;margin-top:2px}
+.greet{font-size:24px;letter-spacing:-.01em}
+tr.click-row{cursor:pointer}tr.click-row:hover td{background:var(--bg)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="tooltip" role="tooltip"></div>
+<script>
+(()=>{'use strict';
+/* ================= utilities ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const DAY=86400000;
+const uid=()=>'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&3|8)).toString(16)});
+const sid=id=>String(id).slice(0,8);
+const pad=n=>String(n).padStart(2,'0');
+const isoDate=d=>{const x=new Date(d);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
+const fmtDate=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'-';
+const fmtDT=d=>d?new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+const fmtTime=d=>new Date(d).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const localInput=(d=new Date())=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+const avg=a=>a.reduce((s,x)=>s+x,0)/a.length;
+const signed=(v,d=1)=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d);
+const enc=encodeURIComponent;
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(16)}
+const b64u=o=>btoa(unescape(encodeURIComponent(typeof o==='string'?o:JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u=s=>JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))));
+
+/* ================= icons ================= */
+const ICONS={
+search:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+check:'<polyline points="20 6 9 17 4 12"/>',
+users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+sliders:'<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+server:'<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>',
+db:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+right:'<polyline points="9 18 15 12 9 6"/>',
+left:'<polyline points="15 18 9 12 15 6"/>',
+down:'<polyline points="6 9 12 15 18 9"/>',
+clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+flask:'<path d="M9 3h6"/><path d="M10 3v6L4.5 19a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V3"/>',
+pill:'<path d="M10.5 20.5a5 5 0 0 1-7-7l9-9a5 5 0 0 1 7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/>',
+clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>',
+git:'<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+play:'<polygon points="5 3 19 12 5 21 5 3"/>',
+pause:'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+refresh:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+terminal:'<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
+info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+up:'<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>',
+dn:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
+copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+key:'<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>'
+};
+const ic=(n,s=18)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
+const chip=(t,c='',i='')=>`<span class="chip ${c}">${i?ic(i,13):''}${esc(t)}</span>`;
+const FLAG={normal:['Normal','ok',''],low:['Low','info','dn'],high:['High','warn','up'],critical_low:['Critical low','danger','dn'],critical_high:['Critical high','danger','up'],unknown:['No range','','']};
+const flagChip=f=>{const m=FLAG[f]||FLAG.unknown;return chip(m[0],m[1],m[2])};
+const flagColor=f=>f==='normal'?'#12805c':f==='low'?'#1560a8':f==='high'?'#a86400':f&&f.startsWith('critical')?'#be2f3b':'#6b7f8c';
+const stageChip=s=>s?chip(s,'teal'):`<span class="nd">Not set</span>`;
+const avatar=(n,c='')=>`<span class="avatar ${c}">${esc(n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase())}</span>`;
+
+/* ================= clinical domain (pure functions) ================= */
+const LAB_TESTS={
+CREAT:{name:'Serum creatinine',canon:'mg/dL',dec:2,units:{'mg/dL':1,'µmol/L':0.0113},ranges:{M:[0.7,1.3],F:[0.6,1.1]},crit:[null,5.0],max:30},
+EGFR:{name:'eGFR',canon:'mL/min/1.73m²',dec:0,units:{'mL/min/1.73m²':1},ranges:{any:[90,null]},crit:[null,null],critLow:10,max:200},
+BUN:{name:'Blood urea nitrogen',canon:'mg/dL',dec:1,units:{'mg/dL':1,'mmol/L (urea)':2.8},ranges:{any:[7,20]},crit:[null,100],max:300},
+K:{name:'Potassium',canon:'mmol/L',dec:1,units:{'mmol/L':1,'mEq/L':1},ranges:{any:[3.5,5.0]},crit:[2.8,6.0],max:12},
+HB:{name:'Hemoglobin',canon:'g/dL',dec:1,units:{'g/dL':1,'g/L':0.1},ranges:{M:[13.5,17.5],F:[12.0,15.5]},crit:[7.0,null],max:25},
+CA:{name:'Calcium',canon:'mg/dL',dec:1,units:{'mg/dL':1,'mmol/L':4.008},ranges:{any:[8.5,10.5]},crit:[6.5,13.0],max:20},
+PHOS:{name:'Phosphorus',canon:'mg/dL',dec:1,units:{'mg/dL':1,'mmol/L':3.097},ranges:{any:[2.5,4.5]},crit:[1.0,8.0],max:20},
+UACR:{name:'Urine albumin-creatinine ratio',canon:'mg/g',dec:0,units:{'mg/g':1,'mg/mmol':8.84},ranges:{any:[null,30]},crit:[null,null],max:20000}
+};
+LAB_TESTS.EGFR.crit=[10,null];
+const TEST_ORDER=['CREAT','EGFR','BUN','K','HB','CA','PHOS','UACR'];
+const rangeFor=(t,sex)=>{const T=LAB_TESTS[t],r=T.ranges[sex]||T.ranges.any;return{low:r[0],high:r[1],critLow:T.crit[0],critHigh:T.crit[1]}};
+const flagFor=(v,r)=>{if(!r)return'unknown';if(r.critLow!=null&&v<r.critLow)return'critical_low';if(r.critHigh!=null&&v>r.critHigh)return'critical_high';if(r.low!=null&&v<r.low)return'low';if(r.high!=null&&v>r.high)return'high';return'normal'};
+const refText=r=>r.low!=null&&r.high!=null?`${r.low}–${r.high}`:r.low!=null?`≥ ${r.low}`:r.high!=null?`< ${r.high}`:'-';
+const toCanon=(t,v,u)=>{const T=LAB_TESTS[t],p=Math.pow(10,T.dec+1);return Math.round(v*T.units[u]*p)/p};
+const fmtVal=(t,v)=>Number(v).toFixed(LAB_TESTS[t].dec);
+const EGFR_CATS=[['G1',90,'Normal or high'],['G2',60,'Mildly decreased'],['G3a',45,'Mild to moderately decreased'],['G3b',30,'Moderately to severely decreased'],['G4',15,'Severely decreased'],['G5',-1,'Kidney failure']];
+const classifyEgfr=v=>(EGFR_CATS.find(c=>v>=c[1])||EGFR_CATS[5])[0];
+const egfrLabel=c=>(EGFR_CATS.find(x=>x[0]===c)||[])[2]||'';
+const classifyUacr=v=>v<30?'A1':v<=300?'A2':'A3';
+const uacrLabel=c=>({A1:'Normal to mildly increased',A2:'Moderately increased',A3:'Severely increased'})[c]||'';
+function ckdEpi(scr,age,sex){const k=sex==='F'?0.7:0.9,a=sex==='F'?-0.241:-0.302;return 142*Math.pow(Math.min(scr/k,1),a)*Math.pow(Math.max(scr/k,1),-1.2)*Math.pow(0.9938,age)*(sex==='F'?1.012:1)}
+function creatFromEgfr(e,age,sex){let lo=0.3,hi=20;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(ckdEpi(m,age,sex)>e)lo=m;else hi=m}return Math.round(((lo+hi)/2)*100)/100}
+function trendStats(pts,test){
+  const n=pts.length;if(!n)return{n:0,direction:'no_data',pts:[]};
+  const first=pts[0],last=pts[n-1],abs=last.v-first.v,pct=first.v?abs/first.v*100:0,spanDays=Math.round((last.t-first.t)/DAY);
+  let slope=null,direction='insufficient_data',rapid=false;
+  if(n>=3){
+    const xs=pts.map(p=>(p.t-first.t)/(365.25*DAY)),ys=pts.map(p=>p.v),mx=avg(xs),my=avg(ys);let nu=0,de=0;
+    xs.forEach((x,i)=>{nu+=(x-mx)*(ys[i]-my);de+=(x-mx)*(x-mx)});slope=de?nu/de:0;
+    if(test==='EGFR'){direction=slope<=-2?'worsening':slope>=2?'improving':'stable';rapid=slope<=-5}
+    else direction=slope>0.1?'worsening':slope<-0.1?'improving':'stable';
+  }
+  return{n,first:first.v,last:last.v,abs,pct,slope,direction,rapid,spanDays,pts};
+}
+const dirChip=s=>!s.n?chip('No data'):s.direction==='insufficient_data'?chip('Insufficient data (needs 3+ results)','warn'):s.direction==='worsening'?chip('Worsening','danger','dn'):s.direction==='improving'?chip('Improving','ok','up'):chip('Stable','');
+
+/* ================= seed data (synthetic) ================= */
+const SPECS=[
+{first:'Ramesh',last:'Kulkarni',sex:'M',age:67,ckd:'G3b',als:'has',al:[['Penicillin','Rash','moderate']],
+ pmh:'Type 2 diabetes for 18 years. Hypertension for 15 years. Diabetic retinopathy treated with laser in 2022.',fh:'Father had end-stage kidney disease.',sh:'Retired bank manager. Non-smoker. No alcohol.',
+ c:[['E11.21','Type 2 diabetes mellitus with diabetic nephropathy','nephrology',1,18],['N18.32','Chronic kidney disease, stage 3b','nephrology',0,3],['I10','Essential hypertension','comorbidity',0,15],['D63.1','Anemia in chronic kidney disease','comorbidity',0,1]],
+ m:[['Losartan','50 mg','Oral','Once daily',700,null],['Empagliflozin','10 mg','Oral','Once daily',400,null],['Atorvastatin','20 mg','Oral','Once daily at night',900,null],['Insulin glargine','18 units','SC','Once daily at night',1200,null]],
+ L:{n:8,e0:54,e1:38,span:700,last:20,K:5.2,HB:11.6,CA:9.0,PHOS:4.4,UACR:480,conv:3},
+ e:[[260,'follow_up','Routine follow-up; mild ankle swelling',['Ankle swelling','Fatigue'],'BP 148/86. Mild pitting edema at both ankles. Chest clear.','Diabetic nephropathy with progressive CKD G3b. Persistent albuminuria. BP above target.','Continue current therapy. Repeat eGFR, UACR and potassium in 3 months. Salt restriction reinforced.',[148,86,78,36.7,74.5],'final',90],
+   [120,'follow_up','Follow-up after labs; reduced appetite',['Reduced appetite','Nausea'],'BP 142/84. No edema. Euvolemic.','CKD G3b with faster than expected eGFR decline. Hb 11.8 g/dL.','Review anemia parameters. Reinforce glycemic control. Repeat labs in 8 weeks.',[142,84,76,36.6,73.8],'final',60],
+   [21,'follow_up','Review of recent laboratory results',['Fatigue'],'BP 138/82. Mild pallor.','Persistent eGFR decline over two years; UACR in the severely increased range.','Discuss progression and renal replacement counselling at next visit. Follow-up in 6 weeks.',[138,82,74,36.6,72.9],'final',42],
+   [2,'follow_up','Dietitian referral discussion',['Mild nausea'],'','','',null,'draft',30]]},
+{first:'Sunita',last:'Verma',sex:'F',age:58,ckd:'G3a',als:'has',al:[['Sulfonamides','Hives','moderate']],
+ pmh:'Hypertension for 12 years. Hyperlipidemia.',fh:'Mother had hypertension.',sh:'School teacher. Non-smoker.',
+ c:[['I12.9','Hypertensive chronic kidney disease with stage 1-4 CKD','nephrology',1,9],['N18.31','Chronic kidney disease, stage 3a','nephrology',0,3],['E78.5','Hyperlipidemia','comorbidity',0,6]],
+ m:[['Amlodipine','5 mg','Oral','Once daily',800,null],['Losartan','100 mg','Oral','Once daily',800,null],['Atorvastatin','10 mg','Oral','Once daily at night',600,null]],
+ L:{n:7,e0:58,e1:55,span:800,last:35,K:4.6,HB:12.6,CA:9.4,PHOS:3.8,UACR:120},
+ e:[[190,'follow_up','Routine review',['None reported'],'BP 134/80. No edema.','Hypertensive nephropathy, CKD G3a, stable.','Continue antihypertensives. Repeat labs in 6 months.',[134,80,72,36.6,66.2],'final',180],
+   [34,'follow_up','Routine review',['None reported'],'BP 130/78.','Stable CKD G3a. BP at target.','Continue current plan. Next review in 6 months.',[130,78,70,36.5,66],'final',180]]},
+{first:'Arjun',last:'Mehta',sex:'M',age:45,ckd:'G2',als:'unknown',al:[],
+ pmh:'IgA nephropathy diagnosed by biopsy 6 years ago. Hypertension.',fh:'No known kidney disease.',sh:'Software engineer. Occasional alcohol.',
+ c:[['N02.8','IgA nephropathy','nephrology',1,6],['N18.2','Chronic kidney disease, stage 2','nephrology',0,2],['I10','Essential hypertension','comorbidity',0,4]],
+ m:[['Ramipril','5 mg','Oral','Once daily',700,null]],
+ L:{n:6,e0:82,e1:78,span:600,last:50,K:4.3,HB:14.5,CA:9.6,PHOS:3.4,UACR:210},
+ e:[[240,'follow_up','Routine review',['None reported'],'BP 126/78.','IgA nephropathy, stable eGFR with moderate albuminuria.','Continue ramipril. Repeat UACR in 4 months.',null,'final',120],
+   [49,'follow_up','Review of recent labs',['Mild fatigue'],'BP 124/76.','Stable.','Continue current plan.',[124,76,68,36.6,81],'final',120]]},
+{first:'Fatima',last:'Sheikh',sex:'F',age:72,ckd:'G4',als:'has',al:[['NSAIDs','Worsening renal function','severe'],['Iodinated contrast','Rash','mild']],
+ pmh:'Type 2 diabetes for 14 years. Long-standing hypertension. Anemia and secondary hyperparathyroidism of CKD.',fh:'Sister has diabetes.',sh:'Lives with daughter. Non-smoker.',
+ c:[['N18.4','Chronic kidney disease, stage 4','nephrology',1,5],['E11.21','Type 2 diabetes mellitus with diabetic nephropathy','nephrology',0,14],['D63.1','Anemia in chronic kidney disease','comorbidity',0,2],['N25.81','Secondary hyperparathyroidism of renal origin','comorbidity',0,1],['I10','Essential hypertension','comorbidity',0,20]],
+ m:[['Amlodipine','10 mg','Oral','Once daily',900,null],['Calcium acetate','667 mg','Oral','Three times daily with meals',300,null],['Sodium bicarbonate','500 mg','Oral','Twice daily',400,null],['Darbepoetin alfa','40 mcg','SC','Every 2 weeks',200,null]],
+ L:{n:7,e0:34,e1:24,span:540,last:12,K:5.4,Kl:5.5,HB:9.8,CA:8.2,PHOS:5.6,UACR:650},
+ e:[[200,'follow_up','Fatigue and poor appetite',['Fatigue','Poor appetite','Itching'],'BP 152/88. Pallor. Trace edema.','CKD G4 with anemia and mineral bone disorder.','Adjust ESA plan. Phosphate binder with meals. Labs in 4 weeks.',[152,88,80,36.5,58.3],'final',30],
+   [70,'follow_up','Follow-up',['Fatigue'],'BP 148/86. Mild pallor.','Progressive CKD G4. Hb remains low.','Continue plan. Discuss dialysis education class.',[148,86,78,36.6,57.9],'final',30],
+   [12,'follow_up','Review of results',['Fatigue','Itching'],'BP 146/84.','Continued decline in eGFR. Potassium and phosphorus elevated.','Dietary potassium and phosphate counselling. Repeat labs in 3 weeks.',[146,84,76,36.6,57.5],'final',21]]},
+{first:'Vikram',last:'Rao',sex:'M',age:39,ckd:null,als:'nka',al:[],
+ pmh:'Acute kidney injury after a diarrheal illness with dehydration, 5 months ago. Obesity.',fh:'None documented.',sh:'Sales manager. Non-smoker.',
+ c:[['N17.9','Acute kidney failure, unspecified (resolving)','nephrology',1,0.4],['E66.9','Obesity','comorbidity',0,5]],
+ m:[],
+ L:{n:4,e0:30,e1:74,span:150,last:14,K:4.4,HB:13.9,CA:9.2,PHOS:3.6,UACR:40},
+ e:[[150,'new','Reduced urine output and fatigue after diarrheal illness',['Reduced urine output','Fatigue','Vomiting'],'BP 100/62. Dry mucous membranes.','Acute kidney injury, likely pre-renal.','Hospital admission for IV fluids. Daily creatinine.',[100,62,104,37.1,92],'final',14],
+   [14,'follow_up','Recovery follow-up',['None reported'],'BP 122/78. Euvolemic.','AKI recovering, eGFR improving.','Repeat renal function in 3 months to confirm recovery.',[122,78,72,36.6,90.5],'final',90]]},
+{first:'Lakshmi',last:'Iyer',sex:'F',age:63,ckd:'G4',als:'nka',al:[],
+ pmh:'Autosomal dominant polycystic kidney disease. Hypertension.',fh:'Mother and brother have polycystic kidney disease.',sh:'Homemaker. Non-smoker.',
+ c:[['Q61.2','Polycystic kidney disease, adult type','nephrology',1,12],['N18.32','Chronic kidney disease, stage 3b','nephrology',0,2],['I10','Essential hypertension','comorbidity',0,10]],
+ m:[['Telmisartan','40 mg','Oral','Once daily',900,null],['Amlodipine','5 mg','Oral','Once daily',500,null]],
+ L:{n:6,e0:44,e1:38,span:700,last:28,K:4.8,HB:12.2,CA:9.1,PHOS:4.0,UACR:55},
+ e:[[160,'follow_up','Flank discomfort',['Flank pain'],'BP 136/82. Palpable kidneys bilaterally.','ADPKD with CKD. Pain likely cyst-related.','Analgesia advice, hydration. Repeat labs in 3 months.',[136,82,74,36.6,64],'final',90],
+   [27,'follow_up','Review of results',['None reported'],'BP 132/80.','Slow eGFR decline.','Continue current plan.',[132,80,72,36.6,63.8],'final',90]]},
+{first:'Mohan',last:'Das',sex:'M',age:55,ckd:'G2',als:'nka',al:[],
+ pmh:'Type 2 diabetes for 9 years. Hyperlipidemia.',fh:'Father had type 2 diabetes.',sh:'Shop owner. Smokes occasionally.',
+ c:[['E11.21','Type 2 diabetes mellitus with diabetic nephropathy','nephrology',1,3],['E78.5','Hyperlipidemia','comorbidity',0,5]],
+ m:[['Metformin','500 mg','Oral','Twice daily',900,null],['Dapagliflozin','10 mg','Oral','Once daily',500,null],['Telmisartan','40 mg','Oral','Once daily',500,null]],
+ L:{n:5,e0:76,e1:72,span:500,last:230,K:4.5,HB:14.1,CA:9.5,PHOS:3.5,UACR:85,bump:16},
+ e:[[240,'follow_up','Routine diabetic kidney review',['None reported'],'BP 130/80.','Early diabetic kidney disease, moderately increased albuminuria.','Continue SGLT2 inhibitor and ARB. Repeat labs in 3 months.',[130,80,76,36.6,82],'final',90],
+   [232,'follow_up','Lab review',['None reported'],'BP 128/78.','Stable.','Next review in 3 months (not yet scheduled).',[128,78,74,36.6,81.5],'final',90]]},
+{first:'Priya',last:'Nair',sex:'F',age:50,ckd:null,als:'unknown',al:[],
+ pmh:'Referred for evaluation of persistently raised blood pressure and proteinuria on an outside urine test (report not available).',fh:'',sh:'',
+ c:[],m:[],L:null,e:[]},
+{first:'Aditya',last:'Singh',sex:'M',age:61,ckd:'G5',als:'has',al:[['Latex','Contact dermatitis','mild']],
+ pmh:'Hypertensive and diabetic kidney disease. Pre-dialysis planning in progress.',fh:'Brother has hypertension.',sh:'Retired army officer. Former smoker.',
+ c:[['N18.5','Chronic kidney disease, stage 5','nephrology',1,6],['I12.0','Hypertensive CKD with stage 5 CKD or end-stage kidney disease','nephrology',0,6],['D63.1','Anemia in chronic kidney disease','comorbidity',0,3],['N25.81','Secondary hyperparathyroidism of renal origin','comorbidity',0,2]],
+ m:[['Furosemide','80 mg','Oral','Twice daily',400,null],['Amlodipine','10 mg','Oral','Once daily',800,null],['Calcium acetate','667 mg','Oral','Three times daily with meals',300,null],['Sodium bicarbonate','500 mg','Oral','Twice daily',300,null]],
+ L:{n:6,e0:19,e1:11,span:400,last:6,K:5.9,Kl:6.2,HB:9.1,CA:7.9,PHOS:6.4,UACR:900},
+ e:[[180,'follow_up','Breathlessness and swelling',['Breathlessness','Leg swelling','Nausea'],'BP 160/94. Bibasal crackles. Pitting edema to knees.','CKD G5 with volume overload.','Diuretic adjustment. Dialysis access planning.',[160,94,88,36.6,79],'final',30],
+   [60,'follow_up','Pre-dialysis counselling',['Fatigue','Itching'],'BP 150/90. Mild edema.','CKD G5, symptomatic uremia emerging.','Discuss renal replacement options with family.',[150,90,84,36.6,77],'final',30],
+   [6,'follow_up','Review of results',['Fatigue','Nausea','Muscle cramps'],'BP 148/88.','Critically high potassium on latest result. eGFR 11.','Same-week repeat potassium. Urgent dialysis planning discussion.',[148,88,86,36.6,76.5],'final',7]]},
+{first:'Kavita',last:'Joshi',sex:'F',age:34,ckd:null,als:'nka',al:[],
+ pmh:'Systemic lupus erythematosus with lupus nephritis class IV diagnosed 4 years ago.',fh:'None documented.',sh:'Graphic designer. Non-smoker.',
+ c:[['M32.14','Glomerular disease in systemic lupus erythematosus','nephrology',1,4]],
+ m:[['Mycophenolate mofetil','500 mg','Oral','Twice daily',700,null],['Prednisolone','5 mg','Oral','Once daily',700,null],['Hydroxychloroquine','200 mg','Oral','Twice daily',900,40]],
+ L:{n:5,e0:58,e1:52,span:500,last:25,K:4.2,HB:11.5,CA:9.0,PHOS:3.9,UACR:320},
+ e:[[150,'follow_up','Joint pain and fatigue',['Joint pain','Fatigue'],'BP 118/74. No rash.','Lupus nephritis, partially responded. Moderate albuminuria.','Continue immunosuppression. Repeat complement and UACR.',[118,74,78,36.6,60],'final',90],
+   [24,'follow_up','Review of labs',['Fatigue'],'BP 120/76.','Mildly reduced eGFR. Albuminuria persists.','Continue plan. Discuss renal biopsy repeat if no improvement.',[120,76,76,36.6,59.5],'final',60]]}
+];
+function seedDb(){
+  const rnd=mulberry32(42),now=Date.now();
+  const db={v:1,users:[],patients:[],conditions:[],meds:[],allergies:[],encounters:[],labReports:[],labResults:[],aiSummaries:[],audit:[],
+    config:{provider:'mock',toolsEnabled:true,maxToolIterations:4,signupEnabled:true,dailyQuota:50}};
+  const mkUser=(name,email,role,pw)=>({id:uid(),name,email,role,hash:'argon2id$'+hash53(email+pw),active:true,failed:0,lockedUntil:0,lastLogin:null,createdAt:new Date(now-90*DAY).toISOString()});
+  db.users.push(mkUser('Dr. Anita Rao','dr.rao@nephrocare.demo','clinician','Nephro#2026'),mkUser('Dr. Karan Malhotra','dr.malhotra@nephrocare.demo','clinician','Nephro#2026'),mkUser('System Admin','admin@nephrocare.demo','admin','Admin#2026!'));
+  const docs=[db.users[0],db.users[1]];
+  SPECS.forEach((s,i)=>{
+    const dob=new Date(new Date(now).getFullYear()-s.age,3,10+Math.floor(rnd()*60));
+    const p={id:uid(),mrn:'PT-'+String(101+i).padStart(6,'0'),first:s.first,last:s.last,dob:isoDate(dob),sex:s.sex,phone:'+91 98'+String(Math.floor(10000000+rnd()*89999999)),email:(s.first+'.'+s.last).toLowerCase()+'@example.test',address:'',pmh:s.pmh,fh:s.fh,sh:s.sh,allergyStatus:s.als,ckd:s.ckd,version:1,deletedAt:null,createdAt:new Date(now-400*DAY).toISOString()};
+    db.patients.push(p);
+    s.al.forEach(a=>db.allergies.push({id:uid(),patientId:p.id,allergen:a[0],reaction:a[1],severity:a[2]}));
+    s.c.forEach(c=>db.conditions.push({id:uid(),patientId:p.id,icd10:c[0],desc:c[1],category:c[2],isPrimary:!!c[3],status:'active',onset:isoDate(now-c[4]*365*DAY),sourceEncounterId:null,deletedAt:null}));
+    s.m.forEach(m=>db.meds.push({id:uid(),patientId:p.id,name:m[0],dose:m[1],route:m[2],freq:m[3],start:isoDate(now-m[4]*DAY),end:m[5]!=null?isoDate(now-m[5]*DAY):null,status:'active'}));
+    s.e.forEach((e,j)=>{const d=new Date(now-e[0]*DAY);d.setHours(10,15,0,0);
+      db.encounters.push({id:uid(),patientId:p.id,date:d.toISOString(),type:e[1],clinician:docs[(i+j)%2].name,cc:e[2],symptoms:e[3],exam:e[4],assessment:e[5],plan:e[6],followUp:e[9]?isoDate(d.getTime()+e[9]*DAY):'',status:e[8],vitals:e[7]?{sys:e[7][0],dia:e[7][1],hr:e[7][2],temp:e[7][3],wt:e[7][4]}:null,diagnoses:e[5]?[{icd:s.c[0]?s.c[0][0]:'',desc:s.c[0]?s.c[0][1]:'',condId:null}]:[],version:1,deletedAt:null})});
+    const L=s.L;if(L){
+      for(let k=0;k<L.n;k++){
+        const f=L.n===1?1:k/(L.n-1),ms=now-(L.last+L.span*(1-f))*DAY;
+        let eg=k===0?L.e0:k===L.n-1?L.e1:Math.round(L.e0+(L.e1-L.e0)*f+(rnd()-.5)*3);
+        const age=(ms-dob.getTime())/(365.25*DAY),scr=creatFromEgfr(eg,age,p.sex);
+        const rep={id:uid(),patientId:p.id,collectedAt:new Date(ms).toISOString(),labName:'Metro Diagnostics Laboratory',notes:'',enteredBy:db.users[0].id,createdAt:new Date(ms).toISOString()};
+        db.labReports.push(rep);
+        const add=(t,v,orig)=>{const r=rangeFor(t,p.sex);const o=orig||{v,u:LAB_TESTS[t].canon};db.labResults.push({id:uid(),reportId:rep.id,patientId:p.id,collectedAt:rep.collectedAt,test:t,value:v,unit:LAB_TESTS[t].canon,valueOriginal:o.v,unitOriginal:o.u,refLow:r.low,refHigh:r.high,flag:flagFor(v,r)})};
+        const egRep=k===L.n-1&&L.bump?eg+L.bump:eg;
+        add('CREAT',scr,L.conv===k?{v:Math.round(scr/0.0113),u:'µmol/L'}:null);
+        add('EGFR',egRep);
+        add('BUN',Math.max(6,Math.round((10+(scr-0.9)*14+(rnd()-.5)*3)*10)/10));
+        const kv=k===L.n-1&&L.Kl?L.Kl:Math.round((L.K+(rnd()-.5)*.4)*10)/10;
+        add('K',kv);add('HB',Math.round((L.HB+(rnd()-.5)*.6)*10)/10);add('CA',Math.round((L.CA+(rnd()-.5)*.4)*10)/10);add('PHOS',Math.round((L.PHOS+(rnd()-.5)*.5)*10)/10);
+        if(k%2===0||k===L.n-1)add('UACR',Math.round(L.UACR*(.85+rnd()*.3)));
+      }
+    }
+  });
+  return db;
+}
+
+/* ================= state ================= */
+const LS='nephrocare-v4';
+let db,session=null;
+function load(){try{const r=JSON.parse(localStorage.getItem(LS)||'null');if(r&&r.db&&r.db.v===1){db=r.db;session=r.session||null;return}}catch(e){}db=seedDb();session=null}
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify({db,session}))}catch(e){}},120)}
+const ui={tok:0,cur:{pid:null,tab:null},list:{q:'',sex:'',stage:'',attention:false,sort:'name',dir:1,page:1},
+  labs:{range:'all',test:'ALL',abn:false,page:1,bands:true},ai:{sim:'normal',run:null,openId:null},
+  flow:{j:'login',step:0,timer:null},medsAll:false,net:false};
+const PAGE=8;
+const SVC={gw:'Gateway',auth:'auth-svc',patient:'patient-svc',lab:'lab-svc',ai:'ai-svc'};
+const MODEL={mock:'mock-deterministic-v1',gemini:'gemini (free tier)',groq:'groq (free tier)',ollama:'ollama (local)'};
+const CAPS={mock:{tools:true},gemini:{tools:true},groq:{tools:true},ollama:{tools:false}};
+
+/* ================= mock backend plumbing ================= */
+class ApiError extends Error{constructor(status,code,message,details){super(message);this.status=status;this.code=code;this.details=details}}
+const logs=[];const busy={gw:0,auth:0,patient:0,lab:0,ai:0};
+function setBusy(k,d){busy[k]=Math.max(0,busy[k]+d);$$(`.svc-pill[data-svc="${k}"]`).forEach(e=>e.classList.toggle('busy',busy[k]>0))}
+function logCall(o){logs.unshift(Object.assign({t:Date.now(),rid:'req-'+Math.random().toString(36).slice(2,8)},o));if(logs.length>200)logs.pop();if(ui.net)renderNet()}
+async function api(service,method,path,fn,o={}){
+  const viaGw=!o.from,t0=performance.now();let status=200,err=null,out;
+  if(viaGw)setBusy('gw',1);setBusy(service,1);
+  try{await sleep(o.delay!=null?o.delay:70+Math.random()*130);if(viaGw&&!o.noAuth)await gatewayAuth();out=await fn()}
+  catch(e){err=e;status=e.status||500}
+  finally{if(viaGw)setBusy('gw',-1);setBusy(service,-1)}
+  logCall({from:o.from||null,service,method,path:(viaGw?'/api':'')+path,status,ms:Math.round(performance.now()-t0),code:err&&err.code});
+  if(err)throw err;return out;
+}
+const makeToken=(u,exp)=>b64u({alg:'RS256',typ:'JWT',kid:'k-2026-11'})+'.'+b64u({sub:u.id,role:u.role,name:u.name,iss:'nephro-auth',aud:'nephro-api',iat:Math.floor((exp-15*60000)/1000),exp:Math.floor(exp/1000),jti:uid()})+'.'+hash53(uid()).padEnd(43,'x').slice(0,43);
+async function gatewayAuth(){}
+const clin=()=>{if(!session||session.user.role!=='clinician')throw new ApiError(403,'FORBIDDEN',`Your role (${session?session.user.role:'none'}) cannot access clinical data. Sign in as a clinician.`)};
+const isAdmin=()=>{if(!session||session.user.role!=='admin')throw new ApiError(403,'FORBIDDEN','Admin role required')};
+const audit=(action,pid)=>{db.audit.unshift({id:uid(),at:new Date().toISOString(),actor:session.user.name,action,patient:pid?P(pid).mrn:'-'});if(db.audit.length>60)db.audit.pop()};
+
+/* ================= repositories ================= */
+const P=id=>{const p=db.patients.find(x=>x.id===id&&!x.deletedAt);if(!p)throw new ApiError(404,'NOT_FOUND','Patient not found');return p};
+const ageOf=(dob,at)=>{const d=new Date(dob),n=at?new Date(at):new Date();let a=n.getFullYear()-d.getFullYear();const m=n.getMonth()-d.getMonth();if(m<0||(m===0&&n.getDate()<d.getDate()))a--;return a};
+const condsOf=id=>db.conditions.filter(c=>c.patientId===id&&!c.deletedAt);
+const medsOf=id=>db.meds.filter(m=>m.patientId===id);
+const allergiesOf=id=>db.allergies.filter(a=>a.patientId===id);
+const encsOf=id=>db.encounters.filter(e=>e.patientId===id&&!e.deletedAt).sort((a,b)=>new Date(b.date)-new Date(a.date));
+const resultsOf=id=>db.labResults.filter(r=>r.patientId===id).sort((a,b)=>new Date(b.collectedAt)-new Date(a.collectedAt));
+const fullName=p=>p.first+' '+p.last;
+const sexLabel=s=>({M:'Male',F:'Female',O:'Other'})[s]||s;
+const typeLabel=t=>({new:'New visit',follow_up:'Follow-up',emergency:'Emergency'})[t]||t;
+const primaryOf=id=>condsOf(id).find(c=>c.isPrimary&&c.status==='active');
+function latestByTest(id){const o={};resultsOf(id).forEach(r=>{if(!o[r.test])o[r.test]=r});return o}
+const hasVitals=e=>e.vitals&&Object.values(e.vitals).some(v=>v!=null&&v!=='');
+
+/* gap + inconsistency rule engine (pure, deterministic) */
+function gapEngine(p,age,latest,res,trends,ckd){
+  const g=[],add=(code,sev,kind,message,refs)=>g.push({code,sev,kind,message,refs:refs||[]});
+  const conds=condsOf(p.id),encs=encsOf(p.id),meds=medsOf(p.id),now=Date.now();
+  if(p.allergyStatus==='unknown')add('ALLERGY_STATUS_UNKNOWN','medium','missing','Allergy status has not been recorded. "Unknown" is not the same as "no known allergies".');
+  if(!conds.some(c=>c.isPrimary&&c.status==='active'))add('NO_PRIMARY_DIAGNOSIS','medium','missing','No active primary diagnosis is recorded.');
+  if(!meds.length)add('NO_MEDICATIONS_DOCUMENTED','low','missing','No medications are documented, so "takes none" cannot be told apart from "not recorded".');
+  if(!res.length)add('NO_LABS_RECORDED','high','missing','No laboratory results are on record for this patient.');
+  else{
+    const days=Math.round((now-new Date(res[0].collectedAt))/DAY);
+    if(days>180)add('NO_RECENT_LABS','medium','missing',`The most recent lab result is ${days} days old (threshold 180 days).`,['lab:'+res[0].test+':'+isoDate(res[0].collectedAt)]);
+    ['CREAT','EGFR','UACR'].forEach(t=>{if(!latest[t])add('NO_LABS_FOR_TEST','low','missing',`${LAB_TESTS[t].name} has never been recorded.`)});
+    if(trends.EGFR.n>0&&trends.EGFR.n<3)add('INSUFFICIENT_TREND_DATA','low','missing',`Only ${trends.EGFR.n} eGFR result${trends.EGFR.n>1?'s':''} on record; a trend needs at least 3.`);
+  }
+  encs.filter(e=>e.status==='final').forEach(e=>{
+    if(!hasVitals(e))add('ENCOUNTER_NO_VITALS','low','missing',`Final encounter on ${fmtDate(e.date)} has no vitals recorded.`,['enc:'+sid(e.id)]);
+    if(!e.assessment||!e.plan)add('ENCOUNTER_NO_ASSESSMENT','medium','missing',`Final encounter on ${fmtDate(e.date)} is missing an assessment or plan.`,['enc:'+sid(e.id)]);
+  });
+  const low=res.filter(r=>r.test==='EGFR'&&r.value<60).sort((a,b)=>new Date(a.collectedAt)-new Date(b.collectedAt));
+  if(!p.ckd&&latest.EGFR&&latest.EGFR.value<60&&low.length>=2&&(new Date(low[low.length-1].collectedAt)-new Date(low[0].collectedAt))>=90*DAY)
+    add('NO_ESTABLISHED_CKD_STAGE','medium','missing',`eGFR has been below 60 for over 3 months but no established CKD stage is recorded.`,['lab:EGFR:'+isoDate(low[0].collectedAt)]);
+  if(ckd.mismatch)add('CKD_STAGE_MISMATCH','high','inconsistent',`Established CKD stage ${ckd.established} does not match the eGFR category of the latest result (${ckd.egfrCat}, eGFR ${fmtVal('EGFR',ckd.egfrVal)}).`,['lab:EGFR:'+isoDate(ckd.egfrDate)]);
+  if(latest.EGFR&&latest.CREAT&&latest.EGFR.reportId===latest.CREAT.reportId){
+    const calc=ckdEpi(latest.CREAT.value,ageOf(p.dob,latest.EGFR.collectedAt),p.sex);
+    if(Math.abs(calc-latest.EGFR.value)>12)add('EGFR_CREATININE_DISCORDANT','medium','inconsistent',`Reported eGFR ${latest.EGFR.value} differs from the CKD-EPI 2021 estimate (${Math.round(calc)}) computed from creatinine ${fmtVal('CREAT',latest.CREAT.value)} mg/dL.`,['lab:EGFR:'+isoDate(latest.EGFR.collectedAt),'lab:CREAT:'+isoDate(latest.CREAT.collectedAt)]);
+  }
+  const c=trends.CREAT,e=trends.EGFR;
+  if(c.n>=3&&e.n>=3&&((c.direction==='improving'&&e.direction==='worsening')||(c.direction==='worsening'&&e.direction==='improving')))add('DIRECTION_CONTRADICTION','medium','inconsistent','Creatinine and eGFR are trending in clinically incompatible directions.');
+  meds.filter(m=>m.status==='active'&&m.end&&new Date(m.end)<now).forEach(m=>add('ACTIVE_MED_PAST_END_DATE','low','inconsistent',`${m.name} is marked active but its end date (${fmtDate(m.end)}) has passed.`,['med:'+sid(m.id)]));
+  res.forEach(r=>{const t=new Date(r.collectedAt);if(t>now||t<new Date(p.dob))add('LAB_DATE_INVALID','high','inconsistent',`A ${LAB_TESTS[r.test].name} result has an impossible collection date.`)});
+  const o={high:0,medium:1,low:2};return g.sort((a,b)=>o[a.sev]-o[b.sev]);
+}
+function analyze(id){
+  const p=P(id),age=ageOf(p.dob),latest=latestByTest(id),res=resultsOf(id);
+  const series=t=>res.filter(r=>r.test===t).sort((a,b)=>new Date(a.collectedAt)-new Date(b.collectedAt)).map(r=>({t:new Date(r.collectedAt).getTime(),v:r.value,flag:r.flag,id:r.id}));
+  const trends={CREAT:trendStats(series('CREAT'),'CREAT'),EGFR:trendStats(series('EGFR'),'EGFR')};
+  const eg=latest.EGFR,ua=latest.UACR;
+  const ckd={established:p.ckd||null,egfrCat:eg?classifyEgfr(eg.value):null,egfrVal:eg?eg.value:null,egfrDate:eg?eg.collectedAt:null,uacrCat:ua?classifyUacr(ua.value):null,uacrVal:ua?ua.value:null,uacrDate:ua?ua.collectedAt:null};
+  ckd.mismatch=!!(p.ckd&&eg&&ckd.egfrCat!==p.ckd);
+  const gaps=gapEngine(p,age,latest,res,trends,ckd),abnormal=Object.values(latest).filter(r=>r.flag!=='normal');
+  const critical=abnormal.some(r=>r.flag.indexOf('critical')===0);
+  return{p,age,latest,res,trends,ckd,gaps,abnormal,critical,rapid:!!trends.EGFR.rapid,attention:critical||!!trends.EGFR.rapid||gaps.some(x=>x.sev==='high')};
+}
+
+/* ================= auth service logic ================= */
+const COMMON_PW=['password123','1234567890','qwertyuiop','welcome123'];
+const pwChecks=pw=>({len:pw.length>=10,letter:/[A-Za-z]/.test(pw),digit:/\d/.test(pw),common:!COMMON_PW.includes(pw.toLowerCase())});
+function authLogin(email,pw){
+  const u=db.users.find(x=>x.email===email.toLowerCase());
+  if(u&&u.lockedUntil>Date.now())throw new ApiError(429,'ACCOUNT_LOCKED',`Too many failed attempts. Try again in ${Math.ceil((u.lockedUntil-Date.now())/60000)} minutes.`);
+  if(!u||u.hash!=='argon2id$'+hash53(u.email+pw)){if(u){u.failed++;if(u.failed>=5){u.lockedUntil=Date.now()+15*60000;u.failed=0}save()}throw new ApiError(401,'INVALID_CREDENTIALS','Invalid email or password.')}
+  if(!u.active)throw new ApiError(403,'ACCOUNT_DISABLED','This account has been deactivated. Contact an administrator.');
+  u.failed=0;u.lastLogin=new Date().toISOString();save();return u;
+}
+function startSession(u){const exp=Date.now()+15*60000;session={user:{id:u.id,name:u.name,email:u.email,role:u.role},accessExp:exp,refreshExp:Date.now()+7*DAY,refreshValid:true,rotations:0,token:makeToken(u,exp)};save()}
+function forceLogout(msg){session=null;save();if(msg)toast(msg,'info');location.hash='#/login'}
+
+/* ================= UI infrastructure ================= */
+function toast(msg,type='ok'){const t=document.createElement('div');t.className='toast '+(type==='error'?'err':type);t.innerHTML=ic(type==='error'||type==='err'?'alert':type==='info'?'info':'check',16)+'<span>'+esc(msg)+'</span>';$('#toasts').appendChild(t);setTimeout(()=>t.remove(),type==='error'?5200:3400)}
+function openModal({title,sub,body,size='md'}){
+  closeModal();const m=document.createElement('div');m.className='backdrop';m.id='modal';
+  m.innerHTML=`<div class="modal ${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-h"><div><h2>${esc(title)}</h2>${sub?`<p>${sub}</p>`:''}</div><button class="icon-btn" data-act="close-modal" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${body}</div></div>`;
+  document.body.appendChild(m);setTimeout(()=>{const f=$('input:not([type=hidden]):not([readonly]),select,textarea',m);f&&f.focus()},40);
+}
+function closeModal(){const m=$('#modal');if(m)m.remove();if(confirmResolve){confirmResolve(false);confirmResolve=null}}
+let confirmResolve=null;
+function confirmDialog({title,message,ok='Confirm',danger=false}){
+  return new Promise(res=>{openModal({title,size:'sm',body:`<p style="margin-bottom:18px;color:var(--ink-2)">${message}</p><div class="form-actions" style="border:0;padding:0;margin:0"><button class="btn" data-act="confirm-no">Cancel</button><button class="btn ${danger?'danger':'primary'}" data-act="confirm-yes">${esc(ok)}</button></div>`});confirmResolve=res})
+}
+function setLoading(btn,on){if(!btn)return;btn.classList.toggle('loading',on);btn.disabled=on}
+function showErrors(f,errs){
+  $$('[data-err]',f).forEach(e=>e.textContent='');$$('.invalid',f).forEach(e=>e.classList.remove('invalid'));let first=null;
+  Object.keys(errs).forEach(k=>{const e=$(`[data-err="${k}"]`,f);if(e){e.textContent=errs[k];const i=e.closest('.fld')&&e.closest('.fld').querySelector('input,select,textarea');if(i){i.classList.add('invalid');first=first||i}}});
+  const n=Object.keys(errs).length,gen=$('[data-gen]',f);if(gen)gen.innerHTML=n?`<div class="alert danger" style="margin-bottom:12px">${ic('alert',16)}<div><b>Fix ${n} field${n>1?'s':''} to continue.</b></div></div>`:'';
+  if(first)first.focus();return n>0;
+}
+const fld=(label,inner,o={})=>`<label class="fld ${o.cls||''}"><span class="fld-l">${label}${o.req?'<b class="req">*</b>':''}</span>${inner}${o.hint?`<span class="hint">${o.hint}</span>`:''}<span class="err" data-err="${o.name||''}"></span></label>`;
+const errorState=(e,back)=>`<div class="panel"><div class="empty">${ic(e.status===403?'shield':'alert',30)}<b>${e.status===403?'Access denied':e.status===404?'Not found':'Something went wrong'}</b><span>${esc(e.message)}</span>${e.code?`<div class="small muted" style="margin-top:8px">${esc(e.code)}</div>`:''}${back?`<div style="margin-top:14px"><a class="btn" href="${back}">Back</a></div>`:''}</div></div>`;
+const skeleton=()=>`<div class="panel"><div class="panel-b"><div class="skel" style="width:30%;margin-bottom:14px"></div><div class="skel" style="width:90%;margin-bottom:10px"></div><div class="skel" style="width:80%;margin-bottom:10px"></div><div class="skel" style="width:60%"></div></div></div>`;
+
+/* network drawer */
+function renderNet(){
+  const b=$('#net-body');if(!b)return;$('#net-count').textContent=logs.length+' requests';
+  b.innerHTML=`<table><thead><tr><th>Time</th><th>Request</th><th>Route</th><th>Call</th><th>Status</th><th class="num">ms</th></tr></thead><tbody>${logs.slice(0,60).map(l=>`<tr><td class="mono">${fmtTime(l.t)}</td><td class="mono muted">${l.rid}</td><td>${l.from?SVC[l.from]+' → '+SVC[l.service]+' <span class="muted">(internal)</span>':'Gateway → '+SVC[l.service]}</td><td class="mono"><b>${l.method}</b> ${esc(l.path)}</td><td>${chip(l.status+(l.code&&l.status>=400?' '+l.code:''),l.status<400?'ok':'danger')}</td><td class="num mono">${l.ms}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No requests yet.</td></tr>'}</tbody></table>`;
+}
+
+/* shell */
+function ensureShell(){
+  if($('#shell'))return;
+  $('#app').innerHTML=`<div class="shell" id="shell"><aside class="sidebar"><a class="brand" href="#/dashboard" style="text-decoration:none"><span class="logo">${ic('activity',20)}</span><div><b>NephroCare</b><small>Nephrology EMR</small></div></a><nav id="side-nav"></nav><div class="side-foot"><div class="clinic"><b>Lotus Kidney Clinic</b><small>Outpatient nephrology</small></div></div></aside>
+  <div class="main"><header class="topbar"><form class="gsearch" id="gsearch" data-form="gsearch">${ic('search',16)}<input name="q" placeholder="Search patients by name or ID" autocomplete="off" aria-label="Search patients"></form><div class="user-menu" id="user-menu"></div></header><main id="view" class="view"></main></div></div>`;
+}
+function renderChrome(){
+  const r=parseRoute().parts[0]||'dashboard',u=session.user;
+  const items=[['dashboard','activity','Dashboard'],['patients','users','Patients']];
+  $('#side-nav').innerHTML=items.map(i=>`<a class="nav-item ${r===i[0]?'active':''}" href="#/${i[0]}">${ic(i[1],18)}<span>${i[2]}</span></a>`).join('');
+  $('#user-menu').innerHTML=`<div class="user-btn" style="cursor:default">${avatar(u.name)}<span class="who"><b>${esc(u.name)}</b><span>Nephrologist</span></span></div>`;
+}
+
+/* routing + event delegation */
+function parseRoute(){const h=location.hash.replace(/^#/,'')||'/dashboard';const[path,qs]=h.split('?');return{parts:path.split('/').filter(Boolean),q:new URLSearchParams(qs||'')}}
+const actions={},forms={},inputs={},changes={};
+document.addEventListener('click',e=>{
+  const um=$('#umenu');if(um&&um.classList.contains('open')&&!e.target.closest('.user-menu'))um.classList.remove('open');
+  if(e.target.id==='modal'){closeModal();return}
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;const fn=actions[el.dataset.act];if(fn)fn(el,e);
+});
+document.addEventListener('submit',e=>{const f=e.target.closest('form[data-form]');if(!f)return;e.preventDefault();const fn=forms[f.dataset.form];if(fn)fn(f,e)});
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.input;if(k&&inputs[k])inputs[k](e.target,e)});
+document.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.change;if(k&&changes[k])changes[k](e.target,e)});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.keydown==='sym'){e.preventDefault();actions['add-symptom'](e.target)}
+});
+document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-tip]');if(t){const tt=$('#tooltip');tt.innerHTML=t.dataset.tip;tt.classList.add('show')}});
+document.addEventListener('mousemove',e=>{const tt=$('#tooltip');if(tt.classList.contains('show')){tt.style.left=Math.min(e.clientX+14,innerWidth-270)+'px';tt.style.top=(e.clientY+16)+'px'}});
+document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('[data-tip]'))$('#tooltip').classList.remove('show')});
+window.addEventListener('hashchange',render);
+
+actions['close-modal']=()=>closeModal();
+actions['confirm-yes']=()=>{const r=confirmResolve;confirmResolve=null;closeModal();r&&r(true)};
+actions['confirm-no']=()=>closeModal();
+actions['toggle-user-menu']=()=>$('#umenu').classList.toggle('open');
+actions['toggle-net']=()=>{ui.net=!ui.net;$('#net').classList.toggle('open',ui.net);if(ui.net)renderNet()};
+actions['clear-net']=()=>{logs.length=0;renderNet()};
+actions.goto=el=>{location.hash=el.dataset.route};
+actions.logout=async()=>{try{await api('auth','POST','/auth/logout',()=>{if(session)session.refreshValid=false},{noAuth:true,delay:60})}catch(e){}forceLogout();toast('Signed out. Refresh token family revoked.','info')};
+forms.gsearch=f=>{const q=(new FormData(f).get('q')||'').trim();const h='#/patients?q='+enc(q);if(location.hash===h)render();else location.hash=h};
+
+/* ================= router entry ================= */
+function render(){
+  const route=parseRoute();ui.tok++;const tok=ui.tok,p0=route.parts[0]||'dashboard';
+  ensureShell();renderChrome();
+  if(p0==='dashboard')viewDashboard(tok);
+  else if(p0==='patients'){route.parts[1]?viewPatient(route,tok):viewPatients(route,tok)}
+  else location.hash='#/dashboard';
+}
+
+/* ================= auth views ================= */
+function viewAuth(mode){
+  const login=mode!=='signup';
+  $('#app').innerHTML=`<div class="auth"><section class="auth-art"><div><div class="brand" style="padding:0 0 40px"><span class="logo">${ic('activity',20)}</span><div><b>NephroCare</b><small>Nephrology EMR</small></div></div>
+  <h1>Kidney care, charted clearly.</h1><ul><li>${ic('users',20)}<div><b>One chart per patient</b>Demographics, problem list, medications, allergies and every visit in one place.</div></li><li>${ic('flask',20)}<div><b>Kidney function at a glance</b>Creatinine and eGFR trends against reference ranges, with the CKD stage beside them.</div></li><li>${ic('spark',20)}<div><b>AI summaries you can verify</b>Computed facts and rule findings stay separate from AI narrative, and every claim cites its source.</div></li></ul></div>
+  <svg class="trace" viewBox="0 0 420 120" fill="none" stroke="#5fc4cf" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="0,70 60,70 80,30 105,100 130,50 150,70 230,70 250,20 280,110 305,60 325,70 420,70"/></svg></section>
+  <section class="auth-form"><div class="auth-card"><div class="seg"><a class="${login?'on':''}" href="#/login">Sign in</a><a class="${login?'':'on'}" href="#/signup">Create account</a></div>
+  <h2>${login?'Sign in to your clinic':'Create a clinician account'}</h2><p class="muted" style="margin-bottom:18px">${login?'Use your clinic email and password.':'New accounts are created with the clinician role.'}</p><div id="auth-err"></div>
+  ${login?`<form data-form="login" novalidate>${fld('Email',`<input name="email" type="email" autocomplete="username" placeholder="you@clinic.org" required>`)}${fld('Password',`<input name="password" type="password" autocomplete="current-password" required>`)}<button class="btn primary" style="width:100%;justify-content:center;height:40px" type="submit">Sign in</button></form>
+  <div class="demo-box"><b>Demo accounts</b><div class="row" style="margin-top:8px"><button class="btn sm" data-act="demo-fill" data-e="dr.rao@nephrocare.demo" data-p="Nephro#2026">Use clinician account</button><button class="btn sm" data-act="demo-fill" data-e="admin@nephrocare.demo" data-p="Admin#2026!">Use admin account</button></div><p class="small muted" style="margin-top:8px">Admins manage users and system settings but cannot open clinical records. Five wrong passwords lock an account for 15 minutes.</p></div>`
+  :`<form data-form="signup" novalidate>${fld('Full name',`<input name="name" autocomplete="name" placeholder="Dr. Priya Sharma">`,{name:'name'})}${fld('Email',`<input name="email" type="email" autocomplete="username">`,{name:'email'})}${fld('Password',`<input name="password" type="password" autocomplete="new-password" data-input="pw-rules">`,{name:'password'})}
+  <div class="pw-rules" id="pw-rules"><span>At least 10 characters</span><span>Contains a letter and a number</span><span>Not a commonly used password</span></div>${fld('Confirm password',`<input name="confirm" type="password" autocomplete="new-password">`,{name:'confirm'})}<button class="btn primary" style="width:100%;justify-content:center;height:40px" type="submit">Create account</button></form>`}
+  </div></section></div>`;
+}
+actions['demo-fill']=el=>{const f=$('form[data-form=login]');f.email.value=el.dataset.e;f.password.value=el.dataset.p};
+inputs['pw-rules']=el=>{const c=pwChecks(el.value),ok=[c.len,c.letter&&c.digit,c.common&&el.value.length>0];$$('#pw-rules span').forEach((s,i)=>{s.className=ok[i]?'ok':'';s.textContent=(ok[i]?'✓ ':'')+s.textContent.replace('✓ ','')})};
+forms.login=async f=>{
+  const fd=new FormData(f),btn=$('button[type=submit]',f);setLoading(btn,true);$('#auth-err').innerHTML='';
+  try{const u=await api('auth','POST','/auth/login',()=>authLogin((fd.get('email')||'').trim(),fd.get('password')||''),{noAuth:true,delay:260});startSession(u);toast('Signed in as '+u.name+'.');location.hash=u.role==='admin'?'#/system':'#/patients'}
+  catch(e){$('#auth-err').innerHTML=`<div class="alert danger" style="margin-bottom:14px">${ic('alert',16)}<div>${esc(e.message)}</div></div>`}
+  finally{setLoading(btn,false)}
+};
+forms.signup=async f=>{
+  const fd=new FormData(f),btn=$('button[type=submit]',f),v=k=>(fd.get(k)||'').trim(),errs={};
+  if(v('name').length<2)errs.name='Enter your full name.';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')))errs.email='Enter a valid email address.';
+  const c=pwChecks(fd.get('password')||'');if(!(c.len&&c.letter&&c.digit&&c.common))errs.password='Password does not meet the rules below.';
+  if(fd.get('password')!==fd.get('confirm'))errs.confirm='Passwords do not match.';
+  if(showErrors(f,errs))return;
+  setLoading(btn,true);$('#auth-err').innerHTML='';
+  try{const u=await api('auth','POST','/auth/signup',()=>{
+      if(!db.config.signupEnabled)throw new ApiError(403,'SIGNUP_DISABLED','Public signup is turned off. Ask an administrator for an invitation.');
+      if(db.users.some(x=>x.email===v('email').toLowerCase()))throw new ApiError(409,'EMAIL_TAKEN','An account with this email already exists.');
+      const nu={id:uid(),name:v('name'),email:v('email').toLowerCase(),role:'clinician',hash:'argon2id$'+hash53(v('email').toLowerCase()+fd.get('password')),active:true,failed:0,lockedUntil:0,lastLogin:new Date().toISOString(),createdAt:new Date().toISOString()};
+      db.users.push(nu);save();return nu},{noAuth:true,delay:300});
+    startSession(u);toast('Account created. Welcome, '+u.name+'.');location.hash='#/patients'}
+  catch(e){$('#auth-err').innerHTML=`<div class="alert danger" style="margin-bottom:14px">${ic('alert',16)}<div>${esc(e.message)}</div></div>`}
+  finally{setLoading(btn,false)}
+};
+
+/* ================= patient list ================= */
+function listPatients(L){
+  clin();const q=L.q.trim().toLowerCase();
+  let rows=db.patients.filter(p=>!p.deletedAt).map(p=>{const a=analyze(p.id),pr=primaryOf(p.id),le=encsOf(p.id).find(e=>e.status==='final');return{p,a,age:a.age,dx:pr?pr.desc:'',visit:le?le.date:null,egfr:a.latest.EGFR?a.latest.EGFR.value:null}});
+  if(q)rows=rows.filter(r=>r.p.mrn.toLowerCase().includes(q)||fullName(r.p).toLowerCase().includes(q)||(r.p.last+' '+r.p.first).toLowerCase().includes(q));
+  if(L.sex)rows=rows.filter(r=>r.p.sex===L.sex);
+  if(L.stage)rows=rows.filter(r=>L.stage==='none'?!r.p.ckd:r.p.ckd===L.stage);
+  if(L.attention)rows=rows.filter(r=>r.a.attention);
+  const key={name:r=>(r.p.last+r.p.first).toLowerCase(),mrn:r=>r.p.mrn,age:r=>r.age,dx:r=>r.dx.toLowerCase(),egfr:r=>r.egfr==null?1e9:r.egfr,visit:r=>r.visit?new Date(r.visit).getTime():0}[L.sort]||(r=>r.p.mrn);
+  rows.sort((a,b)=>{const x=key(a),y=key(b);return(x<y?-1:x>y?1:0)*L.dir});
+  const total=rows.length,pages=Math.max(1,Math.ceil(total/PAGE));L.page=Math.min(L.page,pages);
+  return{items:rows.slice((L.page-1)*PAGE,L.page*PAGE),total,pages};
+}
+async function viewPatients(route,tok){
+  const L=ui.list;if(route.q.has('q')){L.q=route.q.get('q')||'';L.page=1}
+  ui.cur={pid:null,tab:null};
+  $('#view').innerHTML=`<div class="page-h"><div><h1>Patients</h1><p>Search by name or patient ID, then open a chart.</p></div><button class="btn primary" data-act="new-patient">${ic('plus',16)}New patient</button></div>
+  <div id="pt-kpis">${skeleton()}</div><div class="panel"><div class="toolbar"><label class="search">${ic('search',16)}<input id="pt-search" data-input="pt-search" placeholder="Search by name or patient ID (for example PT-000101)" value="${esc(L.q)}" autocomplete="off"></label>
+  <select class="inp sm" data-change="pt-sex" aria-label="Sex"><option value="">All sexes</option><option value="M" ${L.sex==='M'?'selected':''}>Male</option><option value="F" ${L.sex==='F'?'selected':''}>Female</option></select>
+  <select class="inp sm" data-change="pt-stage" aria-label="Established CKD stage"><option value="">All CKD stages</option>${['G1','G2','G3a','G3b','G4','G5'].map(s=>`<option ${L.stage===s?'selected':''}>${s}</option>`).join('')}<option value="none" ${L.stage==='none'?'selected':''}>No stage recorded</option></select>
+  <label class="chk"><input type="checkbox" data-change="pt-att" ${L.attention?'checked':''}> Needs attention</label><button class="btn ghost sm" data-act="clear-filters">Clear filters</button></div><div id="pt-table">${skeleton()}</div></div>`;
+  try{
+    const stats=await api('patient','GET','/patients/stats',()=>{clin();const all=db.patients.filter(p=>!p.deletedAt).map(p=>analyze(p.id));return{total:all.length,att:all.filter(a=>a.attention).length,crit:all.filter(a=>a.critical).length,rapid:all.filter(a=>a.rapid).length,drafts:db.encounters.filter(e=>e.status==='draft'&&!e.deletedAt).length}});
+    if(tok!==ui.tok)return;
+    $('#pt-kpis').innerHTML=`<div class="kpis"><div class="kpi"><div class="n">${stats.total}</div><div class="l">Patients</div></div><div class="kpi ${stats.att?'hot':''}"><div class="n">${stats.att}</div><div class="l">Need attention</div></div><div class="kpi"><div class="n">${stats.crit}</div><div class="l">With critical results</div></div><div class="kpi"><div class="n">${stats.rapid}</div><div class="l">Rapid eGFR decline</div></div><div class="kpi"><div class="n">${stats.drafts}</div><div class="l">Draft encounters</div></div></div>`;
+    await loadPatientTable(tok);
+  }catch(e){if(tok===ui.tok)$('#view').innerHTML=errorState(e)}
+}
+async function loadPatientTable(tok){
+  const L=ui.list;
+  try{
+    const r=await api('patient','GET',`/patients?q=${enc(L.q)}&page=${L.page}&size=${PAGE}`,()=>listPatients(L));
+    if(tok!=null&&tok!==ui.tok)return;const box=$('#pt-table');if(!box)return;
+    const th=(k,l,cls='')=>`<th class="sortable ${cls}" data-act="sort-patients" data-key="${k}">${l}${L.sort===k?(L.dir>0?' ▲':' ▼'):''}</th>`;
+    box.innerHTML=r.total?`<table><thead><tr>${th('mrn','Patient ID')}${th('name','Name')}${th('age','Age','num')}<th>Gender</th>${th('dx','Primary diagnosis')}<th>CKD stage</th>${th('egfr','Latest eGFR')}<th>eGFR trend</th>${th('visit','Last visit')}</tr></thead><tbody>${r.items.map(x=>`<tr class="click" data-act="open-patient" data-id="${x.p.id}"><td class="mono nowrap">${x.p.mrn}</td><td><div class="cell-name">${avatar(fullName(x.p))}<div><b>${esc(fullName(x.p))}</b>${x.a.attention?`<span style="color:var(--bad)">Needs attention</span>`:`<span>${esc(x.p.phone)}</span>`}</div></div></td><td class="num">${x.age}</td><td>${sexLabel(x.p.sex)}</td><td>${x.dx?esc(x.dx):'<span class="nd">None recorded</span>'}</td><td>${stageChip(x.p.ckd)}</td><td class="nowrap">${x.a.latest.EGFR?`<span class="mono">${x.egfr}</span> ${flagChip(x.a.latest.EGFR.flag)}`:'<span class="nd">No results</span>'}</td><td>${spark(x.a.trends.EGFR)}</td><td class="nowrap">${x.visit?fmtDate(x.visit):'<span class="nd">No visits</span>'}</td></tr>`).join('')}</tbody></table>
+    <div class="pager"><span>Showing ${(L.page-1)*PAGE+1}–${(L.page-1)*PAGE+r.items.length} of ${r.total} patients</span><div class="row"><button class="btn sm" data-act="page-patients" data-d="-1" ${L.page<=1?'disabled':''}>${ic('left',14)}Previous</button><span>Page ${L.page} of ${r.pages}</span><button class="btn sm" data-act="page-patients" data-d="1" ${L.page>=r.pages?'disabled':''}>Next${ic('right',14)}</button></div></div>`
+    :`<div class="empty"><b>No patients match your search</b>Check the spelling, try a patient ID such as PT-000101, or clear the filters.<div style="margin-top:12px"><button class="btn" data-act="clear-filters">Clear filters</button></div></div>`;
+  }catch(e){const box=$('#pt-table');if(box)box.innerHTML=errorState(e)}
+}
+let searchT;
+inputs['pt-search']=el=>{ui.list.q=el.value;ui.list.page=1;clearTimeout(searchT);searchT=setTimeout(()=>loadPatientTable(),260)};
+changes['pt-sex']=el=>{ui.list.sex=el.value;ui.list.page=1;loadPatientTable()};
+changes['pt-stage']=el=>{ui.list.stage=el.value;ui.list.page=1;loadPatientTable()};
+changes['pt-att']=el=>{ui.list.attention=el.checked;ui.list.page=1;loadPatientTable()};
+actions['clear-filters']=()=>{Object.assign(ui.list,{q:'',sex:'',stage:'',attention:false,page:1});render()};
+actions['sort-patients']=el=>{const L=ui.list,k=el.dataset.key;if(L.sort===k)L.dir*=-1;else{L.sort=k;L.dir=1}loadPatientTable()};
+actions['page-patients']=el=>{ui.list.page+=+el.dataset.d;loadPatientTable()};
+actions['open-patient']=el=>{location.hash='#/patients/'+el.dataset.id+'/overview'};
+
+/* ================= patient forms ================= */
+function patientForm(p){
+  const v=p||{};
+  return `<form data-form="patient" data-id="${p?p.id:''}" data-version="${p?p.version:''}" novalidate><div data-gen></div>
+  <div class="f-row">${fld('First name',`<input name="first" maxlength="60" value="${esc(v.first||'')}">`,{req:1,name:'first'})}${fld('Last name',`<input name="last" maxlength="60" value="${esc(v.last||'')}">`,{req:1,name:'last'})}</div>
+  <div class="f-row">${fld('Date of birth',`<input type="date" name="dob" max="${isoDate(Date.now())}" value="${v.dob||''}">`,{req:1,name:'dob',hint:'Age is calculated from this date.'})}${fld('Sex',`<select name="sex">${['M','F','O'].map(s=>`<option value="${s}" ${v.sex===s?'selected':''}>${sexLabel(s)}</option>`).join('')}</select>`,{req:1,name:'sex'})}</div>
+  <div class="f-row">${fld('Phone',`<input name="phone" value="${esc(v.phone||'')}" placeholder="+91 98xxxxxxxx">`,{name:'phone'})}${fld('Email',`<input name="email" type="email" value="${esc(v.email||'')}">`,{name:'email'})}</div>
+  ${fld('Address',`<input name="address" value="${esc(v.address||'')}">`,{name:'address'})}
+  ${fld('Past medical history',`<textarea name="pmh">${esc(v.pmh||'')}</textarea>`,{name:'pmh'})}
+  <div class="f-row">${fld('Family history',`<textarea name="fh">${esc(v.fh||'')}</textarea>`,{name:'fh'})}${fld('Social history',`<textarea name="sh">${esc(v.sh||'')}</textarea>`,{name:'sh'})}</div>
+  ${p?'':fld('Allergy status',`<select name="als"><option value="unknown">Unknown (not yet asked)</option><option value="nka">No known allergies</option></select>`,{name:'als',hint:'Add specific allergies from the chart after registering.'})}
+  <div class="form-actions"><button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn primary" type="submit">${p?'Save changes':'Register patient'}</button></div></form>`;
+}
+actions['new-patient']=()=>openModal({title:'Register new patient',sub:'Synthetic data only. Do not enter real patient information.',body:patientForm(),size:'lg'});
+actions['edit-patient']=()=>{const p=P(ui.cur.pid);openModal({title:'Edit patient details',sub:esc(p.mrn),body:patientForm(p),size:'lg'})};
+forms.patient=async(f,ev)=>{
+  const fd=new FormData(f),v=k=>(fd.get(k)||'').trim(),errs={},editId=f.dataset.id;
+  if(!v('first'))errs.first='First name is required.';if(!v('last'))errs.last='Last name is required.';
+  if(!v('dob'))errs.dob='Date of birth is required.';else if(new Date(v('dob'))>new Date())errs.dob='Date of birth cannot be in the future.';else if(ageOf(v('dob'))>120)errs.dob='Check the date of birth. Age would exceed 120.';
+  if(v('email')&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')))errs.email='Enter a valid email address.';
+  if(v('phone')&&!/^[+0-9 ()-]{7,20}$/.test(v('phone')))errs.phone='Use digits, spaces and + only (7 to 20 characters).';
+  if(showErrors(f,errs))return;
+  const btn=ev.submitter;setLoading(btn,true);
+  try{
+    if(editId){
+      await api('patient','PATCH',`/patients/${sid(editId)}`,()=>{clin();const p=P(editId);if(p.version!==+f.dataset.version)throw new ApiError(409,'VERSION_CONFLICT','This record was changed by someone else. Reload and try again.');Object.assign(p,{first:v('first'),last:v('last'),dob:v('dob'),sex:v('sex'),phone:v('phone'),email:v('email'),address:v('address'),pmh:v('pmh'),fh:v('fh'),sh:v('sh')});p.version++;audit('update patient',p.id);save()});
+      closeModal();toast('Patient details saved.');render();
+    }else{
+      const np=await api('patient','POST','/patients',()=>{clin();const n=Math.max(...db.patients.map(p=>+p.mrn.slice(3)))+1;const p={id:uid(),mrn:'PT-'+String(n).padStart(6,'0'),first:v('first'),last:v('last'),dob:v('dob'),sex:v('sex'),phone:v('phone'),email:v('email'),address:v('address'),pmh:v('pmh'),fh:v('fh'),sh:v('sh'),allergyStatus:v('als')||'unknown',ckd:null,version:1,deletedAt:null,createdAt:new Date().toISOString()};db.patients.push(p);audit('create patient',p.id);save();return p});
+      closeModal();toast(`Patient ${np.mrn} registered.`);location.hash='#/patients/'+np.id+'/overview';
+    }
+  }catch(e){setLoading(btn,false);const g=$('[data-gen]',f);if(g)g.innerHTML=`<div class="alert danger" style="margin-bottom:12px">${ic('alert',16)}<div>${esc(e.message)}</div></div>`}
+};
+
+/* ================= patient detail shell ================= */
+const TABS=[['overview','Overview','user'],['conditions','Conditions','clip'],['meds','Medications and allergies','pill'],['encounters','Encounters','file'],['labs','Labs','flask'],['ai','AI summary','spark']];
+async function viewPatient(route,tok){
+  const id=route.parts[1],tab=TABS.some(t=>t[0]===route.parts[2])?route.parts[2]:'overview';
+  if(ui.cur.pid!==id||!$('#pt-shell'))$('#view').innerHTML=skeleton();
+  ui.cur={pid:id,tab};
+  try{
+    const a=await api('patient','GET',`/patients/${sid(id)}`,()=>{clin();const x=analyze(id);audit('view chart',id);save();return x});
+    if(tok!==ui.tok)return;
+    const p=a.p,al=allergiesOf(id);
+    const counts={conditions:condsOf(id).length,meds:medsOf(id).filter(m=>m.status==='active').length,encounters:encsOf(id).length,labs:a.res.length};
+    const alChip=p.allergyStatus==='has'?chip('Allergies: '+al.map(x=>x.allergen).join(', '),'danger','alert'):p.allergyStatus==='nka'?chip('No known allergies','ok','check'):chip('Allergy status unknown','warn','alert');
+    $('#view').innerHTML=`<div id="pt-shell"><div class="crumbs"><a href="#/patients">Patients</a> / ${esc(fullName(p))}</div>
+    <div class="pt-head"><div class="pt-id">${avatar(fullName(p),'lg')}<div><h1>${esc(fullName(p))}</h1><div class="pt-meta"><span class="chip mono">${p.mrn}</span><span class="chip">${a.age} years, ${sexLabel(p.sex)}</span><span class="chip">DOB ${fmtDate(p.dob)}</span>${alChip}</div></div></div>
+    <div class="row"><button class="btn" data-act="new-encounter">${ic('file',16)}New encounter</button><button class="btn" data-act="add-lab">${ic('flask',16)}Add lab report</button><a class="btn ai" href="#/patients/${id}/ai" style="text-decoration:none">${ic('spark',16)}AI summary</a></div></div>
+    <div class="pt-meta" style="margin-bottom:14px"><span class="muted small">CKD stage (established by clinician)</span>${stageChip(p.ckd)}<span class="muted small" style="margin-left:10px">eGFR category (latest result)</span>${a.ckd.egfrCat?chip(a.ckd.egfrCat,'teal'):'<span class="nd">No eGFR</span>'}${a.ckd.mismatch?chip('Does not match established stage','warn','alert'):''}</div>
+    <nav class="tabs">${TABS.map(t=>`<a class="tab ${t[0]==='ai'?'ai-tab':''} ${t[0]===tab?'active':''}" href="#/patients/${id}/${t[0]}">${ic(t[2],16)}${t[1]}${counts[t[0]]!=null?`<span class="ct">${counts[t[0]]}</span>`:''}</a>`).join('')}</nav><div id="tab-body">${skeleton()}</div></div>`;
+    await loadTab(tab,id,tok);
+  }catch(e){if(tok===ui.tok)$('#view').innerHTML=errorState(e,'#/patients')}
+}
+async function loadTab(tab,id,tok){
+  try{const html=await ({overview:tabOverview,conditions:tabConditions,meds:tabMeds,encounters:tabEncounters,labs:tabLabs,ai:tabAi})[tab](id);if(tok!==ui.tok)return;$('#tab-body').innerHTML=html;if(tab==='ai')renderAiPane()}
+  catch(e){if(tok===ui.tok)$('#tab-body').innerHTML=errorState(e)}
+}
+const nd=s=>s&&String(s).trim()?esc(s):'<span class="nd">Not documented</span>';
+
+/* ---------- overview ---------- */
+async function tabOverview(id){
+  const a=await api('patient','GET',`/patients/${sid(id)}/overview`,()=>{clin();return analyze(id)});
+  const p=a.p,encs=encsOf(id),pr=primaryOf(id),lastFinal=encs.find(e=>e.status==='final'),highGaps=a.gaps.filter(g=>g.sev!=='low').length;
+  return kidneyPanel(a,id)+`<div class="grid g-main"><div class="grid">
+  <div class="panel"><div class="panel-h"><h2>Demographics</h2><button class="btn sm" data-act="edit-patient">${ic('edit',14)}Edit</button></div><div class="panel-b"><dl class="dl"><dt>Patient ID</dt><dd class="mono">${p.mrn}</dd><dt>Date of birth</dt><dd>${fmtDate(p.dob)} (${a.age} years)</dd><dt>Sex</dt><dd>${sexLabel(p.sex)}</dd><dt>Phone</dt><dd>${nd(p.phone)}</dd><dt>Email</dt><dd>${nd(p.email)}</dd><dt>Address</dt><dd>${nd(p.address)}</dd></dl></div></div>
+  <div class="panel"><div class="panel-h"><h2>Medical history</h2></div><div class="panel-b"><dl class="dl"><dt>Past medical history</dt><dd>${nd(p.pmh)}</dd><dt>Family history</dt><dd>${nd(p.fh)}</dd><dt>Social history</dt><dd>${nd(p.sh)}</dd></dl></div></div></div>
+  <div class="grid"><div class="panel"><div class="panel-h"><h2>At a glance</h2></div><div class="panel-b"><dl class="dl" style="grid-template-columns:130px 1fr"><dt>Primary diagnosis</dt><dd>${pr?esc(pr.desc):'<span class="nd">None recorded</span>'}</dd><dt>Active conditions</dt><dd>${condsOf(id).filter(c=>c.status==='active').length}</dd><dt>Active medications</dt><dd>${medsOf(id).filter(m=>m.status==='active').length}</dd><dt>Encounters</dt><dd>${encs.length}</dd><dt>Last visit</dt><dd>${lastFinal?fmtDate(lastFinal.date):'<span class="nd">None</span>'}</dd><dt>Next follow-up</dt><dd>${lastFinal&&lastFinal.followUp?fmtDate(lastFinal.followUp):'<span class="nd">Not set</span>'}</dd><dt>Latest eGFR</dt><dd>${a.latest.EGFR?`<span class="mono">${a.latest.EGFR.value}</span> ${flagChip(a.latest.EGFR.flag)} <span class="muted small">${fmtDate(a.latest.EGFR.collectedAt)}</span>`:'<span class="nd">No results</span>'}</dd></dl></div></div>
+  <div class="panel"><div class="panel-h"><h2>Recent encounters</h2><a href="#/patients/${id}/encounters" class="small">View all</a></div>${encs.slice(0,3).map(e=>`<div class="list-item"><div><b>${fmtDate(e.date)}</b> <span class="muted">${typeLabel(e.type)}</span><div class="small muted">${esc(e.cc||'No chief complaint')}</div></div>${chip(e.status==='final'?'Final':'Draft',e.status==='final'?'ok':'warn')}</div>`).join('')||'<div class="empty">No encounters yet.<div style="margin-top:10px"><button class="btn sm primary" data-act="new-encounter">Create first encounter</button></div></div>'}</div>
+  <div class="alert ${highGaps?'warn':'ok'}">${ic(highGaps?'alert':'check',16)}<div>${highGaps?`<b>${highGaps} record gap${highGaps>1?'s':''} found.</b> <a href="#/patients/${id}/ai">Open AI summary</a> to see what is missing or inconsistent.`:'No significant gaps found in this record.'}</div></div></div></div>`;
+}
+
+/* ---------- conditions ---------- */
+async function tabConditions(id){
+  const a=await api('patient','GET',`/patients/${sid(id)}/conditions`,()=>{clin();return analyze(id)});
+  const cs=condsOf(id),sect=(title,cat)=>{const rows=cs.filter(c=>c.category===cat);return `<div class="panel" style="margin-bottom:14px"><div class="panel-h"><h2>${title}</h2><span class="muted small">${rows.length} recorded</span></div>${rows.length?`<table><thead><tr><th>ICD-10</th><th>Description</th><th>Onset</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(c=>`<tr><td class="mono">${esc(c.icd10||'-')}</td><td>${esc(c.desc)} ${c.isPrimary?chip('Primary','teal','star'):''}</td><td>${fmtDate(c.onset)}</td><td>${chip(c.status==='active'?'Active':'Resolved',c.status==='active'?'warn':'ok')}</td><td class="num nowrap">${c.status==='active'&&!c.isPrimary?`<button class="btn sm" data-act="set-primary" data-id="${c.id}">Set as primary</button> `:''}<button class="btn sm ghost" data-act="toggle-cond" data-id="${c.id}">${c.status==='active'?'Mark resolved':'Reactivate'}</button></td></tr>`).join('')}</tbody></table>`:`<div class="empty">None recorded.</div>`}</div>`};
+  return `<div class="panel" style="margin-bottom:14px"><div class="panel-b"><div class="row" style="justify-content:space-between"><div class="row" style="gap:18px"><label class="fld" style="margin:0"><span class="fld-l">Established CKD stage</span><select class="inp sm" data-change="ckd-stage" style="min-width:180px"><option value="">Not set</option>${['G1','G2','G3a','G3b','G4','G5'].map(s=>`<option ${a.p.ckd===s?'selected':''}>${s}</option>`).join('')}</select></label>
+  <div><div class="fld-l">eGFR category of latest result</div><div style="margin-top:6px">${a.ckd.egfrCat?chip(a.ckd.egfrCat+' ('+egfrLabel(a.ckd.egfrCat)+')','teal'):'<span class="nd">No eGFR on record</span>'}</div></div></div><button class="btn primary" data-act="add-condition">${ic('plus',16)}Add condition</button></div>
+  ${a.ckd.mismatch?`<div class="alert warn" style="margin-top:12px">${ic('alert',16)}<div><b>Stage mismatch.</b> Established stage ${a.ckd.established} differs from the latest eGFR category ${a.ckd.egfrCat}. One eGFR value does not define a CKD stage, so review before changing the established stage.</div></div>`:''}</div></div>
+  ${sect('Nephrology diagnoses','nephrology')}${sect('Comorbidities','comorbidity')}`;
+}
+changes['ckd-stage']=async el=>{
+  const id=ui.cur.pid;try{await api('patient','PATCH',`/patients/${sid(id)}`,()=>{clin();const p=P(id);p.ckd=el.value||null;p.version++;audit('set established CKD stage',id);save()});toast(el.value?`Established CKD stage set to ${el.value}.`:'Established CKD stage cleared.');render()}catch(e){toast(e.message,'error')}
+};
+actions['add-condition']=()=>openModal({title:'Add condition',body:`<form data-form="condition" novalidate><div data-gen></div><div class="f-row">${fld('ICD-10 code',`<input name="icd" maxlength="10" placeholder="N18.32">`,{name:'icd'})}${fld('Category',`<select name="cat"><option value="nephrology">Nephrology diagnosis</option><option value="comorbidity">Comorbidity</option></select>`)}</div>${fld('Description',`<input name="desc" maxlength="160">`,{req:1,name:'desc'})}${fld('Onset date',`<input type="date" name="onset" max="${isoDate(Date.now())}">`,{name:'onset'})}<label class="chk" style="margin-bottom:6px"><input type="checkbox" name="primary"> Make this the primary diagnosis</label><div class="form-actions"><button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn primary" type="submit">Add condition</button></div></form>`});
+forms.condition=async f=>{
+  const fd=new FormData(f),errs={},id=ui.cur.pid;if(!(fd.get('desc')||'').trim())errs.desc='Description is required.';if(fd.get('onset')&&new Date(fd.get('onset'))>new Date())errs.onset='Onset cannot be in the future.';if(showErrors(f,errs))return;
+  try{await api('patient','POST',`/patients/${sid(id)}/conditions`,()=>{clin();const prim=!!fd.get('primary');if(prim)condsOf(id).forEach(c=>c.isPrimary=false);db.conditions.push({id:uid(),patientId:id,icd10:(fd.get('icd')||'').trim().toUpperCase(),desc:fd.get('desc').trim(),category:fd.get('cat'),isPrimary:prim,status:'active',onset:fd.get('onset')||'',sourceEncounterId:null,deletedAt:null});audit('add condition',id);save()});closeModal();toast('Condition added.');render()}catch(e){toast(e.message,'error')}
+};
+actions['set-primary']=async el=>{const id=ui.cur.pid;await api('patient','PATCH',`/patients/${sid(id)}/conditions/${sid(el.dataset.id)}`,()=>{clin();condsOf(id).forEach(c=>c.isPrimary=false);db.conditions.find(c=>c.id===el.dataset.id).isPrimary=true;save()});toast('Primary diagnosis updated. Only one primary diagnosis is allowed per patient.');render()};
+actions['toggle-cond']=async el=>{const id=ui.cur.pid;await api('patient','PATCH',`/patients/${sid(id)}/conditions/${sid(el.dataset.id)}`,()=>{clin();const c=db.conditions.find(x=>x.id===el.dataset.id);c.status=c.status==='active'?'resolved':'active';if(c.status==='resolved')c.isPrimary=false;save()});toast('Condition status updated.');render()};
+
+/* ---------- medications and allergies ---------- */
+async function tabMeds(id){
+  const a=await api('patient','GET',`/patients/${sid(id)}/medications`,()=>{clin();return analyze(id)});
+  const meds=medsOf(id).filter(m=>ui.medsAll||m.status==='active'),al=allergiesOf(id),p=a.p;
+  return `<div class="grid g-main"><div class="panel"><div class="panel-h"><h2>${ic('pill',17)}Medications</h2><div class="row"><label class="chk small"><input type="checkbox" data-change="meds-all" ${ui.medsAll?'checked':''}> Show discontinued</label><button class="btn sm primary" data-act="add-med">${ic('plus',14)}Add medication</button></div></div>
+  ${meds.length?`<table><thead><tr><th>Medication</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Started</th><th>Status</th><th></th></tr></thead><tbody>${meds.map(m=>`<tr><td><b>${esc(m.name)}</b></td><td>${esc(m.dose)}</td><td>${esc(m.route)}</td><td>${esc(m.freq)}</td><td>${fmtDate(m.start)}</td><td>${chip(m.status==='active'?'Active':'Discontinued '+fmtDate(m.end),m.status==='active'?'ok':'')}</td><td class="num">${m.status==='active'?`<button class="btn sm ghost" data-act="stop-med" data-id="${m.id}">Discontinue</button>`:''}</td></tr>`).join('')}</tbody></table>`:`<div class="empty"><b>No medications documented</b>Add current medications, or leave this empty if the patient takes none.</div>`}</div>
+  <div class="panel"><div class="panel-h"><h2>${ic('alert',17)}Allergies</h2><button class="btn sm primary" data-act="add-allergy">${ic('plus',14)}Add allergy</button></div><div class="panel-b" style="border-bottom:1px solid var(--line)">${p.allergyStatus==='has'?`<div class="alert danger">${ic('alert',16)}<div><b>Has documented allergies</b></div></div>`:p.allergyStatus==='nka'?`<div class="alert ok">${ic('check',16)}<div><b>No known allergies</b> confirmed with the patient.</div></div>`:`<div class="alert warn">${ic('alert',16)}<div><b>Allergy status unknown.</b> It has not been asked or recorded yet.${al.length?'':`<div style="margin-top:8px"><button class="btn sm" data-act="mark-nka">Confirm no known allergies</button></div>`}</div></div>`}</div>
+  ${al.map(x=>`<div class="list-item"><div><b>${esc(x.allergen)}</b> ${chip(cap(x.severity),x.severity==='severe'?'danger':x.severity==='moderate'?'warn':'')}<div class="small muted">${esc(x.reaction||'Reaction not documented')}</div></div><button class="icon-btn" data-act="remove-allergy" data-id="${x.id}" aria-label="Remove allergy">${ic('trash',16)}</button></div>`).join('')||''}</div></div>`;
+}
+changes['meds-all']=el=>{ui.medsAll=el.checked;render()};
+actions['add-med']=()=>openModal({title:'Add medication',body:`<form data-form="med" novalidate><div data-gen></div>${fld('Medication name',`<input name="name" maxlength="80">`,{req:1,name:'name'})}<div class="f-row">${fld('Dose',`<input name="dose" placeholder="50 mg">`,{req:1,name:'dose'})}${fld('Route',`<select name="route"><option>Oral</option><option>SC</option><option>IV</option><option>Topical</option><option>Inhaled</option></select>`)}</div>${fld('Frequency',`<input name="freq" placeholder="Once daily">`,{req:1,name:'freq'})}${fld('Start date',`<input type="date" name="start" value="${isoDate(Date.now())}">`,{name:'start'})}<div class="form-actions"><button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn primary" type="submit">Add medication</button></div></form>`});
+forms.med=async f=>{
+  const fd=new FormData(f),errs={},id=ui.cur.pid,v=k=>(fd.get(k)||'').trim();if(!v('name'))errs.name='Medication name is required.';if(!v('dose'))errs.dose='Dose is required.';if(!v('freq'))errs.freq='Frequency is required.';if(showErrors(f,errs))return;
+  try{await api('patient','POST',`/patients/${sid(id)}/medications`,()=>{clin();db.meds.push({id:uid(),patientId:id,name:v('name'),dose:v('dose'),route:v('route'),freq:v('freq'),start:v('start'),end:null,status:'active'});audit('add medication',id);save()});closeModal();toast('Medication added.');render()}catch(e){toast(e.message,'error')}
+};
+actions['stop-med']=async el=>{const id=ui.cur.pid;if(!await confirmDialog({title:'Discontinue medication',message:'This sets the end date to today and moves it to discontinued. The record is kept.',ok:'Discontinue'}))return;await api('patient','PATCH',`/patients/${sid(id)}/medications/${sid(el.dataset.id)}`,()=>{clin();const m=db.meds.find(x=>x.id===el.dataset.id);m.status='discontinued';m.end=isoDate(Date.now());save()});toast('Medication discontinued.');render()};
+actions['add-allergy']=()=>openModal({title:'Add allergy',body:`<form data-form="allergy" novalidate><div data-gen></div>${fld('Allergen',`<input name="allergen" maxlength="80">`,{req:1,name:'allergen'})}${fld('Reaction',`<input name="reaction" placeholder="Rash, anaphylaxis...">`)}${fld('Severity',`<select name="severity"><option value="mild">Mild</option><option value="moderate" selected>Moderate</option><option value="severe">Severe</option></select>`)}<div class="form-actions"><button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn primary" type="submit">Add allergy</button></div></form>`});
+forms.allergy=async f=>{
+  const fd=new FormData(f),id=ui.cur.pid;if(showErrors(f,(fd.get('allergen')||'').trim()?{}:{allergen:'Allergen is required.'}))return;
+  try{await api('patient','POST',`/patients/${sid(id)}/allergies`,()=>{clin();db.allergies.push({id:uid(),patientId:id,allergen:fd.get('allergen').trim(),reaction:(fd.get('reaction')||'').trim(),severity:fd.get('severity')});P(id).allergyStatus='has';audit('add allergy',id);save()});closeModal();toast('Allergy added. Allergy status is now "has allergies".');render()}catch(e){toast(e.message,'error')}
+};
+actions['remove-allergy']=async el=>{const id=ui.cur.pid;if(!await confirmDialog({title:'Remove allergy',message:'Remove this allergy from the chart? If it is the last one, allergy status returns to unknown.',ok:'Remove',danger:true}))return;await api('patient','DELETE',`/patients/${sid(id)}/allergies/${sid(el.dataset.id)}`,()=>{clin();db.allergies=db.allergies.filter(x=>x.id!==el.dataset.id);if(!allergiesOf(id).length)P(id).allergyStatus='unknown';save()});toast('Allergy removed.');render()};
+actions['mark-nka']=async()=>{const id=ui.cur.pid;await api('patient','PATCH',`/patients/${sid(id)}`,()=>{clin();P(id).allergyStatus='nka';audit('confirm no known allergies',id);save()});toast('Marked as no known allergies.');render()};
+
+/* ================= encounters ================= */
+const VIT=[['sys','Systolic BP','mmHg',50,300],['dia','Diastolic BP','mmHg',20,200],['hr','Heart rate','bpm',20,300],['temp','Temperature','°C',30,45],['wt','Weight','kg',1,500]];
+async function tabEncounters(id){
+  const encs=await api('patient','GET',`/patients/${sid(id)}/encounters?page=1&size=20`,()=>{clin();return encsOf(id)});
+  return `<div class="panel"><div class="panel-h"><h2>${ic('file',17)}Encounters</h2><button class="btn primary sm" data-act="new-encounter">${ic('plus',14)}New encounter</button></div>
+  ${encs.length?`<table><thead><tr><th>Date</th><th>Type</th><th>Clinician</th><th>Chief complaint</th><th>Assessment</th><th>BP / HR</th><th>Status</th></tr></thead><tbody>${encs.map(e=>`<tr class="click" data-act="open-encounter" data-id="${e.id}"><td class="nowrap">${fmtDate(e.date)}</td><td>${typeLabel(e.type)}</td><td>${esc(e.clinician)}</td><td style="max-width:240px">${esc(e.cc)||'<span class="nd">Not documented</span>'}</td><td style="max-width:260px" class="small">${e.assessment?esc(e.assessment.length>90?e.assessment.slice(0,90)+'…':e.assessment):'<span class="nd">Not documented</span>'}</td><td class="mono nowrap">${e.vitals&&e.vitals.sys?e.vitals.sys+'/'+e.vitals.dia:'-'}${e.vitals&&e.vitals.hr?' / '+e.vitals.hr:''}</td><td>${chip(e.status==='final'?'Final':'Draft',e.status==='final'?'ok':'warn')}</td></tr>`).join('')}</tbody></table>`
+  :`<div class="empty"><b>No encounters yet</b>Record the first visit to start this patient's clinical history.<div style="margin-top:12px"><button class="btn primary" data-act="new-encounter">New encounter</button></div></div>`}</div>`;
+}
+function encView(e){
+  const v=e.vitals;
+  return `<div class="vit" style="margin-bottom:16px">${VIT.map(x=>`<div class="vit-tile"><div class="t">${x[1]}</div><div class="v">${v&&v[x[0]]!=null&&v[x[0]]!==''?v[x[0]]:'-'} <span class="muted small">${x[2]}</span></div></div>`).join('')}</div>
+  <dl class="dl" style="grid-template-columns:150px 1fr"><dt>Visit</dt><dd>${fmtDT(e.date)}, ${typeLabel(e.type)} with ${esc(e.clinician)}</dd><dt>Chief complaint</dt><dd>${nd(e.cc)}</dd><dt>Symptoms</dt><dd>${e.symptoms&&e.symptoms.length?e.symptoms.map(s=>chip(s)).join(' '):'<span class="nd">Not documented</span>'}</dd><dt>Examination</dt><dd>${nd(e.exam)}</dd><dt>Assessment</dt><dd>${nd(e.assessment)}</dd><dt>Diagnoses</dt><dd>${e.diagnoses&&e.diagnoses.length?e.diagnoses.map(d=>`<div><span class="mono">${esc(d.icd)}</span> ${esc(d.desc)}</div>`).join(''):'<span class="nd">None recorded</span>'}</dd><dt>Plan</dt><dd>${nd(e.plan)}</dd><dt>Follow-up</dt><dd>${e.followUp?fmtDate(e.followUp):'<span class="nd">Not set</span>'}</dd></dl>
+  <div class="alert info" style="margin-top:14px">${ic('lock',16)}<div>This encounter is final and read-only. Corrections are recorded as a new encounter.</div></div>`;
+}
+actions['open-encounter']=el=>{const e=db.encounters.find(x=>x.id===el.dataset.id);if(!e)return;e.status==='draft'?openEncForm(e):openModal({title:`Encounter on ${fmtDate(e.date)}`,sub:`${typeLabel(e.type)}, ${chip('Final','ok')}`,body:encView(e),size:'lg'})};
+actions['new-encounter']=()=>openEncForm();
+function dxRow(d={}){return `<div class="dx-row"><input class="inp" name="dx_icd" placeholder="ICD-10" value="${esc(d.icd||'')}"><input class="inp" name="dx_desc" placeholder="Diagnosis description" value="${esc(d.desc||'')}"><label class="chk small"><input type="checkbox" name="dx_prob" ${d.prob?'checked':''}> Add to problem list</label><button type="button" class="icon-btn" data-act="remove-dx-row" aria-label="Remove diagnosis">${ic('x',16)}</button></div>`}
+const symChip=s=>`<span class="chip teal" data-sym="${esc(s)}">${esc(s)}<button type="button" data-act="remove-chip" aria-label="Remove ${esc(s)}">×</button></span>`;
+function openEncForm(e){
+  const v=e||{},vit=v.vitals||{},d=v.date?new Date(v.date):new Date(),SYM=['Fatigue','Ankle swelling','Reduced urine output','Nausea','Itching','Breathlessness','Foamy urine'];
+  openModal({title:e?'Edit draft encounter':'New encounter',sub:`Patient ${esc(P(ui.cur.pid).mrn)}. Drafts can be edited; final encounters are locked.`,size:'lg',body:`<form data-form="encounter" data-id="${e?e.id:''}" novalidate><div data-gen></div>
+  <div class="f-row">${fld('Visit date and time',`<input type="datetime-local" name="date" value="${localInput(d)}">`,{req:1,name:'date'})}${fld('Visit type',`<select name="type">${['new','follow_up','emergency'].map(t=>`<option value="${t}" ${v.type===t||(!v.type&&t==='follow_up')?'selected':''}>${typeLabel(t)}</option>`).join('')}</select>`)}${fld('Clinician',`<input value="${esc(session.user.name)}" readonly>`)}</div>
+  <h3 style="margin:4px 0 8px">Vitals</h3><div class="vit" style="margin-bottom:6px">${VIT.map(x=>fld(`${x[1]} <span class="muted">(${x[2]})</span>`,`<input name="${x[0]}" type="number" step="${x[0]==='temp'?'0.1':'any'}" value="${vit[x[0]]!=null?vit[x[0]]:''}">`,{name:x[0]})).join('')}</div>
+  ${fld('Chief complaint',`<input name="cc" maxlength="200" value="${esc(v.cc||'')}">`,{name:'cc',req:0,hint:'Required to finalize.'})}
+  <div class="fld"><span class="fld-l">Symptoms</span><div class="sym-box" id="sym-box">${(v.symptoms||[]).map(symChip).join('')}</div><div class="row"><input class="inp sm" id="sym-in" data-keydown="sym" placeholder="Type a symptom and press Enter" list="sym-list" style="width:280px"><datalist id="sym-list">${SYM.map(s=>`<option>${s}</option>`).join('')}</datalist><button type="button" class="btn sm" data-act="add-symptom">Add</button></div></div>
+  ${fld('Clinical examination notes',`<textarea name="exam">${esc(v.exam||'')}</textarea>`,{name:'exam'})}
+  ${fld('Clinical assessment',`<textarea name="assessment">${esc(v.assessment||'')}</textarea>`,{name:'assessment',hint:'Required to finalize.'})}
+  <div class="fld"><span class="fld-l">Diagnoses</span><div id="dx-box">${(v.diagnoses&&v.diagnoses.length?v.diagnoses:[]).map(dxRow).join('')}</div><div><button type="button" class="btn sm" data-act="add-dx-row">${ic('plus',14)}Add diagnosis</button></div><span class="err" data-err="dx"></span></div>
+  ${fld('Treatment and follow-up plan',`<textarea name="plan">${esc(v.plan||'')}</textarea>`,{name:'plan',hint:'Required to finalize.'})}
+  <div class="f-row">${fld('Follow-up date',`<input type="date" name="followUp" value="${v.followUp||''}">`,{name:'followUp'})}</div>
+  <div class="form-actions">${e?`<button type="button" class="btn danger" data-act="delete-draft" data-id="${e.id}" style="margin-right:auto">Delete draft</button>`:''}<button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn" type="submit" data-mode="draft">Save draft</button><button class="btn primary" type="submit" data-mode="final">Finalize encounter</button></div></form>`});
+}
+actions['add-symptom']=el=>{const i=$('#sym-in');const s=(i.value||'').trim();if(!s)return;if(!$$('#sym-box [data-sym]').some(c=>c.dataset.sym.toLowerCase()===s.toLowerCase()))$('#sym-box').insertAdjacentHTML('beforeend',symChip(s));i.value='';i.focus()};
+actions['remove-chip']=el=>el.closest('.chip').remove();
+actions['add-dx-row']=()=>$('#dx-box').insertAdjacentHTML('beforeend',dxRow());
+actions['remove-dx-row']=el=>el.closest('.dx-row').remove();
+actions['delete-draft']=async el=>{if(!await confirmDialog({title:'Delete draft encounter',message:'The draft is removed from the chart. This cannot be undone from the UI.',ok:'Delete draft',danger:true}))return;const id=ui.cur.pid;await api('patient','DELETE',`/patients/${sid(id)}/encounters/${sid(el.dataset.id)}`,()=>{clin();const e=db.encounters.find(x=>x.id===el.dataset.id);if(e.status!=='draft')throw new ApiError(409,'ENCOUNTER_FINAL','Final encounters cannot be deleted.');e.deletedAt=new Date().toISOString();save()});toast('Draft deleted.');render()};
+forms.encounter=async(f,ev)=>{
+  const mode=ev.submitter?ev.submitter.dataset.mode:'draft',fd=new FormData(f),v=k=>(fd.get(k)||'').trim(),errs={},id=ui.cur.pid,editId=f.dataset.id;
+  if(!v('date'))errs.date='Visit date is required.';else if(new Date(v('date'))>new Date(Date.now()+60000))errs.date='Visit date cannot be in the future.';
+  const vit={};VIT.forEach(x=>{const raw=v(x[0]);if(raw===''){vit[x[0]]=null;return}const n=parseFloat(raw);if(isNaN(n)||n<x[3]||n>x[4])errs[x[0]]=`Enter ${x[3]} to ${x[4]} ${x[2]}.`;else vit[x[0]]=n});
+  if(vit.sys!=null&&vit.dia!=null&&!errs.sys&&!errs.dia&&vit.sys<=vit.dia)errs.sys='Systolic must be higher than diastolic.';
+  if(v('followUp')&&v('date')&&v('followUp')<v('date').slice(0,10))errs.followUp='Follow-up cannot be before the visit.';
+  const dx=$$('.dx-row',f).map(r=>({icd:r.querySelector('[name=dx_icd]').value.trim().toUpperCase(),desc:r.querySelector('[name=dx_desc]').value.trim(),prob:r.querySelector('[name=dx_prob]').checked})).filter(d=>d.icd||d.desc);
+  if(dx.some(d=>!d.desc))errs.dx='Each diagnosis needs a description.';
+  if(mode==='final'){if(!v('cc'))errs.cc='Chief complaint is required to finalize.';if(!v('assessment'))errs.assessment='Assessment is required to finalize.';if(!v('plan'))errs.plan='Plan is required to finalize.'}
+  if(showErrors(f,errs))return;
+  if(mode==='final'&&!await confirmDialog({title:'Finalize encounter',message:'Once finalized, this encounter becomes read-only. Diagnoses marked "Add to problem list" are added to the patient\'s conditions in the same step.',ok:'Finalize'}))return;
+  const btn=ev.submitter;setLoading(btn,true);
+  try{
+    const r=await api('patient',editId?'PATCH':'POST',`/patients/${sid(id)}/encounters${editId?'/'+sid(editId):''}`,()=>{
+      clin();const symptoms=$$('#sym-box [data-sym]').map(c=>c.dataset.sym);
+      let e=editId?db.encounters.find(x=>x.id===editId):null;
+      if(e&&e.status==='final')throw new ApiError(409,'ENCOUNTER_FINAL','Final encounters cannot be edited.');
+      const data={date:new Date(v('date')).toISOString(),type:v('type'),cc:v('cc'),symptoms,exam:v('exam'),assessment:v('assessment'),plan:v('plan'),followUp:v('followUp'),vitals:Object.values(vit).some(x=>x!=null)?vit:null,diagnoses:dx.map(d=>({icd:d.icd,desc:d.desc,condId:null}))};
+      if(e)Object.assign(e,data);else{e=Object.assign({id:uid(),patientId:id,clinician:session.user.name,status:'draft',version:1,deletedAt:null},data);db.encounters.push(e)}
+      let added=0;
+      if(mode==='final'){e.status='final';e.finalizedAt=new Date().toISOString();
+        dx.filter(d=>d.prob).forEach((d,i)=>{let c=condsOf(id).find(x=>x.icd10&&x.icd10===d.icd&&x.status==='active');if(!c){c={id:uid(),patientId:id,icd10:d.icd,desc:d.desc,category:/^(N|Q61|M32)/.test(d.icd)?'nephrology':'comorbidity',isPrimary:false,status:'active',onset:isoDate(e.date),sourceEncounterId:e.id,deletedAt:null};db.conditions.push(c);added++}e.diagnoses[dx.indexOf(d)].condId=c.id})}
+      audit(mode==='final'?'finalize encounter':'save encounter draft',id);save();return{e,added}});
+    closeModal();toast(mode==='final'?`Encounter finalized${r.added?`. ${r.added} condition${r.added>1?'s':''} added to the problem list`:''}.`:'Draft saved.');render();
+  }catch(e){setLoading(btn,false);const g=$('[data-gen]',f);if(g)g.innerHTML=`<div class="alert danger" style="margin-bottom:12px">${ic('alert',16)}<div>${esc(e.message)}</div></div>`}
+};
+
+/* ================= labs ================= */
+const niceStep=r=>{const p=Math.pow(10,Math.floor(Math.log10(r))),f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p};
+function lineChart(o){
+  if(!o.pts.length)return `<div class="empty">No ${o.name} results in this period.</div>`;
+  const W=640,H=270,m={l:48,r:o.stage?64:22,t:16,b:32};
+  let tmin=o.pts[0].t,tmax=o.pts[o.pts.length-1].t;if(tmax-tmin<30*DAY){tmin-=15*DAY;tmax+=15*DAY}
+  const vals=o.pts.map(p=>p.v);let ymin=Math.min(...vals,o.low==null?Infinity:o.low),ymax=Math.max(...vals,o.high==null?-Infinity:o.high);
+  if(o.stage){ymin=0;ymax=Math.max(ymax,100)}else{const pd=(ymax-ymin||1)*.18;ymin=Math.max(0,ymin-pd);ymax+=pd}
+  const step=niceStep((ymax-ymin)/4),ticks=[];for(let t=Math.floor(ymin/step)*step;t<=ymax+step*.01;t+=step)ticks.push(Math.round(t*1000)/1000);
+  ymin=ticks[0];ymax=ticks[ticks.length-1];
+  const sx=t=>m.l+(t-tmin)/(tmax-tmin)*(W-m.l-m.r),sy=v=>H-m.b-(v-ymin)/(ymax-ymin)*(H-m.t-m.b),dec=LAB_TESTS[o.test].dec;
+  const yTop=sy(Math.min(o.high==null?ymax:o.high,ymax)),yBot=sy(Math.max(o.low==null?ymin:o.low,ymin));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.name)} over time. ${o.pts.length} results. Latest ${fmtVal(o.test,o.pts[o.pts.length-1].v)} ${o.unit}.">`;
+  s+=`<g class="ax">${ticks.map(t=>`<line class="grid-l" x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end">${+t.toFixed(dec+1)}</text>`).join('')}`;
+  for(let i=0;i<5;i++){const t=tmin+(tmax-tmin)*i/4;s+=`<text x="${sx(t)}" y="${H-10}" text-anchor="middle">${new Date(t).toLocaleDateString('en-GB',{month:'short',year:'2-digit'})}</text>`}
+  s+=`<text x="${m.l}" y="11" style="font-weight:500">${esc(o.unit)}</text></g>`;
+  if(o.high!=null||o.low!=null)s+=`<rect class="band" x="${m.l}" y="${Math.min(yTop,yBot)}" width="${W-m.l-m.r}" height="${Math.abs(yBot-yTop)}"/>`;
+  if(o.stage){[[90,100,'G1'],[60,90,'G2'],[45,60,'G3a'],[30,45,'G3b'],[15,30,'G4'],[0,15,'G5']].forEach(b=>{if(b[0]>0&&b[0]<ymax)s+=`<line class="stage-l" x1="${m.l}" x2="${W-m.r}" y1="${sy(b[0])}" y2="${sy(b[0])}"/>`;const c=(Math.max(b[0],ymin)+Math.min(b[1],ymax))/2;s+=`<text class="stage-t" x="${W-m.r+6}" y="${sy(c)+4}">${b[2]}</text>`})}
+  s+=`<path class="series" d="${o.pts.map((p,i)=>(i?'L':'M')+sx(p.t).toFixed(1)+' '+sy(p.v).toFixed(1)).join(' ')}"/>`;
+  o.pts.forEach((p,i)=>{const x=sx(p.t),y=sy(p.v),tip=`<b>${fmtVal(o.test,p.v)} ${o.unit}</b><br>${FLAG[p.flag]?FLAG[p.flag][0]:''}<br>${fmtDate(p.t)}`;
+    s+=`<g class="hp" data-tip="${esc(tip)}"><line class="xhair" x1="${x}" x2="${x}" y1="${m.t}" y2="${H-m.b}"/><circle r="14" cx="${x}" cy="${y}" fill="transparent"/><circle class="pt" r="5" cx="${x}" cy="${y}" fill="${flagColor(p.flag)}"/></g>`;
+    if(i===o.pts.length-1)s+=`<text x="${x}" y="${y-12}" text-anchor="${x>W-90?'end':'middle'}" style="font-size:12px;font-weight:600;fill:#10202b">${fmtVal(o.test,p.v)}</text>`});
+  return s+`</svg>`;
+}
+const LABRANGE={'6m':182,'1y':365,'2y':730};
+async function tabLabs(id){
+  const L=ui.labs,cut=LABRANGE[L.range]?Date.now()-LABRANGE[L.range]*DAY:0;
+  const [a,res,tr]=await Promise.all([
+    api('lab','GET',`/labs/patients/${sid(id)}/latest`,()=>{clin();return analyze(id)}),
+    api('lab','GET',`/labs/patients/${sid(id)}/results?test=${L.test}&page=${L.page}`,()=>{clin();return resultsOf(id).filter(r=>new Date(r.collectedAt)>=cut)}),
+    api('lab','GET',`/labs/patients/${sid(id)}/trends?tests=CREAT,EGFR`,()=>{clin();const out={};['CREAT','EGFR'].forEach(t=>{const pts=resultsOf(id).filter(r=>r.test===t&&new Date(r.collectedAt)>=cut).sort((x,y)=>new Date(x.collectedAt)-new Date(y.collectedAt)).map(r=>({t:new Date(r.collectedAt).getTime(),v:r.value,flag:r.flag}));out[t]=trendStats(pts,t)});return out})]);
+  const p=a.p,ck=a.ckd;let rows=res.filter(r=>(L.test==='ALL'||r.test===L.test)&&(!L.abn||r.flag!=='normal'));
+  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));L.page=Math.min(L.page,pages);
+  const chartCard=(t,o)=>{const s=tr[t],T=LAB_TESTS[t],rg=rangeFor(t,p.sex);return `<div class="panel"><div class="panel-h"><h3>${T.name} trend</h3><span class="muted small">Reference ${refText(rg)} ${T.canon}</span></div><div class="chart-wrap">${lineChart({pts:s.pts||[],low:rg.low,high:rg.high,unit:T.canon,test:t,name:T.name,stage:o})}</div>
+  ${s.n?`<div class="stat-row">${dirChip(s)}${s.n>=2?chip(`Change ${signed(s.abs,T.dec)} (${signed(s.pct,0)}%)`):''}${s.slope!=null?chip(`${signed(s.slope,t==='EGFR'?1:2)} per year`):''}${s.rapid?chip('Rapid decline','danger','alert'):''}</div>`:''}</div>`};
+  return `<div class="ckd-grid"><div class="ckd-cell"><div class="t">Established CKD stage (clinician)</div><div class="v">${p.ckd||'<span class="nd" style="font-size:16px;font-weight:400">Not set</span>'}</div><div class="small muted">Recorded on the Conditions tab</div></div>
+  <div class="ckd-cell"><div class="t">eGFR category of latest result</div><div class="v">${ck.egfrCat||'-'}</div><div class="small muted">${ck.egfrCat?`${egfrLabel(ck.egfrCat)}. eGFR ${fmtVal('EGFR',ck.egfrVal)} on ${fmtDate(ck.egfrDate)}`:'No eGFR on record'}</div></div>
+  <div class="ckd-cell"><div class="t">Albuminuria category (UACR)</div><div class="v">${ck.uacrCat||'-'}</div><div class="small muted">${ck.uacrCat?`${uacrLabel(ck.uacrCat)}. ${fmtVal('UACR',ck.uacrVal)} mg/g on ${fmtDate(ck.uacrDate)}`:'No UACR on record'}</div></div></div>
+  ${ck.mismatch?`<div class="alert warn" style="margin-bottom:14px">${ic('alert',16)}<div><b>Established stage ${ck.established} does not match the latest eGFR category ${ck.egfrCat}.</b> A single eGFR does not define a CKD stage. Review the trend before changing the established stage.</div></div>`:''}
+  <div class="latest-grid">${TEST_ORDER.map(t=>{const r=a.latest[t],T=LAB_TESTS[t];return `<div class="lt ${r&&r.flag!=='normal'?(r.flag.indexOf('critical')===0?'crit':'abn'):''}"><div class="t"><span>${T.name}</span></div>${r?`<div class="v">${fmtVal(t,r.value)} <small>${T.canon}</small></div><div class="row" style="gap:6px">${flagChip(r.flag)}<span class="small muted">${fmtDate(r.collectedAt)}</span></div><div class="small muted" style="margin-top:3px">Ref ${refText({low:r.refLow,high:r.refHigh})}</div>`:`<div class="v nd" style="font-size:15px;font-family:var(--font)">No result</div>`}</div>`}).join('')}</div>
+  <div class="row" style="margin-bottom:12px;justify-content:space-between"><div class="row"><select class="inp sm" data-change="lab-range" aria-label="Date range"><option value="6m" ${L.range==='6m'?'selected':''}>Last 6 months</option><option value="1y" ${L.range==='1y'?'selected':''}>Last year</option><option value="2y" ${L.range==='2y'?'selected':''}>Last 2 years</option><option value="all" ${L.range==='all'?'selected':''}>All results</option></select><label class="chk small"><input type="checkbox" data-change="lab-bands" ${L.bands?'checked':''}> Show eGFR stage bands</label></div><button class="btn primary" data-act="add-lab">${ic('plus',16)}Add lab report</button></div>
+  <div class="grid g2" style="margin-bottom:16px">${chartCard('EGFR',L.bands)}${chartCard('CREAT',false)}</div>
+  <div class="panel"><div class="panel-h"><h2>Result history</h2><div class="row"><select class="inp sm" data-change="lab-test-filter" aria-label="Test"><option value="ALL">All tests</option>${TEST_ORDER.map(t=>`<option value="${t}" ${L.test===t?'selected':''}>${LAB_TESTS[t].name}</option>`).join('')}</select><label class="chk small"><input type="checkbox" data-change="lab-abn" ${L.abn?'checked':''}> Abnormal only</label></div></div>
+  ${rows.length?`<table><thead><tr><th>Collected</th><th>Test</th><th class="num">Result</th><th>Unit</th><th>Reference</th><th>Flag</th><th>Entered as</th><th>Laboratory</th></tr></thead><tbody>${rows.slice((L.page-1)*per,L.page*per).map(r=>{const rep=db.labReports.find(x=>x.id===r.reportId);return `<tr><td class="nowrap">${fmtDate(r.collectedAt)}</td><td>${LAB_TESTS[r.test].name}</td><td class="num mono"><b>${fmtVal(r.test,r.value)}</b></td><td class="small">${esc(r.unit)}</td><td class="mono small">${refText({low:r.refLow,high:r.refHigh})}</td><td>${flagChip(r.flag)}</td><td class="small muted">${r.unitOriginal!==r.unit?`${r.valueOriginal} ${esc(r.unitOriginal)}`:'Same unit'}</td><td class="small muted">${rep?esc(rep.labName):''}</td></tr>`}).join('')}</tbody></table>
+  <div class="pager"><span>${rows.length} result${rows.length>1?'s':''}</span><div class="row"><button class="btn sm" data-act="lab-page" data-d="-1" ${L.page<=1?'disabled':''}>${ic('left',14)}Previous</button><span>Page ${L.page} of ${pages}</span><button class="btn sm" data-act="lab-page" data-d="1" ${L.page>=pages?'disabled':''}>Next${ic('right',14)}</button></div></div>`
+  :`<div class="empty"><b>No results to show</b>${a.res.length?'Try a longer date range or turn off the abnormal filter.':'Add the first lab report for this patient.'}</div>`}</div>`;
+}
+const reloadLabs=()=>render();
+changes['lab-range']=el=>{ui.labs.range=el.value;ui.labs.page=1;reloadLabs()};
+changes['lab-bands']=el=>{ui.labs.bands=el.checked;reloadLabs()};
+changes['lab-test-filter']=el=>{ui.labs.test=el.value;ui.labs.page=1;reloadLabs()};
+changes['lab-abn']=el=>{ui.labs.abn=el.checked;ui.labs.page=1;reloadLabs()};
+actions['lab-page']=el=>{ui.labs.page+=+el.dataset.d;reloadLabs()};
+
+/* ---------- add lab report ---------- */
+const unitOpts=t=>Object.keys(LAB_TESTS[t].units).map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
+const labRow=t=>`<div class="lab-row" style="display:grid;grid-template-columns:1.5fr 1fr 1.1fr 1.2fr auto;gap:8px;align-items:start;margin-bottom:8px"><select name="test" class="inp" data-change="lab-test" aria-label="Test">${TEST_ORDER.map(k=>`<option value="${k}" ${k===t?'selected':''}>${LAB_TESTS[k].name}</option>`).join('')}</select><input name="value" class="inp" type="number" step="any" min="0" placeholder="Value" data-input="lab-value" aria-label="Value"><select name="unit" class="inp" data-change="lab-unit" aria-label="Unit">${unitOpts(t)}</select><span class="lab-prev small" style="padding-top:6px"></span><button type="button" class="icon-btn" data-act="remove-lab-row" aria-label="Remove test">${ic('x',16)}</button></div>`;
+actions['add-lab']=()=>{const p=P(ui.cur.pid);openModal({title:'Add lab report',sub:`${esc(fullName(p))}, ${esc(p.mrn)}. Each test is flagged against the reference range at the time of entry.`,size:'lg',body:`<form data-form="lab" data-sex="${p.sex}" novalidate><div data-gen></div><div class="f-row">${fld('Collected on',`<input type="datetime-local" name="date" value="${localInput()}" max="${localInput()}">`,{req:1,name:'date'})}${fld('Laboratory',`<input name="lab" value="Metro Diagnostics Laboratory">`)}</div>${fld('Notes',`<input name="notes" maxlength="200">`)}
+  <div class="fld"><span class="fld-l">Results</span><div class="small muted" style="margin-bottom:8px">Pick the unit you were given. Values are converted and stored in the standard unit, and the original entry is kept.</div><div id="lab-rows">${labRow('CREAT')}${labRow('EGFR')}</div><div><button type="button" class="btn sm" data-act="add-lab-row">${ic('plus',14)}Add another test</button></div><span class="err" data-err="rows"></span></div>
+  <div class="form-actions"><button type="button" class="btn" data-act="close-modal">Cancel</button><button class="btn primary" type="submit">Save lab report</button></div></form>`})};
+actions['add-lab-row']=()=>{const used=$$('#lab-rows [name=test]').map(s=>s.value),next=TEST_ORDER.find(t=>!used.includes(t))||'K';$('#lab-rows').insertAdjacentHTML('beforeend',labRow(next))};
+actions['remove-lab-row']=el=>{if($$('#lab-rows .lab-row').length>1)el.closest('.lab-row').remove()};
+function labPreview(row){
+  const f=row.closest('form'),t=row.querySelector('[name=test]').value,raw=row.querySelector('[name=value]').value,u=row.querySelector('[name=unit]').value,pv=row.querySelector('.lab-prev');
+  if(raw===''||isNaN(+raw)){pv.innerHTML='';return}
+  const c=toCanon(t,+raw,u);pv.innerHTML=`${flagChip(flagFor(c,rangeFor(t,f.dataset.sex)))}${u!==LAB_TESTS[t].canon?`<div class="muted" style="margin-top:3px">= ${fmtVal(t,c)} ${LAB_TESTS[t].canon}</div>`:''}`;
+}
+changes['lab-test']=el=>{const row=el.closest('.lab-row');row.querySelector('[name=unit]').innerHTML=unitOpts(el.value);labPreview(row)};
+changes['lab-unit']=el=>labPreview(el.closest('.lab-row'));
+inputs['lab-value']=el=>labPreview(el.closest('.lab-row'));
+forms.lab=async(f,ev)=>{
+  const fd=new FormData(f),id=ui.cur.pid,errs={},p=P(id),rows=$$('.lab-row',f).map(r=>({test:r.querySelector('[name=test]').value,raw:r.querySelector('[name=value]').value,unit:r.querySelector('[name=unit]').value})).filter(r=>r.raw!=='');
+  const dt=fd.get('date');if(!dt)errs.date='Collection date is required.';else if(new Date(dt)>new Date(Date.now()+60000))errs.date='Collection date cannot be in the future.';else if(new Date(dt)<new Date(p.dob))errs.date='Collection date is before the patient was born.';
+  const msgs=[];if(!rows.length)msgs.push('Enter at least one result value.');
+  const seen={};rows.forEach(r=>{const T=LAB_TESTS[r.test],n=+r.raw;if(isNaN(n)||n<0)msgs.push(`${T.name}: enter a number of zero or more.`);else if(toCanon(r.test,n,r.unit)>T.max)msgs.push(`${T.name}: ${r.raw} ${r.unit} is outside the plausible range. Check the value and unit.`);if(seen[r.test])msgs.push(`${T.name} appears twice in this report.`);seen[r.test]=1});
+  if(msgs.length)errs.rows=msgs.join(' ');
+  if(showErrors(f,errs))return;
+  const btn=ev.submitter;setLoading(btn,true);
+  try{
+    const out=await api('lab','POST',`/labs/patients/${sid(id)}/reports`,async()=>{
+      clin();const basic=await api('patient','GET',`/internal/patients/${sid(id)}/basic`,()=>{const q=P(id);return{id:q.id,sex:q.sex,dob:q.dob}},{from:'lab',delay:70});
+      const rep={id:uid(),patientId:id,collectedAt:new Date(dt).toISOString(),labName:(fd.get('lab')||'').trim()||'Unspecified laboratory',notes:(fd.get('notes')||'').trim(),enteredBy:session.user.id,createdAt:new Date().toISOString()};db.labReports.push(rep);let abn=0;
+      rows.forEach(r=>{const rg=rangeFor(r.test,basic.sex),v=toCanon(r.test,+r.raw,r.unit),fl=flagFor(v,rg);if(fl!=='normal')abn++;db.labResults.push({id:uid(),reportId:rep.id,patientId:id,collectedAt:rep.collectedAt,test:r.test,value:v,unit:LAB_TESTS[r.test].canon,valueOriginal:+r.raw,unitOriginal:r.unit,refLow:rg.low,refHigh:rg.high,flag:fl})});
+      save();return{n:rows.length,abn}},{delay:140});
+    closeModal();toast(`Lab report saved with ${out.n} result${out.n>1?'s':''}${out.abn?`. ${out.abn} abnormal.`:'. All within range.'}`);location.hash='#/patients/'+id+'/labs';render();
+  }catch(e){setLoading(btn,false);const g=$('[data-gen]',f);if(g)g.innerHTML=`<div class="alert danger" style="margin-bottom:12px">${ic('alert',16)}<div>${esc(e.message)}</div></div>`}
+};
+
+/* ================= AI clinical assistant (simulated ai-svc) ================= */
+const DISCLAIMER='AI-generated content for clinician review only. It is not a diagnosis or a treatment recommendation. Verify everything against the source record.';
+const lite=s=>s.n?{n:s.n,first:s.first,last:s.last,pctChange:+s.pct.toFixed(1),slopePerYear:s.slope==null?null:+s.slope.toFixed(2),direction:s.direction,rapidDecline:s.rapid}:{n:0};
+function buildContext(d){
+  const p=d.p;
+  return{patient:{age:d.age,sex:p.sex,establishedCkdStage:p.ckd||null,allergyStatus:p.allergyStatus,allergies:allergiesOf(p.id).map(a=>({allergen:a.allergen,severity:a.severity})),pastMedicalHistory:p.pmh||null},
+  conditions:condsOf(p.id).map(c=>({id:'cond:'+sid(c.id),icd10:c.icd10,description:c.desc,category:c.category,primary:c.isPrimary,status:c.status})),
+  activeMedications:medsOf(p.id).filter(m=>m.status==='active').map(m=>({id:'med:'+sid(m.id),name:m.name,dose:m.dose})),
+  recentEncounters:encsOf(p.id).slice(0,2).map(e=>({id:'enc:'+sid(e.id),date:isoDate(e.date),type:e.type,chiefComplaint:e.cc,assessment:e.assessment,status:e.status})),
+  latestLabs:Object.values(d.latest).map(r=>({id:`lab:${r.test}:${isoDate(r.collectedAt)}`,test:r.test,value:r.value,unit:r.unit,flag:r.flag,date:isoDate(r.collectedAt)})),
+  trends:{EGFR:lite(d.trends.EGFR),CREAT:lite(d.trends.CREAT)},ruleFindings:d.gaps.map(g=>g.code),
+  privacy:'Name, patient ID, contact details and address are not sent to the model.'};
+}
+function toolPlan(d,pid){
+  const plan=[];const s=sid(pid);
+  plan.push({name:'get_recent_encounters',args:{limit:3,include_notes:true},argsShort:'limit=3',service:'patient',path:`/internal/patients/${s}/encounters?limit=3`,run:()=>encsOf(pid).slice(0,3).map(e=>({id:'enc:'+sid(e.id),date:isoDate(e.date),cc:e.cc,assessment:e.assessment,plan:e.plan}))});
+  if(d.trends.EGFR.n)plan.push({name:'get_lab_trend',args:{test_code:'EGFR'},argsShort:'EGFR',service:'lab',path:`/internal/labs/patients/${s}/trend?test=EGFR`,run:()=>lite(d.trends.EGFR)});
+  if(d.trends.CREAT.n)plan.push({name:'get_lab_trend',args:{test_code:'CREAT'},argsShort:'CREAT',service:'lab',path:`/internal/labs/patients/${s}/trend?test=CREAT`,run:()=>lite(d.trends.CREAT)});
+  const kAbn=d.latest.K&&d.latest.K.flag!=='normal';if(kAbn)plan.push({name:'get_lab_history',args:{test_code:'K'},argsShort:'K',service:'lab',path:`/internal/labs/patients/${s}/results?test=K`,run:()=>resultsOf(pid).filter(r=>r.test==='K').slice(0,6).map(r=>({date:isoDate(r.collectedAt),value:r.value,flag:r.flag}))});
+  plan.push({name:'get_medications_and_allergies',args:{},argsShort:'',service:'patient',path:`/internal/patients/${s}/medications`,run:()=>({meds:medsOf(pid).filter(m=>m.status==='active').length,allergies:allergiesOf(pid).length})});
+  return plan;
+}
+const labRef=r=>`lab:${r.test}:${isoDate(r.collectedAt)}`;
+function buildNarrative(d){
+  const p=d.p,conds=condsOf(p.id),encs=encsOf(p.id),meds=medsOf(p.id).filter(m=>m.status==='active'),al=allergiesOf(p.id);
+  const prim=conds.find(c=>c.isPrimary&&c.status==='active'),neph=conds.filter(c=>c.category==='nephrology'&&c.status==='active'),como=conds.filter(c=>c.category==='comorbidity'&&c.status==='active');
+  const last=encs.find(e=>e.status==='final')||encs[0],sexW=p.sex==='M'?'male':p.sex==='F'?'female':'patient';
+  const nd=[];let hr=[],h=`${d.age}-year-old ${sexW}`+(prim?`, followed for ${prim.desc}.`:' with no primary diagnosis documented.');
+  if(prim)hr.push('cond:'+sid(prim.id));
+  if(neph.length>1){h+=` Documented nephrology diagnoses: ${neph.map(c=>c.desc).join('; ')}.`;neph.forEach(c=>hr.push('cond:'+sid(c.id)))}
+  h+=p.pmh?` Past medical history on record: ${p.pmh}`:' Past medical history is not documented.';if(!p.pmh)nd.push('past medical history');
+  h+=` ${encs.length} encounter${encs.length===1?'':'s'} on record`+(last?`; the most recent (${fmtDate(last.date)}, ${typeLabel(last.type).toLowerCase()}) lists the chief complaint "${last.cc||'not documented'}".`:'.');
+  if(last)hr.push('enc:'+sid(last.id));
+  let cr=[],c=como.length?`Active comorbidities documented: ${como.map(x=>x.desc).join('; ')}.`:'No active comorbidities are documented.';como.forEach(x=>cr.push('cond:'+sid(x.id)));
+  c+=meds.length?` Current medications on record: ${meds.map(m=>m.name+' '+m.dose).join(', ')}.`:' No current medications are documented.';meds.forEach(m=>cr.push('med:'+sid(m.id)));
+  c+=p.allergyStatus==='has'?` Documented allergies: ${al.map(a=>a.allergen+' ('+a.severity+')').join(', ')}.`:p.allergyStatus==='nka'?' No known allergies are recorded.':' Allergy status is not recorded.';
+  const tr=[],trr=[];
+  [['EGFR','eGFR'],['CREAT','Serum creatinine']].forEach(([k,nm])=>{const s=d.trends[k],u=LAB_TESTS[k].canon;
+    if(!s.n){tr.push(`No ${nm} results are on record.`);return}
+    if(s.n<3){tr.push(`Only ${s.n} ${nm} result${s.n>1?'s':''} on record (latest ${fmtVal(k,s.last)} ${u}), so a trend cannot be described.`);trr.push(`lab:${k}:${isoDate(s.pts[s.n-1].t)}`);return}
+    tr.push(`${nm} moved from ${fmtVal(k,s.first)} to ${fmtVal(k,s.last)} ${u} across ${s.n} results over about ${Math.max(1,Math.round(s.spanDays/30.4))} months (${signed(s.slope,k==='EGFR'?1:2)} ${u} per year, ${s.direction}${s.rapid?', which meets the rapid-decline threshold of 5 per year':''}).`);
+    trr.push(`lab:${k}:${isoDate(s.pts[0].t)}`,`lab:${k}:${isoDate(s.pts[s.n-1].t)}`)});
+  const ab=d.abnormal.slice().sort((a,b)=>(b.flag.indexOf('critical')===0)-(a.flag.indexOf('critical')===0));
+  const abT=ab.length?`Among the latest results, ${ab.length} ${ab.length>1?'are':'is'} outside the reference range: ${ab.map(r=>`${LAB_TESTS[r.test].name} ${fmtVal(r.test,r.value)} ${r.unit} (${FLAG[r.flag][0].toLowerCase()}, ${fmtDate(r.collectedAt)})`).join('; ')}.`:(Object.keys(d.latest).length?'None of the latest results is outside its reference range.':'No laboratory results are on record.');
+  const fu=[],add=(consideration,rationale,refs)=>fu.push({consideration,rationale,source_refs:refs});
+  const eg=d.latest.EGFR;
+  if(d.rapid)add('Consider reviewing how soon eGFR and creatinine should be repeated, given the documented rate of decline.',`The eGFR slope of ${signed(d.trends.EGFR.slope,1)} mL/min/1.73m² per year across ${d.trends.EGFR.n} results meets the rapid-decline threshold of 5 per year.`,trr.filter(r=>r.indexOf('lab:EGFR')===0));
+  const kr=d.latest.K;if(kr&&kr.flag!=='normal')add('Consider whether the potassium result warrants repeat testing or earlier review.',`Latest potassium is ${fmtVal('K',kr.value)} mmol/L (${FLAG[kr.flag][0].toLowerCase()}).`,[labRef(kr)]);
+  const hb=d.latest.HB;if(hb&&hb.flag!=='normal')add('Consider checking whether an anemia evaluation is already documented.',`Latest hemoglobin is ${fmtVal('HB',hb.value)} g/dL (${FLAG[hb.flag][0].toLowerCase()}).`,[labRef(hb)]);
+  const ca=d.latest.CA,ph=d.latest.PHOS;if((ca&&ca.flag!=='normal')||(ph&&ph.flag!=='normal'))add('Consider reviewing calcium and phosphorus together at the next visit.',`Calcium ${ca?fmtVal('CA',ca.value):'not recorded'} mg/dL and phosphorus ${ph?fmtVal('PHOS',ph.value):'not recorded'} mg/dL include a value outside the reference range.`,[ca&&labRef(ca),ph&&labRef(ph)].filter(Boolean));
+  if(d.ckd.uacrCat==='A3')add('Consider reviewing the albuminuria monitoring plan.',`The latest UACR of ${fmtVal('UACR',d.ckd.uacrVal)} mg/g falls in category A3.`,[`lab:UACR:${isoDate(d.ckd.uacrDate)}`]);
+  d.gaps.forEach(g=>{
+    if(g.code==='CKD_STAGE_MISMATCH')add(`Consider reconciling the established CKD stage (${d.ckd.established}) with the latest eGFR category (${d.ckd.egfrCat}).`,g.message,g.refs);
+    if(g.code==='ALLERGY_STATUS_UNKNOWN')add('Consider confirming allergy status with the patient and recording it.','Allergy status is currently recorded as unknown.',[]);
+    if(g.code==='NO_RECENT_LABS')add('Consider whether updated laboratory results are due.',g.message,g.refs);
+    if(g.code==='NO_LABS_RECORDED')add('Consider whether baseline kidney function tests have been ordered.','No laboratory results are on record.',[]);
+    if(g.code==='EGFR_CREATININE_DISCORDANT')add('Consider verifying the reported eGFR against the creatinine value.',g.message,g.refs);
+    if(g.code==='ACTIVE_MED_PAST_END_DATE')add('Consider checking whether the medication list is up to date.',g.message,g.refs);
+  });
+  if(last&&last.followUp)add('Consider confirming the follow-up date and plan from the latest encounter.',`The latest encounter lists a follow-up on ${fmtDate(last.followUp)}.`,['enc:'+sid(last.id)]);
+  d.gaps.forEach(g=>{const m={ALLERGY_STATUS_UNKNOWN:'allergy information',NO_MEDICATIONS_DOCUMENTED:'current medications',NO_PRIMARY_DIAGNOSIS:'primary diagnosis',NO_LABS_RECORDED:'laboratory results',ENCOUNTER_NO_VITALS:'vitals for some encounters',NO_ESTABLISHED_CKD_STAGE:'established CKD stage'}[g.code];if(m&&!nd.includes(m))nd.push(m)});
+  if(!p.fh)nd.push('family history');if(!p.sh)nd.push('social history');
+  return{history_summary:{text:h,source_refs:hr},comorbidity_summary:{text:c,source_refs:cr},trend_commentary:{text:tr.join(' '),source_refs:trr},abnormal_commentary:{text:abT,source_refs:ab.map(labRef)},follow_up_considerations:fu.slice(0,6),not_documented:nd};
+}
+function refUniverse(id){const s=new Set();resultsOf(id).forEach(r=>s.add(labRef(r)));encsOf(id).forEach(e=>s.add('enc:'+sid(e.id)));condsOf(id).forEach(c=>s.add('cond:'+sid(c.id)));medsOf(id).forEach(m=>s.add('med:'+sid(m.id)));return s}
+function outText(o){return [o.history_summary.text,o.comorbidity_summary.text,o.trend_commentary.text,o.abnormal_commentary.text].concat(o.follow_up_considerations.map(f=>f.consideration+' '+f.rationale))}
+function validateOutput(o,id){
+  const u=refUniverse(id),refs=[].concat(o.history_summary.source_refs,o.comorbidity_summary.source_refs,o.trend_commentary.source_refs,o.abnormal_commentary.source_refs,...o.follow_up_considerations.map(f=>f.source_refs));
+  const ok=refs.filter(r=>u.has(r)).length,lint=outText(o).join(' ').match(/\b(prescribe|you have|start (?:the )?\w+ therapy|increase the dose|decrease the dose|diagnosis is)\b/gi)||[];
+  return{json:true,schema:true,refsTotal:refs.length,refsOk:ok,lint:lint.length};
+}
+const factsOf=d=>({ckd:d.ckd,abnormal:d.abnormal.map(r=>({test:r.test,value:r.value,unit:r.unit,flag:r.flag,date:r.collectedAt})),trends:{EGFR:lite(d.trends.EGFR),CREAT:lite(d.trends.CREAT)}});
+const AI_STEPS=[['Opening the chart','Checking your access and the daily limit'],['Reading the chart and lab results','Conditions, medications, encounters and every lab value'],['Calculating trends and checking for gaps','Done by the system, not by the AI'],['Preparing what the AI will see','Name and patient ID are removed'],['Writing the summary','The AI drafts the narrative'],['Checking the summary','Every source must exist in the record and the wording must be safe'],['Saving','Kept separately from the patient record']];
+const degrade=(code,note)=>{const e=new Error(note);e.degrade=code;return e};
+async function runAi(pid,force){
+  if(ui.ai.run&&ui.ai.run.status==='running')return;
+  const sim=ui.ai.sim,cfg=db.config,toolsOn=cfg.toolsEnabled&&CAPS[cfg.provider].tools;
+  const S={pid,status:'running',steps:AI_STEPS.map(x=>({t:x[0],d:x[1],st:'pending',ms:null,note:''}))};ui.ai.run=S;ui.ai.openId=null;renderAiPane();
+  const setS=(i,st,note)=>{const s=S.steps[i];if(st==='active')s.t0=performance.now();else if(s.t0){s.ms=Math.round(performance.now()-s.t0);s.t0=null}s.st=st;if(note!=null)s.note=note;renderAiPane()};
+  const T0=performance.now();setBusy('gw',1);setBusy('ai',1);
+  let d,ctx,hash,out=null,tools=[],attempts=1,errCode=null,status='completed',v=null,cachedHit=null;
+  try{
+    setS(0,'active');await sleep(260);clin();
+    const today=isoDate(Date.now());
+    if(db.aiSummaries.filter(s=>s.requestedBy===session.user.id&&isoDate(s.createdAt)===today).length>=cfg.dailyQuota)throw new ApiError(429,'AI_QUOTA_EXCEEDED','You have reached the daily limit for AI summaries.');
+    setS(0,'done','Ready');
+    setS(1,'active');
+    await Promise.all([api('patient','GET',`/internal/patients/${sid(pid)}/chart`,()=>({ok:1}),{from:'ai',delay:220}),api('lab','GET',`/internal/labs/patients/${sid(pid)}/summary`,()=>{if(sim==='upstream')throw new ApiError(503,'UPSTREAM_UNAVAILABLE','Lab results could not be loaded in time.');return{ok:1}},{from:'ai',delay:280})]);
+    setS(1,'done','Done');
+    setS(2,'active');await sleep(320);d=analyze(pid);setS(2,'done',`${d.gaps.length} rule findings, ${d.abnormal.length} abnormal latest results`);
+    setS(3,'active');await sleep(240);ctx=buildContext(d);hash=hash53(JSON.stringify(ctx)+cfg.provider+'v1').slice(0,12);
+    cachedHit=!force&&db.aiSummaries.find(s=>s.patientId===pid&&s.status==='completed'&&s.contextHash===hash);
+    if(cachedHit){setS(3,'done','Same data as an earlier summary');[4,5,6].forEach(i=>setS(i,'skipped','Not needed, reusing the saved summary'))}
+    else{
+      setS(3,'done','New or changed data');
+      setS(4,'active','Sending the chart summary to the AI');
+      try{
+        if(sim==='ratelimit'){await sleep(520);throw degrade('LLM_RATE_LIMITED','The AI service is busy right now. Try again in a minute.')}
+        if(sim==='timeout'){await sleep(650);setS(4,'active','No answer yet, trying again');await sleep(750);throw degrade('LLM_TIMEOUT','The AI service did not answer in time. Try again in a minute.')}
+        if(toolsOn){const plan=toolPlan(d,pid).slice(0,cfg.maxToolIterations+2);for(let i=0;i<plan.length;i++){const tc=plan[i];setS(4,'active',`Looking up ${tc.name.replace(/^get_/,'').replace(/_/g,' ')} ${tc.argsShort}`);const t1=performance.now();const res=await api(tc.service,'GET',tc.path,()=>tc.run(),{from:'ai',delay:130+Math.random()*120});tools.push({seq:i+1,name:tc.name,args:tc.args,service:tc.service,bytes:JSON.stringify(res).length,ms:Math.round(performance.now()-t1),status:'ok'})}}
+        await sleep(520);out=buildNarrative(d);setS(4,'done','Draft ready');
+        setS(5,'active','Checking the format');await sleep(380);
+        if(sim==='invalid'){setS(5,'active','The first answer was incomplete. Asking the AI to correct it');attempts=2;await sleep(1000)}
+        v=validateOutput(out,pid);setS(5,'done',`${v.refsOk} of ${v.refsTotal} sources found in the record${attempts>1?', corrected after one retry':''}`);
+      }catch(e){if(!e.degrade)throw e;status='degraded';errCode=e.degrade;out=null;setS(4,'warn',e.message);setS(5,'skipped','Nothing to check')}
+      setS(6,'active');await sleep(220);
+    }
+    let rec=cachedHit;
+    if(!rec){
+      const tin=Math.round(JSON.stringify(ctx).length/4)+620+tools.reduce((a,t)=>a+t.bytes/4,0|0),tout=out?Math.round(JSON.stringify(out).length/4):0;
+      rec={id:uid(),patientId:pid,requestedBy:session.user.id,status,provider:cfg.provider,model:MODEL[cfg.provider],promptVersion:'v1',contextHash:hash,contextSnapshot:ctx,output:out,facts:factsOf(d),gaps:d.gaps,toolCalls:tools,attempts,latencyMs:Math.round(performance.now()-T0),tokensIn:Math.round(tin),tokensOut:tout,errorCode:errCode,validation:v,createdAt:new Date().toISOString()};
+      db.aiSummaries.unshift(rec);save();setS(6,'done','Saved');
+    }
+    rec.pipeline=rec.pipeline||S.steps.map(s=>({t:s.t,st:s.st,ms:s.ms,note:s.note}));
+    S.status='done';ui.ai.openId=rec.id;
+    logCall({service:'ai',method:'POST',path:`/api/ai/patients/${sid(pid)}/summary${force?'?force=true':''}`,status:200,ms:Math.round(performance.now()-T0)});
+    renderAiPane();
+    toast(cachedHit?'Nothing has changed since the last summary, so the saved one is shown.':status==='degraded'?'Summary is partial: the AI narrative is unavailable.':'AI summary generated.',cachedHit?'info':status==='degraded'?'info':'ok');
+  }catch(e){
+    const i=S.steps.findIndex(s=>s.st==='active');if(i>=0){S.steps[i].st='failed';S.steps[i].note=e.message;if(S.steps[i].t0){S.steps[i].ms=Math.round(performance.now()-S.steps[i].t0)}}
+    S.status='error';S.error=e;logCall({service:'ai',method:'POST',path:`/api/ai/patients/${sid(pid)}/summary`,status:e.status||500,code:e.code,ms:Math.round(performance.now()-T0)});renderAiPane();
+  }finally{setBusy('gw',-1);setBusy('ai',-1)}
+}
+
+/* ---------- rendering ---------- */
+async function tabAi(id){await api('ai','GET',`/ai/patients/${sid(id)}/summaries`,()=>{clin();return 1});return `<div id="ai-pane"></div>`}
+function renderAiPane(){const el=$('#ai-pane');if(!el||ui.cur.tab!=='ai')return;el.innerHTML=aiPaneHtml(ui.cur.pid)}
+const stepIcon={done:ic('check',13),failed:ic('x',13),warn:ic('alert',12),skipped:'',active:'',pending:''};
+function stepper(S){return `<ul class="steps">${S.steps.map(s=>`<li class="step ${s.st}"><span class="dot">${stepIcon[s.st]||''}</span><div><div class="t">${esc(s.t)}</div><div class="d">${esc(s.note||s.d)}</div></div><span class="ms">${s.ms!=null?s.ms+' ms':''}</span></li>`).join('')}</ul>`}
+function aiPaneHtml(pid){
+  const hist=db.aiSummaries.filter(s=>s.patientId===pid),R=ui.ai.run&&ui.ai.run.pid===pid?ui.ai.run:null,running=R&&R.status==='running';
+  let sel=hist.find(s=>s.id===ui.ai.openId);if(!sel&&!running&&!(R&&R.status==='error'))sel=hist[0];
+  const cfg=db.config,toolsOn=cfg.toolsEnabled&&CAPS[cfg.provider].tools;
+  let h=`<div class="panel" style="margin-bottom:16px;border-color:var(--ai-100)"><div class="panel-b"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:20px"><div style="max-width:62ch"><h2 style="display:flex;gap:8px;align-items:center;color:var(--ai)">${ic('spark',18)}AI clinical summary</h2><p class="muted" style="margin-top:6px">Summarizes this patient's history, kidney function trends and abnormal results. Numbers, flags and record gaps come from the chart itself. The AI only writes the narrative and follow-up considerations, and shows its sources.</p></div>
+  <div style="min-width:260px">  <div class="row"><button class="btn ai" data-act="ai-generate" ${running?'disabled':''}>${ic('spark',16)}${running?'Generating':'Generate summary'}</button>${hist.length?`<button class="btn" data-act="ai-regenerate" ${running?'disabled':''}>${ic('refresh',15)}Regenerate</button>`:''}</div></div></div></div></div>`;
+  if(running||(R&&R.status==='error'))h+=`<div class="panel" style="margin-bottom:16px"><div class="panel-h"><h3>${running?'Working on it':'Request failed'}</h3>${running?'':'<button class="btn sm" data-act="ai-generate">Try again</button>'}</div>${R.status==='error'?`<div class="panel-b" style="padding-bottom:0"><div class="alert danger">${ic('alert',16)}<div><b>The summary could not be created.</b> ${esc(R.error.message)} Nothing was saved. Try again in a moment.</div></div></div>`:''}${stepper(R)}</div>`;
+  if(sel&&!running)h+=renderSummary(sel);
+  else if(!running&&!(R&&R.status==='error'))h+=`<div class="panel"><div class="empty"><b>No summary yet</b>Generate one to see computed facts, record gaps and an AI narrative with sources.</div></div>`;
+  if(hist.length>0&&!running)h+=`<div class="panel" style="margin-top:16px"><div class="panel-h"><h3>Previous summaries</h3><span class="muted small">${hist.length} saved</span></div>${hist.slice(0,6).map(s=>`<div class="list-item"><div><b>${fmtDT(s.createdAt)}</b></div><div class="row">${chip(s.status==='completed'?'Completed':'Partial',s.status==='completed'?'ok':'warn')}<button class="btn sm ${s.id===(sel&&sel.id)?'':'ghost'}" data-act="ai-open" data-id="${s.id}">${s.id===(sel&&sel.id)?'Showing':'Open'}</button></div></div>`).join('')}</div>`;
+  h+=`<details class="demo-opt"><summary>Demo options</summary><div class="panel-b"><label class="fld" style="margin-bottom:10px"><span class="fld-l">Simulate a scenario</span><select class="inp" data-change="ai-sim" ${running?'disabled':''}><option value="normal" ${ui.ai.sim==='normal'?'selected':''}>Normal run</option><option value="invalid" ${ui.ai.sim==='invalid'?'selected':''}>LLM returns invalid output once (auto-repair)</option><option value="timeout" ${ui.ai.sim==='timeout'?'selected':''}>LLM times out (partial result)</option><option value="ratelimit" ${ui.ai.sim==='ratelimit'?'selected':''}>Provider rate limit, 429 (partial result)</option><option value="upstream" ${ui.ai.sim==='upstream'?'selected':''}>lab-svc is down (request fails)</option></select></label>
+<div class="small muted">Simulates a failure so you can see how the summary handles it. Not needed for normal use.</div></div></details>`;
+  return h;
+}
+function refLabel(r){
+  const [k,a,b]=r.split(':');
+  if(k==='lab')return `${LAB_TESTS[a]?LAB_TESTS[a].name:a}, ${fmtDate(b)}`;
+  if(k==='cond'){const c=db.conditions.find(x=>sid(x.id)===a);return c?c.desc:'Condition'}
+  if(k==='med'){const m=db.meds.find(x=>sid(x.id)===a);return m?m.name:'Medication'}
+  if(k==='enc'){const e=db.encounters.find(x=>sid(x.id)===a);return e?`Encounter, ${fmtDate(e.date)}`:'Encounter'}
+  return r;
+}
+const refChips=a=>a&&a.length?`<div class="refs"><span class="muted small" style="align-self:center">Sources:</span>${[...new Set(a)].map(r=>`<span class="chip ref" data-act="open-ref" data-ref="${esc(r)}" title="Open the source record" tabindex="0" role="link">${esc(refLabel(r))}</span>`).join('')}</div>`:'';
+function renderSummary(s){
+  const f=s.facts,o=s.output;
+  const trendRow=(k,nm)=>{const t=f.trends[k];return `<tr><td>${nm}</td><td class="mono">${t.n?fmtVal(k,t.first)+' → '+fmtVal(k,t.last):'-'}</td><td class="mono">${t.n>1?signed(t.pctChange,0)+'%':'-'}</td><td class="mono">${t.slopePerYear!=null?signed(t.slopePerYear,k==='EGFR'?1:2):'-'}</td><td>${dirChip(Object.assign({n:t.n},t,{slope:t.slopePerYear}))} ${t.rapidDecline?chip('Rapid decline','danger','alert'):''}</td></tr>`};
+  return `<div class="panel" style="margin-bottom:16px"><div class="panel-h"><div class="row"><h2>Summary</h2>${chip(s.status==='completed'?'Completed':'Partial result',s.status==='completed'?'ok':'warn')}${s.attempts>1?chip('Corrected once automatically','info'):''}</div><span class="muted small">Generated ${fmtDT(s.createdAt)}</span></div></div>
+  <div class="panel" style="margin-bottom:16px"><div class="panel-h"><h3>${ic('db',16)}Calculated from the chart</h3>${chip('Not written by the AI','teal')}</div><div class="panel-b">
+  <div class="grid g3" style="margin-bottom:16px"><div><div class="muted small">Established CKD stage</div><div style="font-size:20px;font-weight:600">${f.ckd.established||'Not set'}</div></div><div><div class="muted small">eGFR category, latest result</div><div style="font-size:20px;font-weight:600">${f.ckd.egfrCat||'-'}</div></div><div><div class="muted small">Albuminuria category</div><div style="font-size:20px;font-weight:600">${f.ckd.uacrCat||'-'}</div></div></div>
+  <table style="margin-bottom:14px"><thead><tr><th style="padding-left:0">Trend</th><th>First → latest</th><th>Change</th><th>Per year</th><th>Direction</th></tr></thead><tbody>${trendRow('EGFR','eGFR')}${trendRow('CREAT','Creatinine')}</tbody></table>
+  <div class="fld-l" style="margin-bottom:6px">Latest abnormal results</div>${f.abnormal.length?`<div class="row" style="gap:8px">${f.abnormal.map(r=>`<span class="chip ${r.flag.indexOf('critical')===0?'danger':r.flag==='low'?'info':'warn'}">${LAB_TESTS[r.test].name} <b class="mono">${fmtVal(r.test,r.value)}</b> ${esc(r.unit)} ${FLAG[r.flag][0].toLowerCase()}</span>`).join('')}</div>`:'<span class="muted">None among the latest results.</span>'}</div></div>
+  <div class="panel" style="margin-bottom:16px"><div class="panel-h"><h3>${ic('clip',16)}Missing or inconsistent information</h3>${chip('Checked by rules, not by AI','warn')}</div>${s.gaps.length?s.gaps.map(g=>`<div class="list-item"><div class="row" style="gap:10px;align-items:flex-start">${chip(g.kind==='missing'?'Missing':'Inconsistent',g.kind==='missing'?'warn':'danger')}<div>${g.message}</div></div>${chip(cap(g.sev)+' priority',g.sev==='high'?'danger':g.sev==='medium'?'warn':'')}</div>`).join(''):`<div class="empty">${ic('check',22)}<b>No gaps found</b>Nothing is missing or inconsistent in the record.</div>`}</div>
+  ${o?`<div class="ai-panel" style="margin-bottom:16px"><div class="ai-banner">${ic('spark',18)}AI-generated narrative</div>
+  <div class="ai-sec"><h3>Nephrology history</h3><p>${esc(o.history_summary.text)}</p>${refChips(o.history_summary.source_refs)}</div>
+  <div class="ai-sec"><h3>Conditions, medications and allergies</h3><p>${esc(o.comorbidity_summary.text)}</p>${refChips(o.comorbidity_summary.source_refs)}</div>
+  <div class="ai-sec"><h3>Creatinine and eGFR trends</h3><p>${esc(o.trend_commentary.text)}</p>${refChips(o.trend_commentary.source_refs)}</div>
+  <div class="ai-sec"><h3>Abnormal findings</h3><p>${esc(o.abnormal_commentary.text)}</p>${refChips(o.abnormal_commentary.source_refs)}</div>
+  <div class="ai-sec"><h3>Follow-up considerations for clinician review</h3>${o.follow_up_considerations.length?o.follow_up_considerations.map(x=>`<div class="fu"><b>${esc(x.consideration)}</b><span>${esc(x.rationale)}</span>${refChips(x.source_refs)}</div>`).join(''):'<p class="muted">No follow-up considerations were generated from the available data.</p>'}</div>
+  ${o.not_documented.length?`<div class="ai-sec"><h3>Not documented in the record</h3><div class="row" style="gap:6px">${o.not_documented.map(x=>chip(x,'')).join('')}</div></div>`:''}
+  <div class="ai-sec row" style="gap:8px">${chip(`${s.validation.refsOk} of ${s.validation.refsTotal} sources found in the record`,'ok','check')}${chip(`Safety check: ${s.validation.lint?s.validation.lint+' flagged':'passed'}`,s.validation.lint?'danger':'ok','check')}<button class="btn sm" style="margin-left:auto" data-act="ai-copy" data-id="${s.id}">${ic('copy',14)}Copy narrative</button></div>
+  <div class="disclaimer">${ic('info',18)}<div><b>Clinical review required.</b> ${DISCLAIMER} This narrative is stored separately and is not part of the patient record.</div></div></div>`
+  :`<div class="ai-panel" style="margin-bottom:16px"><div class="ai-banner">${ic('spark',18)}AI-generated narrative</div><div class="ai-sec"><div class="alert warn">${ic('alert',16)}<div><b>The AI narrative is unavailable right now.</b> The facts and record gaps above do not depend on the AI and are still correct. Try again in a minute.</div></div></div><div class="disclaimer">${ic('info',18)}<div>${DISCLAIMER}</div></div></div>`}
+  <div class="panel">
+  
+  <details class="fold"><summary>${ic('right',14)}What the AI was given (name and patient ID removed)</summary><pre class="code">${esc(JSON.stringify(s.contextSnapshot,null,2))}</pre></details>
+  </div>`;
+}
+changes['ai-sim']=el=>{ui.ai.sim=el.value};
+actions['ai-generate']=()=>runAi(ui.cur.pid,false);
+actions['ai-regenerate']=()=>runAi(ui.cur.pid,true);
+actions['ai-open']=el=>{ui.ai.openId=el.dataset.id;ui.ai.run=null;renderAiPane()};
+actions['ai-copy']=async el=>{const s=db.aiSummaries.find(x=>x.id===el.dataset.id);if(!s||!s.output)return;const o=s.output,t=['AI-GENERATED, FOR CLINICIAN REVIEW ONLY',o.history_summary.text,o.comorbidity_summary.text,o.trend_commentary.text,o.abnormal_commentary.text,'Follow-up considerations:'].concat(o.follow_up_considerations.map(x=>'- '+x.consideration)).concat(['',DISCLAIMER]).join('\n');try{await navigator.clipboard.writeText(t);toast('Narrative copied with its disclaimer.')}catch(e){toast('Copy is blocked by the browser. Select the text instead.','info')}};
+actions['open-ref']=el=>{
+  const r=el.dataset.ref,[k,a]=r.split(':'),id=ui.cur.pid;
+  if(k==='lab')location.hash=`#/patients/${id}/labs`;
+  else if(k==='cond')location.hash=`#/patients/${id}/conditions`;
+  else if(k==='med')location.hash=`#/patients/${id}/meds`;
+  else if(k==='enc'){const e=db.encounters.find(x=>x.id.indexOf(a)===0);if(e)openModal({title:`Encounter on ${fmtDate(e.date)}`,sub:'Source record cited by the AI summary',body:encView(e),size:'lg'})}
+};
+
+/* ================= shared chart helpers ================= */
+function spark(s){
+  if(!s||s.n<2)return '<span class="nd">-</span>';
+  const W=86,H=26,pts=s.pts,t0=pts[0].t,t1=pts[pts.length-1].t,vs=pts.map(p=>p.v),lo=Math.min(...vs),hi=Math.max(...vs),rg=(hi-lo)||1;
+  const x=t=>3+(t-t0)/((t1-t0)||1)*(W-6),y=v=>H-4-(v-lo)/rg*(H-8);
+  const col=s.direction==='worsening'?'#be2f3b':s.direction==='improving'?'#12805c':'#6b7f89';
+  const last=pts[pts.length-1];
+  return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" data-tip="eGFR ${fmtVal('EGFR',s.first)} to ${fmtVal('EGFR',s.last)}<br>${s.n} results, ${esc(s.direction)}" role="img" aria-label="eGFR trend, ${s.direction}"><path d="${pts.map((p,i)=>(i?'L':'M')+x(p.t).toFixed(1)+' '+y(p.v).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(last.t).toFixed(1)}" cy="${y(last.v).toFixed(1)}" r="2.6" fill="${col}"/></svg>`;
+}
+function kidneyPanel(a,id){
+  const ck=a.ckd,mk=(t,stage)=>{const s=a.trends[t],T=LAB_TESTS[t],rg=rangeFor(t,a.p.sex);
+    return `<div><div class="kf-h"><b>${T.name}</b><span class="muted small">${s.n?`Latest <b class="mono" style="color:var(--ink)">${fmtVal(t,s.last)}</b> ${T.canon}, ${fmtDate(s.pts[s.n-1].t)}`:'No results yet'}</span></div>${lineChart({pts:s.pts||[],low:rg.low,high:rg.high,unit:T.canon,test:t,name:T.name,stage})}${s.n?`<div class="stat-row">${dirChip(s)}${s.n>=2?chip(`Change ${signed(s.abs,T.dec)} (${signed(s.pct,0)}%)`):''}${s.slope!=null?chip(`${signed(s.slope,t==='EGFR'?1:2)} per year`):''}${s.rapid?chip('Rapid decline','danger','alert'):''}</div>`:''}</div>`};
+  return `<div class="panel" style="margin-bottom:16px"><div class="panel-h"><h2>${ic('activity',18)}Kidney function</h2><a href="#/patients/${id}/labs" class="small">All lab results</a></div><div class="panel-b">
+  <div class="ckd-strip"><div><div class="k">Established CKD stage</div>${stageChip(a.p.ckd)}</div><div><div class="k">eGFR category, latest result</div>${ck.egfrCat?chip(ck.egfrCat+' ('+egfrLabel(ck.egfrCat)+')','teal'):'<span class="nd">No eGFR on record</span>'}</div><div><div class="k">Albuminuria category (UACR)</div>${ck.uacrCat?chip(ck.uacrCat+' ('+uacrLabel(ck.uacrCat)+')','teal'):'<span class="nd">No UACR on record</span>'}</div>${ck.mismatch?`<div>${chip('Established stage differs from latest eGFR','warn','alert')}</div>`:''}</div>
+  <div class="grid g2">${mk('EGFR',true)}${mk('CREAT',false)}</div></div></div>`;
+}
+
+/* ================= dashboard ================= */
+const STAGE_COL={G1:'#bfe3e6',G2:'#8ccdd3',G3a:'#52aeb8',G3b:'#2f8f9b',G4:'#0e6b75',G5:'#083f46'};
+async function viewDashboard(tok){
+  ui.cur={pid:null,tab:null};$('#view').innerHTML=skeleton();
+  try{
+    const D=await api('patient','GET','/dashboard',()=>{clin();
+      const all=db.patients.filter(p=>!p.deletedAt).map(p=>analyze(p.id)),today=isoDate(Date.now());
+      const drafts=db.encounters.filter(e=>e.status==='draft'&&!e.deletedAt).sort((a,b)=>new Date(b.date)-new Date(a.date));
+      const follow=db.encounters.filter(e=>!e.deletedAt&&e.status==='final'&&e.followUp&&isoDate(e.followUp)>=today&&all.some(a=>a.p.id===e.patientId)).sort((a,b)=>new Date(a.followUp)-new Date(b.followUp));
+      const abn=[];all.forEach(a=>Object.values(a.latest).filter(r=>r.flag!=='normal').sort((x,y)=>(y.flag.indexOf('critical')===0)-(x.flag.indexOf('critical')===0)).slice(0,2).forEach(r=>abn.push(r)));abn.sort((x,y)=>((y.flag.indexOf('critical')===0)-(x.flag.indexOf('critical')===0))||new Date(y.collectedAt)-new Date(x.collectedAt));
+      const att=all.filter(a=>a.attention).map(a=>{const why=[];
+        a.abnormal.filter(r=>r.flag.indexOf('critical')===0).forEach(r=>why.push(['danger',`Critical ${LAB_TESTS[r.test].name.toLowerCase()} ${fmtVal(r.test,r.value)} ${r.unit}`]));
+        if(a.rapid)why.push(['danger',`eGFR falling ${Math.abs(a.trends.EGFR.slope).toFixed(1)} per year`]);
+        a.gaps.filter(g=>g.sev==='high').slice(0,2).forEach(g=>why.push(['warn',g.message.replace(/\.$/,'')]));
+        return{a,why,crit:a.critical?0:a.rapid?1:2}}).sort((x,y)=>x.crit-y.crit);
+      const dist={G1:0,G2:0,G3a:0,G3b:0,G4:0,G5:0,none:0};all.forEach(a=>dist[a.ckd.egfrCat||'none']++);
+      return{all,att,drafts,follow,abn,dist,crit:all.filter(a=>a.critical).length,rapid:all.filter(a=>a.rapid).length}});
+    if(tok!==ui.tok)return;
+    const h=new Date().getHours(),hi=h<12?'Good morning':h<17?'Good afternoon':'Good evening',nm='Dr. '+session.user.name.split(' ').pop();
+    const pn=id=>{const p=db.patients.find(x=>x.id===id);return p?fullName(p):'Unknown'};
+    const maxD=Math.max(1,...Object.values(D.dist));
+    $('#view').innerHTML=`<div class="page-h"><div><h1 class="greet">${hi}, ${esc(nm)}</h1><p>${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><div class="row"><a class="btn" href="#/patients" style="text-decoration:none">${ic('users',16)}All patients</a><button class="btn primary" data-act="new-patient">${ic('plus',16)}New patient</button></div></div>
+    <div class="kpis"><div class="kpi"><div class="n">${D.all.length}</div><div class="l">Patients</div></div><div class="kpi ${D.att.length?'hot':''}"><div class="n">${D.att.length}</div><div class="l">Need attention</div></div><div class="kpi"><div class="n">${D.crit}</div><div class="l">With critical results</div></div><div class="kpi"><div class="n">${D.rapid}</div><div class="l">Rapid eGFR decline</div></div><div class="kpi"><div class="n">${D.drafts.length}</div><div class="l">Draft encounters</div></div></div>
+    <div class="grid g-main" style="margin-bottom:16px;align-items:start">
+    <div class="panel"><div class="panel-h"><h2>${ic('alert',18)}Needs your attention</h2><span class="muted small">${D.att.length} patient${D.att.length===1?'':'s'}</span></div>${D.att.length?D.att.slice(0,6).map(x=>`<div class="att-item"><div><b>${esc(fullName(x.a.p))}</b> <span class="muted small">${x.a.p.mrn}, ${x.a.age} years</span><div class="why">${x.why.map(w=>chip(w[1],w[0])).join('')}</div></div><a class="btn sm" href="#/patients/${x.a.p.id}/overview" style="text-decoration:none">Open chart</a></div>`).join(''):`<div class="empty">${ic('check',24)}<b>Nothing urgent</b>No critical results, rapid declines or high-priority record gaps.</div>`}</div>
+    <div class="panel"><div class="panel-h"><h2>${ic('activity',18)}Patients by eGFR category</h2><span class="muted small">Latest result</span></div><div class="panel-b">${['G1','G2','G3a','G3b','G4','G5'].map(k=>`<div class="hbar" data-tip="${D.dist[k]} patient${D.dist[k]===1?'':'s'} in ${k}: ${egfrLabel(k)}"><span>${k} <span class="muted small">${egfrLabel(k).split(',')[0]}</span></span><div class="track"><div class="fill" style="width:${D.dist[k]/maxD*100}%;background:${STAGE_COL[k]}"></div></div><span class="ct">${D.dist[k]}</span></div>`).join('')}<div class="small muted" style="margin-top:8px">${D.dist.none?`${D.dist.none} patient${D.dist.none===1?' has':'s have'} no eGFR on record. `:''}Categories follow KDIGO eGFR thresholds.</div></div></div></div>
+    <div class="grid g2" style="align-items:start"><div class="panel"><div class="panel-h"><h2>${ic('flask',18)}Abnormal results to review</h2></div><table><thead><tr><th>Patient</th><th>Test</th><th class="num">Result</th><th>Flag</th><th>Date</th></tr></thead><tbody>${D.abn.slice(0,8).map(r=>`<tr class="click-row" data-act="goto" data-route="#/patients/${r.patientId}/labs"><td><b>${esc(pn(r.patientId))}</b></td><td class="nowrap">${LAB_TESTS[r.test].name}</td><td class="num mono nowrap">${fmtVal(r.test,r.value)} <span class="muted small">${esc(r.unit)}</span></td><td>${flagChip(r.flag)}</td><td class="nowrap">${fmtDate(r.collectedAt)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="grid"><div class="panel"><div class="panel-h"><h2>${ic('calendar',18)}Upcoming follow-ups</h2></div>${D.follow.length?D.follow.slice(0,5).map(e=>`<div class="list-item"><div><b>${esc(pn(e.patientId))}</b><div class="small muted">${esc(e.plan||e.cc||'')}</div></div><div class="row">${chip(fmtDate(e.followUp),'teal')}<a class="btn sm" href="#/patients/${e.patientId}/encounters" style="text-decoration:none">Open</a></div></div>`).join(''):'<div class="empty"><b>No follow-ups scheduled</b>Dates entered in an encounter plan appear here.</div>'}</div>
+    <div class="panel"><div class="panel-h"><h2>${ic('file',18)}Draft encounters</h2></div>${D.drafts.length?D.drafts.slice(0,4).map(e=>`<div class="list-item"><div><b>${esc(pn(e.patientId))}</b><div class="small muted">${fmtDate(e.date)}, ${typeLabel(e.type)}</div></div><a class="btn sm" href="#/patients/${e.patientId}/encounters" style="text-decoration:none">Finish</a></div>`).join(''):'<div class="empty"><b>No drafts</b>Every encounter has been finalized.</div>'}</div></div></div>`;
+  }catch(e){if(tok===ui.tok)$('#view').innerHTML=errorState(e)}
+}
+
+/* ================= start ================= */
+load();
+if(!session||session.user.role!=='clinician')startSession(db.users.find(u=>u.role==='clinician'));
+if(!location.hash||/^#\/(login|signup|system|architecture)/.test(location.hash))location.hash='#/dashboard';
+render();
+})();
+</script>
+</body>
+</html>

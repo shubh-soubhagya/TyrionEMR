@@ -1,0 +1,15 @@
+services:
+  web:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    # Install only when node_modules is missing. `npm ci` deletes node_modules first, which is
+    # very slow on a Windows bind mount (it made every restart take minutes).
+    # After changing dependencies, run `docker compose exec web npm install`.
+    command: sh -c "[ -x node_modules/.bin/ng ] || npm ci; npx ng serve --host 0.0.0.0 --port 4200 --poll 1000"
+    ports:
+      - '4200:4200'
+    volumes:
+      - .:/app
+    environment:
+      NG_CLI_ANALYTICS: 'false'
+      CHOKIDAR_USEPOLLING: 'true'
