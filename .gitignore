@@ -1,0 +1,19 @@
+# secrets
+.env
+infra/keys/*.pem
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+# misc
+.DS_Store
+backups/
+# the Angular app and its tooling are handled separately
+frontend/node_modules/
