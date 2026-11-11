@@ -1,0 +1,58 @@
+SHELL := bash
+PG_CONTAINER ?= graphgpt-postgres
+PG_SUPERUSER ?= postgres
+PY := .venv/Scripts/python
+ifeq ($(wildcard .venv/bin/python),.venv/bin/python)
+PY := .venv/bin/python
+endif
+# load local settings (gitignored) when present
+-include .env
+export
+
+.PHONY: venv install keys init-db init-test-db migrate revision seed run test test-unit test-api lint fmt openapi build up down logs
+
+venv:
+	python -m venv .venv
+install: venv
+	$(PY) -m pip install -q -e ".[dev]"
+
+keys:
+	bash setup/generate-keys.sh
+init-db:
+	bash setup/init-auth-db.sh $(PG_CONTAINER) $(PG_SUPERUSER)
+init-test-db:
+	bash setup/init-auth-db-test.sh $(PG_CONTAINER) $(PG_SUPERUSER)
+
+migrate:
+	$(PY) -m alembic upgrade head
+revision:
+	$(PY) -m alembic revision -m "$(m)"
+seed:
+	$(PY) -m app.cli.seed_users
+
+run:
+	$(PY) -m uvicorn app.main:app --reload --port 8001
+
+test:
+	$(PY) -m pytest -q
+test-unit:
+	$(PY) -m pytest -q tests/unit
+test-api:
+	$(PY) -m pytest -q tests/api
+
+lint:
+	$(PY) -m ruff check app tests migrations && $(PY) -m mypy app
+fmt:
+	$(PY) -m ruff format app tests migrations && $(PY) -m ruff check --fix app tests migrations
+
+openapi:
+	$(PY) -m app.cli.export_openapi
+
+build:
+	docker build -t nephro/auth-svc .
+up:
+	docker compose up --build -d
+down:
+	docker compose down
+logs:
+	docker compose logs -f auth-svc

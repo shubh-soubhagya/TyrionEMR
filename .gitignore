@@ -1,6 +1,6 @@
 # secrets
 .env
-infra/keys/*.pem
+auth-svc/setup/keys/*.pem
 # python
 __pycache__/
 *.py[cod]

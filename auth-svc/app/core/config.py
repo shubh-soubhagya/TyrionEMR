@@ -1,0 +1,66 @@
+"""Settings (LLD §21). All values come from environment variables; defaults suit local development."""
+from __future__ import annotations
+
+from functools import lru_cache
+from typing import Annotated
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+def _split(value: object) -> object:
+    if isinstance(value, str):
+        return [p.strip() for p in value.split(",") if p.strip()]
+    return value
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+
+    service_name: str = "auth-svc"
+    log_level: str = "INFO"
+
+    auth_database_url: str
+    auth_db_pool_size: int = 5
+    auth_db_max_overflow: int = 5
+    db_wait_attempts: int = 30
+
+    jwt_issuer: str = "nephro-auth"
+    jwt_audience: str = "nephro-api"
+    jwt_private_key_path: str = "/run/secrets/jwt_private"
+    jwt_additional_public_key_paths: Annotated[list[str], NoDecode] = []
+
+    access_token_ttl_min: int = 15
+    refresh_token_ttl_days: int = 7
+    session_max_days: int = 30
+    refresh_reuse_grace_s: int = 10
+    refresh_retention_days: int = 7
+    cleanup_interval_s: int = 3600
+
+    refresh_cookie_name: str = "nephro_rt"
+    refresh_cookie_path: str = "/api/auth"
+    cookie_secure: bool = True
+    cors_allowed_origins: Annotated[list[str], NoDecode] = ["http://localhost:4200"]
+
+    enable_public_signup: bool = True
+    login_max_attempts: int = 5
+    login_lock_minutes: int = 15
+    lockout_reveal: bool = True
+
+    argon2_time_cost: int = 3
+    argon2_memory_kib: int = 65536
+    argon2_parallelism: int = 4
+    argon2_max_concurrency: int = 4
+
+    seed_demo_users: bool = False
+    uvicorn_workers: int = 2
+
+    @field_validator("jwt_additional_public_key_paths", "cors_allowed_origins", mode="before")
+    @classmethod
+    def _csv(cls, v: object) -> object:
+        return _split(v)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]  # required fields come from the environment

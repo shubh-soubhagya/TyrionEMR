@@ -1,0 +1,8 @@
+.env
+.venv/
+setup/keys/*.pem
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
