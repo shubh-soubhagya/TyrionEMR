@@ -5,6 +5,7 @@ RS256 only, iss/aud/exp/iat/sub required, 30 s leeway, key chosen by ``kid``.
 """
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -27,7 +28,11 @@ class Claims:
     raw: Mapping[str, Any]
 
 
-def verify_access_token(token: str, keys: Mapping[str, Any], *, issuer: str, audience: str) -> Claims:
+def verify_access_token(
+    token: str, keys: Mapping[str, Any], *, issuer: str, audience: str, now: float | None = None
+) -> Claims:
+    """``now`` (epoch seconds) is injectable so expiry can be tested with a fake clock."""
+    now = time.time() if now is None else now
     try:
         header = jwt.get_unverified_header(token)
     except jwt.PyJWTError as exc:
@@ -41,12 +46,22 @@ def verify_access_token(token: str, keys: Mapping[str, Any], *, issuer: str, aud
     try:
         payload = jwt.decode(
             token, key, algorithms=[ALGORITHM], audience=audience, issuer=issuer,
-            leeway=LEEWAY_S, options={"require": REQUIRED_CLAIMS},
+            leeway=LEEWAY_S,
+            # time claims are required here but checked below against the injected clock
+            options={"require": REQUIRED_CLAIMS, "verify_exp": False, "verify_nbf": False,
+                     "verify_iat": False},
         )
-    except jwt.ExpiredSignatureError as exc:
-        raise TokenExpired() from exc
     except jwt.PyJWTError as exc:
         raise Unauthenticated() from exc
+    try:
+        exp, iat = float(payload["exp"]), float(payload["iat"])
+        nbf = float(payload.get("nbf", iat))
+    except (TypeError, ValueError) as exc:
+        raise Unauthenticated() from exc
+    if exp + LEEWAY_S <= now:
+        raise TokenExpired()
+    if nbf - LEEWAY_S > now or iat - LEEWAY_S > now:
+        raise Unauthenticated()
     return Claims(sub=str(payload["sub"]), role=str(payload.get("role", "")), raw=payload)
 
 
@@ -62,6 +77,7 @@ async def current_claims(request: Request) -> Claims:
     claims = verify_access_token(
         bearer_token(request), request.app.state.keystore.published,
         issuer=settings.jwt_issuer, audience=settings.jwt_audience,
+        now=request.app.state.clock().timestamp(),
     )
     request.state.user_id = claims.sub          # picked up by the access log
     return claims
