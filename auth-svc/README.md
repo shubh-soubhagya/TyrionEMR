@@ -64,7 +64,7 @@ off: `python -m app.cli.create_user --email dr.x@clinic.example --name "Dr. X"`.
 ## Tests
 
 ```bash
-make test         # everything (103 tests)
+make test         # everything (105 tests)
 make test-unit    # pure, no database
 make test-api     # real Postgres (nephro_auth_db_test), fake clock, cheap argon2
 make lint         # ruff + mypy
@@ -82,6 +82,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | 5th failure locks (still `401`), 6th is `429` + `Retry-After`; no hashing while locked; atomic counter; `LOCKOUT_REVEAL=false` | `test_lockout` |
 | Reuse outside the 10 s window revokes the family **and the revocation commits** | `test_refresh` (mutation-checked) |
 | Reuse inside the window: `409`, nothing changes, cookie untouched | `test_refresh` |
+| Only a replayed `rotated` token is theft. Logout / `reuse_detected` / `user_inactive` tokens answer `401 REFRESH_INVALID`, clear the cookie, touch nothing, log no `reuse_detected` | `test_refresh` |
 | Two parallel refreshes: exactly one `200`, one `409` | `test_refresh_concurrency` |
 | Cookie `nephro_rt`: HttpOnly, Secure, SameSite=Strict, Path=/api/auth, no Domain | `test_cookies`, `test_signup` |
 | Origin allow-list on refresh and logout | `test_refresh`, `test_logout` |
@@ -103,7 +104,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D6 | `Retry-After` is `ceil(remaining seconds)` | The LLD's `+1` made a fresh 15-minute lock say "16 minutes". |
 | D7 | OpenAPI export is `docs/api/openapi.json` | Per the requested tree (the original task said `docs/api/auth-svc.json`). |
 | D8 | Route label in logs/metrics is rebuilt from the real path | FastAPI reports router-relative paths (`/login`), which would collide across prefixes. |
-| D9 | JWKS cache/refetch verifier is not included | It is gateway-side. Deferred with the gateway (see Open questions). |
+| D9 | JWKS cache/refetch verifier is not included | It is gateway-side. Deferred with the gateway. |
 
 ## Operations
 
@@ -111,12 +112,8 @@ Unlock an account, sign a user out everywhere, deactivate a user, rotate keys: s
 Key files: `setup/keys/jwt_private.pem` (readable by uid 10001 in dev only; use a secret manager in
 production). Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
 
-## Open questions
+## Status and open items
 
-1. The gateway was deferred by the layout change ("its own folder, later"). The original task listed it
-   in scope and in the definition of done (smoke test through `:8080`). Confirm it is a separate step.
-2. `/auth/refresh` after `/auth/logout` with the old cookie reports `REFRESH_REUSED` and logs a WARN
-   `reuse_detected`, because a logged-out token is "revoked, not rotated" (LLD §19.3). Harmless, but it
-   will raise the alert metric if a client retries logout then refresh. Say if logout-revoked tokens
-   should answer `REFRESH_INVALID` quietly instead.
-3. `auth_db` (the pre-existing, empty, `postgres`-owned database) was left untouched.
+auth-svc is complete except the smoke test through the gateway on `:8080`. The gateway is a separate
+step in its own folder; it needs only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
+The pre-existing empty `auth_db` on the shared container is intentionally left alone.

@@ -180,11 +180,14 @@ class AuthService:
             else:
                 family_id, owner_id = row.family_id, row.user_id
                 if row.revoked_at is not None:
-                    in_grace = (row.revoked_reason == "rotated"
-                                and (now - row.revoked_at).total_seconds() <= self._s.refresh_reuse_grace_s)
-                    if in_grace:
+                    if row.revoked_reason != "rotated":
+                        # Revoked by logout, an earlier reuse detection or user deactivation: the
+                        # session is simply over. Not theft, so no family revocation and no alert.
+                        outcome = RefreshOutcome.INVALID
+                    elif (now - row.revoked_at).total_seconds() <= self._s.refresh_reuse_grace_s:
                         outcome = RefreshOutcome.RACE      # change nothing, issue nothing
                     else:
+                        # A token that was legitimately rotated away is replayed: someone kept a copy
                         revoked_count = await self._rt.revoke_family(session, row.family_id, "reuse_detected", now)
                         outcome = RefreshOutcome.REUSED
                 elif row.expires_at <= now or row.family_expires_at <= now:

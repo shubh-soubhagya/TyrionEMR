@@ -107,8 +107,8 @@ async def test_revocation_persists_after_the_error_response(client, make_user, a
     assert code(await refresh(client, rt1)) == "REFRESH_REUSED"
     rows = await sql(app, "SELECT revoked_reason FROM refresh_tokens ORDER BY created_at")
     assert [r[0] for r in rows] == ["rotated", "reuse_detected"]    # the live token was revoked and it stuck
-    again = await refresh(client, rt2)
-    assert again.status_code == 401 and code(again) == "REFRESH_REUSED"
+    again = await refresh(client, rt2)   # already revoked as reuse_detected: just an ended session
+    assert again.status_code == 401 and code(again) == "REFRESH_INVALID"
 
 
 async def test_reuse_inside_grace_is_409_and_changes_nothing(client, make_user, app, clock):
@@ -149,3 +149,39 @@ async def test_untrusted_origin_is_403_and_trusted_passes(client, make_user):
     assert set_cookie_headers(bad) == []
     ok = await refresh(client, rt, origin="http://localhost:4200")
     assert ok.status_code == 200
+
+
+async def test_logout_then_refresh_with_old_cookie_is_invalid_not_reuse(client, make_user, app, caplog):
+    import logging
+
+    from app.core.logging import JsonFormatter
+
+    rt, _ = await signed_in(client, make_user)
+    assert (await client.post("/auth/logout", headers=with_cookie(rt))).status_code == 204
+    before = await sql(app, "SELECT id, revoked_reason, revoked_at FROM refresh_tokens ORDER BY id")
+
+    caplog.set_level(logging.DEBUG)
+    r = await refresh(client, rt)
+
+    assert r.status_code == 401 and code(r) == "REFRESH_INVALID"
+    (c,) = set_cookie_headers(r)
+    assert "Max-Age=0" in c
+    assert await sql(app, "SELECT id, revoked_reason, revoked_at FROM refresh_tokens ORDER BY id") == before
+    logs = "\n".join(JsonFormatter("auth-svc").format(rec) for rec in caplog.records)
+    assert "auth.refresh.reuse_detected" not in logs
+    assert '"event":"auth.refresh.failure"' in logs and '"reason":"invalid"' in logs
+    assert not [rec for rec in caplog.records if rec.levelno >= logging.WARNING]
+
+
+async def test_replaying_a_reuse_revoked_token_does_not_log_reuse_again(client, make_user, clock, caplog):
+    import logging
+
+    rt1, _ = await signed_in(client, make_user)
+    rt2 = rt_cookie(await refresh(client, rt1))
+    clock.advance(seconds=11)
+    assert code(await refresh(client, rt1)) == "REFRESH_REUSED"     # the one real theft event
+    caplog.clear()
+    caplog.set_level(logging.DEBUG)
+    r = await refresh(client, rt2)                                  # revoked_reason='reuse_detected'
+    assert r.status_code == 401 and code(r) == "REFRESH_INVALID"
+    assert not [rec for rec in caplog.records if rec.getMessage() == "auth.refresh.reuse_detected"]

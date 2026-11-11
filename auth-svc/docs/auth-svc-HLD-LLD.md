@@ -306,6 +306,7 @@ These are additions made at LLD level. None changes the HLD contract seen by oth
 | R6 | Silent refresh at app boot | Access token is memory-only, so a reload needs it | §15.2 |
 | R7 | Login and signup responses include the `user` object | Saves an immediate `/auth/me` call after sign-in | §11.1 |
 | R8 | `LOCKOUT_REVEAL` flag | Lets production hide lock state if enumeration matters more than UX | §7.1 |
+| R9 | Database is named `nephro_auth_db` (test: `nephro_auth_db_test`), set by `AUTH_DB_NAME` | The shared container already had an unrelated `auth_db`. Everywhere this document says `auth_db`, read `nephro_auth_db`. The role stays `auth_svc` | §7, §15, §16 |
 
 ---
 
@@ -723,7 +724,7 @@ services:
       AUTH_DATABASE_URL: postgresql+asyncpg://auth_svc:${AUTH_DB_PW}@host.docker.internal:<published-port>/auth_db
 ```
 
-**Running auth-svc on the host for development** (Uvicorn outside Docker): use `localhost:<published-port>`.
+**Running auth-svc on the host for development** (Uvicorn outside Docker): use `localhost:<published-port>`. If another server on the host also binds that port (here, host port 5432 is shared with a second Postgres that rejects the `auth_svc` password), use the container's other published port (5433). Check with `netstat -ano | findstr :5432` and test the login with `asyncpg` before debugging anything else.
 
 Because the container is external, compose `depends_on: condition: service_healthy` cannot wait on it. The entrypoint runs `wait_for_db` (§23.2) instead.
 
@@ -1070,10 +1071,14 @@ sequenceDiagram
     alt no row
         A->>DB: COMMIT
         A-->>UI: 401 REFRESH_INVALID, clear cookie
+    else revoked, reason is not rotated (logout, reuse_detected, user_inactive)
+        A->>DB: COMMIT (nothing changed)
+        A->>A: log auth.refresh.failure reason=invalid (no reuse alert)
+        A-->>UI: 401 REFRESH_INVALID, clear cookie
     else revoked as rotated within grace window
         A->>DB: COMMIT
         A-->>UI: 409 REFRESH_RACE, cookie untouched
-    else revoked (any other case)
+    else revoked as rotated, outside grace window
         A->>DB: UPDATE refresh_tokens SET revoked_at=now(), revoked_reason='reuse_detected' WHERE family_id=:f AND revoked_at IS NULL
         A->>DB: COMMIT
         A->>A: log security event auth.refresh.reuse_detected
@@ -1095,6 +1100,7 @@ sequenceDiagram
 Implementation notes:
 - `FOR UPDATE` serializes two concurrent refreshes of the **same** token. The second waits, then sees `revoked_reason='rotated'` and a fresh `revoked_at`, so it gets `409 REFRESH_RACE`.
 - **Revocation must commit even though the response is an error.** The service method decides an *outcome* inside the transaction and raises the HTTP error **after** the `async with session.begin()` block. Raising inside the block would roll the revocation back. See §20.6.
+- **Only a replayed `rotated` token is theft.** A token revoked by `logout`, `reuse_detected` or `user_inactive` marks a session that is already over (a double sign-out, a second tab, a client retry). It answers `401 REFRESH_INVALID`, clears the cookie, logs `auth.refresh.failure reason=invalid`, and does **not** touch the family or log `reuse_detected`, so the alert only fires for a genuinely stolen, rotated-away token.
 - The race window only answers `409`; it never issues a token. A thief replaying within 10 s gains nothing, and after 10 s the replay revokes the family.
 
 ### 19.4 Logout
@@ -1447,9 +1453,9 @@ class AuthService:
             if row is None:
                 outcome = RefreshOutcome.INVALID
             elif row.revoked_at is not None:
-                in_grace = (row.revoked_reason == "rotated"
-                            and (now - row.revoked_at).total_seconds() <= self._s.refresh_reuse_grace_s)
-                if in_grace:
+                if row.revoked_reason != "rotated":
+                    outcome = RefreshOutcome.INVALID          # session already over: not theft, change nothing
+                elif (now - row.revoked_at).total_seconds() <= self._s.refresh_reuse_grace_s:
                     outcome = RefreshOutcome.RACE
                 else:
                     await self._rt.revoke_family(session, row.family_id, "reuse_detected", now)
@@ -1846,7 +1852,7 @@ Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATA
 |---|---|
 | Signup | `201` with token and cookie; user row role is `clinician` regardless of payload; `409` on duplicate email with different case; `422` with rule codes; `403` when flag off; password stored as `$argon2id$` |
 | Login | `200` for seeded user; `401` same body for unknown email and wrong password; 5 failures then `429` with `Retry-After`; lock expires (fake clock) and login works; success resets counter; `403` for inactive; `LOCKOUT_REVEAL=false` returns `401` while locked; rehash happens when cost settings change |
-| Refresh | rotates (old row `rotated`, `replaced_by_id` set, new cookie differs); missing cookie `401 REFRESH_MISSING`; unknown `401 REFRESH_INVALID` and cookie cleared; expired idle; expired absolute (`family_expires_at`); reuse outside grace revokes all family rows and returns `401 REFRESH_REUSED`; reuse inside grace returns `409` and does **not** revoke; **revocation persists** after the error response (regression test for §19.3 note); inactive user revokes family; bad `Origin` → `403` |
+| Refresh | rotates (old row `rotated`, `replaced_by_id` set, new cookie differs); missing cookie `401 REFRESH_MISSING`; unknown `401 REFRESH_INVALID` and cookie cleared; expired idle; expired absolute (`family_expires_at`); reuse of a `rotated` token outside grace revokes all family rows and returns `401 REFRESH_REUSED`; **login, logout, then refresh with the old cookie returns `401 REFRESH_INVALID`, clears the cookie, logs `auth.refresh.failure reason=invalid`, logs no `reuse_detected` and leaves the family untouched**; replaying a `reuse_detected` token also returns `REFRESH_INVALID`; reuse inside grace returns `409` and does **not** revoke; **revocation persists** after the error response (regression test for §19.3 note); inactive user revokes family; bad `Origin` → `403` |
 | Concurrency | two parallel refreshes with the same cookie → exactly one `200`, one `409`, family still active |
 | Logout | `204` with and without cookie; family revoked; subsequent refresh `401` |
 | Me | `200` with valid token; `401` missing; `401 TOKEN_EXPIRED`; `403` inactive |
