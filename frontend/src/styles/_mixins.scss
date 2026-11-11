@@ -1,0 +1,47 @@
+// Breakpoints come from the HTML's two media queries (html:279-280).
+$bp-wide: 1100px;
+$bp-narrow: 900px;
+
+@mixin down($max) {
+  @media (max-width: $max) {
+    @content;
+  }
+}
+
+@mixin wide-down {
+  @include down($bp-wide) {
+    @content;
+  }
+}
+
+@mixin narrow-down {
+  @include down($bp-narrow) {
+    @content;
+  }
+}
+
+// Same ring as the global :focus-visible rule, for elements that need it explicitly.
+@mixin focus-ring {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+// Input focus look (html:106): border + halo instead of an outline.
+@mixin field-focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: var(--shadow-focus-halo);
+}
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

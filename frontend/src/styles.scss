@@ -1,1 +1,5 @@
-/* You can add global styles to this file, and also import other style files */
+// Order matters: tokens first, then reset, then element styles.
+// Fonts are self-hosted via @fontsource and listed in angular.json "styles".
+@use 'styles/tokens';
+@use 'styles/reset';
+@use 'styles/typography';

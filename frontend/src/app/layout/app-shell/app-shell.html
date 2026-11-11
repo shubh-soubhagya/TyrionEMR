@@ -1,0 +1,23 @@
+<a class="skip-link" href="#main" (click)="skipToMain($event)">Skip to main content</a>
+
+<div class="shell">
+  <emr-sidebar [items]="navItems" [open]="navOpen()" (navigated)="closeNav()" />
+
+  @if (navOpen()) {
+    <div class="scrim" aria-hidden="true" (click)="closeNav()"></div>
+  }
+
+  <div class="main">
+    <emr-header
+      [userName]="userName"
+      [userRole]="userRole"
+      [navOpen]="navOpen()"
+      (navToggle)="toggleNav()"
+      (searchSubmit)="search($event)"
+      (signOut)="signOut()"
+    />
+    <main #main id="main" class="view" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

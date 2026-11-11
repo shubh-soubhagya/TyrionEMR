@@ -1,0 +1,21 @@
+// html:73-75
+.page-h {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-16);
+  margin-bottom: var(--space-18);
+  flex-wrap: wrap;
+
+  p {
+    color: var(--color-text-muted);
+    margin-top: var(--space-3);
+  }
+}
+
+.row {
+  display: flex;
+  gap: var(--space-10);
+  align-items: center;
+  flex-wrap: wrap;
+}

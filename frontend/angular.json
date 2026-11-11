@@ -16,7 +16,7 @@
       },
       "root": "",
       "sourceRoot": "src",
-      "prefix": "app",
+      "prefix": "emr",
       "architect": {
         "build": {
           "builder": "@angular/build:application",
@@ -30,7 +30,18 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": [
+              "@fontsource/ibm-plex-sans/latin-400.css",
+              "@fontsource/ibm-plex-sans/latin-500.css",
+              "@fontsource/ibm-plex-sans/latin-600.css",
+              "@fontsource/ibm-plex-sans/latin-700.css",
+              "@fontsource/ibm-plex-mono/latin-400.css",
+              "@fontsource/ibm-plex-mono/latin-500.css",
+              "src/styles.scss"
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": ["src/styles"]
+            }
           },
           "configurations": {
             "production": {

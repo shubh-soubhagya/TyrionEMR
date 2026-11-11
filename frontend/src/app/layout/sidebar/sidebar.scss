@@ -1,0 +1,107 @@
+@use 'mixins' as *;
+
+// html:38-46, 294
+:host {
+  background: var(--color-nav-bg);
+  color: var(--color-nav-text);
+  padding: var(--space-18) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  color: var(--color-on-primary);
+  padding: var(--space-4) var(--space-8) var(--space-22);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+
+  b {
+    display: block;
+    font-size: var(--fs-15);
+    letter-spacing: -0.005em;
+  }
+
+  small {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--color-nav-text);
+  }
+}
+
+.logo {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-brand);
+  background: var(--color-primary-600);
+  display: grid;
+  place-items: center;
+  color: var(--color-on-primary);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: var(--space-9) var(--space-10);
+  border-radius: var(--radius-md);
+  color: var(--color-nav-text);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+
+  &:hover {
+    background: var(--color-nav-bg-active);
+    color: var(--color-on-primary);
+    text-decoration: none;
+  }
+
+  &.active {
+    background: var(--color-nav-bg-active);
+    color: var(--color-on-primary);
+    box-shadow: var(--shadow-nav-active);
+  }
+}
+
+.side-foot {
+  margin-top: auto;
+  padding: var(--space-10);
+}
+
+.clinic {
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--color-nav-bg-active);
+  color: var(--color-on-primary);
+  font-size: var(--fs-13);
+
+  small {
+    display: block;
+    color: var(--color-nav-text);
+    font-size: var(--fs-12);
+    margin-top: var(--space-2);
+  }
+}
+
+// Below the breakpoint the HTML hides the sidebar. We show it as a drawer when opened.
+@include narrow-down {
+  :host {
+    display: none;
+  }
+
+  :host(.open) {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    z-index: var(--z-drawer);
+  }
+}

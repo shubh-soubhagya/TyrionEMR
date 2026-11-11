@@ -1,0 +1,19 @@
+// html:63-64
+:host {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: var(--fs-12);
+  flex: none;
+}
+
+:host(.lg) {
+  width: 44px;
+  height: 44px;
+  font-size: var(--fs-15);
+}

@@ -1,0 +1,53 @@
+// Base element styles and the few utility classes the HTML genuinely uses globally (html:25-33).
+a {
+  color: var(--teal);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: var(--fs-22);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--fs-16);
+}
+
+h3 {
+  font-size: var(--fs-14);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.small {
+  font-size: var(--fs-12-5);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+// "Not documented" and similar empty-value text.
+.nd {
+  color: var(--ink-3);
+  font-style: italic;
+}

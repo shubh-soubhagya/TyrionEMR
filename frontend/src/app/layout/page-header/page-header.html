@@ -1,0 +1,12 @@
+<div class="page-h">
+  <div>
+    <ng-content select="[emr-breadcrumbs]" />
+    <h1>{{ title() }}</h1>
+    @if (subtitle(); as text) {
+      <p>{{ text }}</p>
+    }
+  </div>
+  <div class="row">
+    <ng-content select="[emr-page-actions]" />
+  </div>
+</div>

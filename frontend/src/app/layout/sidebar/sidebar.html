@@ -1,0 +1,29 @@
+<a class="brand" routerLink="/dashboard" (click)="navigated.emit()">
+  <span class="logo"><emr-icon name="activity" [size]="20" /></span>
+  <span>
+    <b>NephroCare</b>
+    <small>Nephrology EMR</small>
+  </span>
+</a>
+
+<nav aria-label="Primary">
+  @for (item of items(); track item.path) {
+    <a
+      class="nav-item"
+      [routerLink]="item.path"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      (click)="navigated.emit()"
+    >
+      <emr-icon [name]="item.icon" />
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>
+
+<div class="side-foot">
+  <div class="clinic">
+    <b>Lotus Kidney Clinic</b>
+    <small>Outpatient nephrology</small>
+  </div>
+</div>

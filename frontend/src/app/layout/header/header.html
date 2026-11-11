@@ -1,0 +1,53 @@
+<header class="topbar">
+  <button
+    #menuButton
+    class="menu-btn"
+    type="button"
+    aria-label="Open navigation"
+    [attr.aria-expanded]="navOpen()"
+    (click)="navToggle.emit()"
+  >
+    <emr-icon name="menu" />
+  </button>
+
+  <form class="gsearch" role="search" (submit)="submitSearch($event, q)">
+    <emr-icon name="search" [size]="16" />
+    <input
+      #q
+      name="q"
+      placeholder="Search patients by name or ID"
+      autocomplete="off"
+      aria-label="Search patients"
+    />
+  </form>
+
+  <div class="user-menu">
+    <button
+      #userButton
+      class="user-btn"
+      type="button"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="userMenuOpen()"
+      (click)="toggleUserMenu()"
+    >
+      <emr-avatar [name]="userName()" />
+      <span class="who">
+        <b>{{ userName() }}</b>
+        <span>{{ userRole() }}</span>
+      </span>
+    </button>
+
+    @if (userMenuOpen()) {
+      <div class="menu" role="menu">
+        <div class="m-head">
+          <b>{{ userName() }}</b>
+          <span class="muted small">{{ userRole() }}</span>
+        </div>
+        <button type="button" role="menuitem" (click)="onSignOut()">
+          <emr-icon name="logout" [size]="16" />
+          Sign out
+        </button>
+      </div>
+    }
+  </div>
+</header>

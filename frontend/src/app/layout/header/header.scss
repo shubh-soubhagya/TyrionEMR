@@ -1,0 +1,149 @@
+@use 'mixins' as *;
+
+// html:48-66, 88
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-14);
+  padding: var(--space-10) var(--space-24);
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border-default);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-topbar);
+}
+
+// Not in the HTML (it has no mobile navigation): shown only where the sidebar is hidden.
+.menu-btn {
+  display: none;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  place-items: center;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+
+  &:hover {
+    background: var(--color-surface-page);
+  }
+}
+
+.gsearch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  background: var(--color-surface-page);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-10);
+  width: min(380px, 100%);
+  height: var(--control-height);
+  color: var(--color-text-muted);
+
+  input {
+    border: 0;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+  }
+
+  &:focus-within {
+    border-color: var(--color-primary-600);
+    background: var(--color-surface-raised);
+  }
+}
+
+.user-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-9);
+  background: none;
+  border: 0;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  color: inherit;
+
+  &:hover {
+    background: var(--color-surface-page);
+  }
+
+  .who {
+    text-align: left;
+    line-height: 1.2;
+
+    b {
+      display: block;
+      font-size: var(--fs-13);
+    }
+
+    span {
+      font-size: var(--fs-12);
+      color: var(--color-text-muted);
+    }
+  }
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  min-width: 230px;
+  box-shadow: var(--shadow-menu);
+  padding: var(--space-6);
+  z-index: var(--z-menu);
+
+  .m-head {
+    padding: var(--space-8) var(--space-10);
+    border-bottom: 1px solid var(--color-border-default);
+    margin-bottom: var(--space-4);
+
+    b,
+    span {
+      display: block;
+    }
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-9);
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: var(--space-8) var(--space-10);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: var(--fs-13-5);
+
+    &:hover {
+      background: var(--color-surface-page);
+    }
+  }
+}
+
+@include narrow-down {
+  .menu-btn {
+    display: grid;
+  }
+
+  .topbar {
+    padding-inline: var(--space-16);
+  }
+
+  // Keep the bar on one line: the name block is the first thing to give way.
+  .user-btn .who {
+    display: none;
+  }
+}

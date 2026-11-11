@@ -1,0 +1,185 @@
+// Design tokens, copied verbatim from reference/emr-ui.html (docs/ui-inventory.md section 2).
+// The HTML's own short names are kept (--teal, --ink ...) so a diff against the HTML stays trivial;
+// semantic aliases (--color-*) are what component styles should use.
+// The HTML has no dark theme, so none is defined here.
+:root {
+  // --- HTML variables (html:12-21) ---
+  --bg: #f4f6f7;
+  --surface: #fff;
+  --line: #e1e7ea;
+  --line-2: #cdd6db;
+  --ink: #10202b;
+  --ink-2: #3d5260;
+  --ink-3: #6b7f8c;
+  --teal: #0e6b75;
+  --teal-700: #0a555d;
+  --teal-50: #e6f3f4;
+  --teal-100: #cde7ea;
+  --nav: #0c2a31;
+  --nav-2: #143b44;
+  --nav-ink: #a9c4ca;
+  --ai: #5b3fd1;
+  --ai-50: #f0edfc;
+  --ai-100: #ded7f8;
+  --ok: #12805c;
+  --ok-50: #e5f5ee;
+  --warn: #a86400;
+  --warn-50: #fff3dc;
+  --bad: #be2f3b;
+  --bad-50: #fcebed;
+  --info: #1560a8;
+  --info-50: #e6f0fa;
+  --font: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  // --- semantic aliases (names are ours, values are the HTML's) ---
+  --font-sans: var(--font);
+  --font-mono: var(--mono);
+  --color-surface-page: var(--bg);
+  --color-surface-raised: var(--surface);
+  --color-surface-subtle: #fafcfc;
+  --color-border-default: var(--line);
+  --color-border-strong: var(--line-2);
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-2);
+  --color-text-muted: var(--ink-3);
+  --color-on-primary: #fff;
+  --color-primary-600: var(--teal);
+  --color-primary-700: var(--teal-700);
+  --color-primary-50: var(--teal-50);
+  --color-primary-100: var(--teal-100);
+  --color-nav-bg: var(--nav);
+  --color-nav-bg-active: var(--nav-2);
+  --color-nav-text: var(--nav-ink);
+  --color-nav-accent: #5fc4cf;
+  --color-ai-600: var(--ai);
+  --color-ai-700: #4a31b5;
+  --color-ai-50: var(--ai-50);
+  --color-ai-100: var(--ai-100);
+  --color-ai-900: #2f2268;
+  --color-success-600: var(--ok);
+  --color-success-50: var(--ok-50);
+  --color-success-border: #bfe5d3;
+  --color-success-text: #0c5c42;
+  --color-warning-600: var(--warn);
+  --color-warning-50: var(--warn-50);
+  --color-warning-border: #f0d9a6;
+  --color-warning-text: #6e4400;
+  --color-danger-600: var(--bad);
+  --color-danger-50: var(--bad-50);
+  --color-danger-border: #f0c2c7;
+  --color-danger-border-strong: #e5b9be;
+  --color-danger-text: #80202a;
+  --color-info-600: var(--info);
+  --color-info-50: var(--info-50);
+  --color-info-border: #bcd6ee;
+  --color-info-text: #0f4478;
+  --color-row-hover: #f8fbfb;
+  --color-tab-hover: #eef3f4;
+  --color-lab-abnormal-bg: #fffaf0;
+  --color-lab-critical-bg: #fff5f6;
+  --color-chart-grid: #e6ecef;
+  --color-chart-stage-line: #b8c6cd;
+  --color-chart-crosshair: #9fb0b8;
+  --color-tooltip-bg: #10202b;
+  --color-ai-disclaimer-bg: #faf9ff;
+  --color-ai-disclaimer-text: #3a2f78;
+  --color-ai-divider: #eee9fb;
+  --color-code-bg: #0f1d24;
+  --color-code-text: #d6e6ea;
+  --color-nav-text-strong: #d3e4e8;
+  --color-nav-text-soft: #b6ced3;
+  --color-skeleton-1: #eef2f4;
+  --color-skeleton-2: #f7f9fa;
+  --color-toast-icon-success: #6ee0b2;
+  --color-toast-icon-error: #ff8e98;
+  --color-toast-icon-info: #8fd3ff;
+  --color-backdrop: rgba(10, 28, 34, 0.5);
+  --color-stage-g1: #bfe3e6;
+  --color-stage-g2: #8ccdd3;
+  --color-stage-g3a: #52aeb8;
+  --color-stage-g3b: #2f8f9b;
+  --color-stage-g4: #0e6b75;
+  --color-stage-g5: #083f46;
+
+  // --- font sizes (px values used in the HTML) ---
+  --fs-10-5: 10.5px;
+  --fs-11: 11px;
+  --fs-11-5: 11.5px;
+  --fs-12: 12px;
+  --fs-12-5: 12.5px;
+  --fs-13: 13px;
+  --fs-13-5: 13.5px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-16: 16px;
+  --fs-17: 17px;
+  --fs-20: 20px;
+  --fs-21: 21px;
+  --fs-22: 22px;
+  --fs-24: 24px;
+  --fs-26: 26px;
+  --fs-34: 34px;
+
+  // --- spacing: the HTML has no scale, so tokens are named after the px values it uses ---
+  --space-2: 2px;
+  --space-3: 3px;
+  --space-4: 4px;
+  --space-5: 5px;
+  --space-6: 6px;
+  --space-7: 7px;
+  --space-8: 8px;
+  --space-9: 9px;
+  --space-10: 10px;
+  --space-11: 11px;
+  --space-12: 12px;
+  --space-13: 13px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-22: 22px;
+  --space-24: 24px;
+  --space-26: 26px;
+  --space-30: 30px;
+  --space-32: 32px;
+  --space-36: 36px;
+  --space-40: 40px;
+  --space-48: 48px;
+
+  // --- layout constants ---
+  --sidebar-width: 240px;
+  --view-max-width: 1360px;
+  --control-height: 36px;
+  --control-height-sm: 30px;
+
+  // --- radii ---
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-brand: 9px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+
+  // --- shadows ---
+  --shadow-menu: 0 10px 30px rgba(12, 42, 49, 0.15);
+  --shadow-modal: 0 24px 70px rgba(10, 28, 34, 0.35);
+  --shadow-toast: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-focus-halo: 0 0 0 3px var(--teal-50);
+  --shadow-nav-active: inset 3px 0 0 var(--color-nav-accent);
+
+  // --- layers ---
+  --z-topbar: 20;
+  --z-menu: 40;
+  --z-drawer: 90;
+  --z-backdrop: 100;
+  --z-tooltip: 200;
+  --z-toast: 300;
+
+  // --- motion ---
+  --duration-tooltip: 0.08s;
+  --duration-toast: 0.18s;
+  --duration-switch: 0.15s;
+  --duration-drawer: 0.18s;
+}
