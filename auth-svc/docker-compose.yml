@@ -1,0 +1,33 @@
+# Runs auth-svc ALONE against the existing Postgres container (graphgpt-postgres), for development.
+# The container is external: it must already be attached to nephro-net with the alias "postgres"
+# (see README). Compose does not start a database.
+services:
+  auth-svc:
+    build:
+      context: .
+    image: nephro/auth-svc
+    env_file: .env
+    environment:
+      # Defined here (not in .env) because compose interpolates ${...} in `environment:` reliably
+      AUTH_DATABASE_URL: postgresql+asyncpg://auth_svc:${AUTH_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private
+      SEED_DEMO_USERS: "true"
+      ENABLE_PUBLIC_SIGNUP: "true"
+      COOKIE_SECURE: "true"
+    secrets:
+      - jwt_private
+    networks: [nephro-net]
+    mem_limit: 768m
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    # No "ports": auth-svc is never published. Only the gateway will publish a port.
+    # For a local smoke test, `docker compose exec` / a debug port override is used instead (see README).
+
+secrets:
+  jwt_private:
+    file: ./setup/keys/jwt_private.pem
+
+networks:
+  nephro-net:
+    external: true     # the existing Postgres container is attached to it
