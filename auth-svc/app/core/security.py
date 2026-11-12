@@ -6,6 +6,7 @@ RS256 only, iss/aud/exp/iat/sub required, 30 s leeway, key chosen by ``kid``.
 from __future__ import annotations
 
 import time
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -62,7 +63,11 @@ def verify_access_token(
         raise TokenExpired()
     if nbf - LEEWAY_S > now or iat - LEEWAY_S > now:
         raise Unauthenticated()
-    return Claims(sub=str(payload["sub"]), role=str(payload.get("role", "")), raw=payload)
+    try:
+        subject = str(uuid.UUID(str(payload["sub"])))      # every user id is a UUID
+    except ValueError as exc:
+        raise Unauthenticated() from exc
+    return Claims(sub=subject, role=str(payload.get("role", "")), raw=payload)
 
 
 def bearer_token(request: Request) -> str:

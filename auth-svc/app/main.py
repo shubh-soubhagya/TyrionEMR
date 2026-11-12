@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -20,7 +21,7 @@ from app.core.dberrors import db_error_handler
 from app.core.errors import AuthError, error_response
 from app.core.guard import ConfigurationError, enforce_production
 from app.core.logging import configure_logging
-from app.core.metrics import mount_metrics
+from app.core.metrics import bind_pool_gauges, mount_metrics
 from app.core.ratelimit import TokenBucketLimiter
 from app.db.session import create_engine, create_sessionmaker
 from app.domain.clock import Clock, utcnow
@@ -46,6 +47,7 @@ def build_state(app: FastAPI, settings: Settings, clock: Clock, keystore: KeySto
     app.state.hasher = PasswordHasherService(settings)
     app.state.engine = create_engine(settings)
     app.state.sessionmaker = create_sessionmaker(app.state.engine)
+    bind_pool_gauges(app.state.engine.pool)
     tokens = TokenService(app.state.keystore, settings, clock)
     app.state.auth_service = AuthService(
         app.state.sessionmaker, UserRepository(), RefreshTokenRepository(), app.state.hasher, tokens,
@@ -88,11 +90,13 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
         except ConfigurationError as exc:
             logging.getLogger("auth").critical("startup.refused", extra={"problems": exc.problems})
             raise
-        cleanup = asyncio.create_task(run_cleanup_forever(app.state.sessionmaker, s, clock))
+        app.state.cleanup_task = asyncio.create_task(run_cleanup_forever(app.state.sessionmaker, s, clock))
         try:
             yield
         finally:
-            cleanup.cancel()
+            app.state.cleanup_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await app.state.cleanup_task          # let it finish unwinding before the pool closes
             await app.state.engine.dispose()
 
     prod = _is_production(settings)

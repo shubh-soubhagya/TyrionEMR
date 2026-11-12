@@ -19,6 +19,7 @@ services:
     read_only: true
     tmpfs: [/tmp]
     restart: unless-stopped
+    stop_grace_period: 25s       # > uvicorn --timeout-graceful-shutdown 20
     # No "ports": auth-svc is never published. Only the gateway will publish a port.
     # For a local smoke test, `docker compose exec` / a debug port override is used instead (see README).
 

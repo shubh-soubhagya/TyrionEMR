@@ -59,4 +59,14 @@ ARGON2_SECONDS = Histogram("auth_argon2_seconds", "Argon2 duration", ["op"],
                            buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5))
 ARGON2_INFLIGHT = Gauge("auth_argon2_inflight", "Concurrent argon2 operations")
 ARGON2_REJECTED = Counter("auth_argon2_rejected_total", "Hash requests rejected: queue wait timed out")
+DB_POOL_SIZE = Gauge("auth_db_pool_size", "Connections currently in the pool (open, in use or idle)")
+DB_POOL_CHECKED_OUT = Gauge("auth_db_pool_checked_out", "Connections currently in use")
+
+
+def bind_pool_gauges(pool) -> None:
+    """Gauges read the live pool on every scrape. One engine per process, so the last one bound wins."""
+    DB_POOL_SIZE.set_function(lambda: pool.checkedout() + pool.checkedin())
+    DB_POOL_CHECKED_OUT.set_function(lambda: pool.checkedout())
+
+
 RATE_LIMITED = Counter("auth_rate_limited_total", "Requests rejected by the in-process rate limiter", ["route"])
