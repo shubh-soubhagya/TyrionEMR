@@ -9,6 +9,7 @@ from app.api.cookies import clear_refresh_cookie, set_refresh_cookie
 from app.api.deps import get_auth_service, get_clock, get_settings_dep
 from app.core.config import Settings
 from app.core.errors import RefreshMissing
+from app.core.ratelimit import rate_limit
 from app.core.security import Claims, require_role, require_trusted_origin
 from app.domain.clock import Clock
 from app.schemas.auth import LoginIn, SignupIn, TokenOut, UserOut
@@ -30,7 +31,8 @@ def _token_response(r: SessionResult, response: Response, s: Settings, clock: Cl
     return TokenOut(access_token=r.access_token, expires_in=r.expires_in, user=UserOut.of(r.user))
 
 
-@router.post("/signup", response_model=TokenOut, status_code=201, responses=_err(403, 409, 422))
+@router.post("/signup", response_model=TokenOut, status_code=201, dependencies=[Depends(rate_limit)],
+             responses=_err(403, 409, 422, 429, 503))
 async def signup(body: SignupIn, request: Request, response: Response,
                  svc: AuthService = Depends(get_auth_service), s: Settings = Depends(get_settings_dep),
                  clock: Clock = Depends(get_clock)) -> TokenOut:
@@ -38,7 +40,8 @@ async def signup(body: SignupIn, request: Request, response: Response,
     return _token_response(r, response, s, clock)
 
 
-@router.post("/login", response_model=TokenOut, responses=_err(401, 403, 422, 429))
+@router.post("/login", response_model=TokenOut, dependencies=[Depends(rate_limit)],
+             responses=_err(401, 403, 422, 429, 503))
 async def login(body: LoginIn, request: Request, response: Response,
                 svc: AuthService = Depends(get_auth_service), s: Settings = Depends(get_settings_dep),
                 clock: Clock = Depends(get_clock)) -> TokenOut:

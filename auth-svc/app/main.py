@@ -16,6 +16,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import AuthError, error_response
 from app.core.logging import configure_logging
 from app.core.metrics import mount_metrics
+from app.core.ratelimit import TokenBucketLimiter
 from app.db.session import create_engine, create_sessionmaker
 from app.domain.clock import Clock, utcnow
 from app.domain.password_policy import load_common_passwords
@@ -31,6 +32,8 @@ from app.services.token_service import TokenService
 def build_state(app: FastAPI, settings: Settings, clock: Clock, keystore: KeyStore | None = None) -> None:
     """Creates everything the app needs. Separate from the lifespan so tests can call it directly."""
     app.state.settings = settings
+    app.state.rate_limiter = TokenBucketLimiter(
+        settings.rate_limit_login_per_min, settings.rate_limit_login_burst, clock)
     app.state.clock = clock
     app.state.keystore = keystore or KeyStore.from_files(
         settings.jwt_private_key_path, settings.jwt_additional_public_key_paths)   # fails fast if missing
@@ -64,7 +67,9 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
             cleanup.cancel()
             await app.state.engine.dispose()
 
-    app = FastAPI(title="auth-svc", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(
+        title="auth-svc", version="1.0.0", lifespan=lifespan,
+    )
     install_common_middleware(app)
     app.add_exception_handler(AuthError, _auth_error_handler)  # type: ignore[arg-type]
     app.include_router(routes_auth.router, prefix="/auth", tags=["auth"])
