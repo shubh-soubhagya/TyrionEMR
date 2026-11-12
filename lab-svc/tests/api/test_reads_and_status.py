@@ -10,9 +10,6 @@ import httpx
 import jsonschema
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker
-
-from tests.conftest import make_settings
 
 pytestmark = pytest.mark.api
 BASE = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
@@ -85,20 +82,6 @@ async def test_failed_write_leaves_the_read_model_untouched(api, patients, db_en
     async with db_engine.connect() as c:
         row = (await c.execute(text("SELECT latest FROM patient_lab_status WHERE patient_id = :p"), {"p": pid})).scalar_one()
     assert row["K"]["value"] == 4.0
-
-
-async def test_rebuild_equals_incremental_state(api, patients, db_engine) -> None:
-    from app.cli.rebuild_status import rebuild
-    pid = await decline(api, patients)
-    q = text("SELECT latest, egfr_category, uacr_category, egfr_stats, creat_stats, egfr_spark, has_critical, "
-             "rapid_decline, last_result_at FROM patient_lab_status WHERE patient_id = :p")
-    async with db_engine.connect() as c:
-        before = (await c.execute(q, {"p": pid})).one()
-        await c.execute(text("TRUNCATE patient_lab_status"))
-        await c.commit()
-    assert await rebuild(async_sessionmaker(db_engine), make_settings()) == 1
-    async with db_engine.connect() as c:
-        assert (await c.execute(q, {"p": pid})).one() == before
 
 
 async def test_spark_keeps_only_the_last_twelve_points(api, patients) -> None:

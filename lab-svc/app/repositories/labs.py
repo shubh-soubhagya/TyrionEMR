@@ -45,7 +45,9 @@ class LabRepository:
         return (await self._s.scalar(q) or 0) > 0
 
     async def effective_points(self, patient_id: uuid.UUID) -> list[ResultPoint]:
-        q = select(LabResult).where(LabResult.patient_id == patient_id, _effective())
+        # every read of "current" results goes through the view (LLD B3.5)
+        q = select(LabResult).from_statement(
+            text("SELECT * FROM lab_results_current WHERE patient_id = :p").bindparams(p=patient_id))
         rows = (await self._s.scalars(q)).all()
         return [ResultPoint(r.id, r.report_id, r.test_code, r.value, r.unit, r.flag, r.collected_at, r.created_at,
                             r.ref_low, r.ref_high) for r in rows]

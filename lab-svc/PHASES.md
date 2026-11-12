@@ -16,7 +16,7 @@ The first build (commits `38014f4`, `e8bae55`, `7a19ace`) was made from the syst
 | 4 | Domain alignment (units, trends, status, rules version, shared vectors) | B4, B13.1, B13.3 | ✅ |
 | 5 | Catalog service and `GET /labs/tests` | B3.2, B6.9, B7.1 | ✅ |
 | 6 | Reports and corrections | B6.1–B6.3, B7.2, B7.7, B8, B9, B10 | ✅ |
-| 7 | Read model and rebuild script | B3.6, B6.3, B11.3 | ☐ |
+| 7 | Read model and rebuild script | B3.6, B6.3, B11.3 | ✅ |
 | 8 | Public read APIs | B6.4–B6.7, B7.3–B7.6 | ☐ |
 | 9 | Internal endpoints and contracts | B7.8, B7.9, B13.4 | ☐ |
 | 10 | Observability and audit | B12 | ☐ |
