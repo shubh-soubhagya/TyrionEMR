@@ -11,9 +11,7 @@ services:
       # Defined here (not in .env) because compose interpolates ${...} in `environment:` reliably
       AUTH_DATABASE_URL: postgresql+asyncpg://auth_svc:${AUTH_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private
-      SEED_DEMO_USERS: "true"
-      ENABLE_PUBLIC_SIGNUP: "true"
-      COOKIE_SECURE: "true"
+      # Everything else (SEED_DEMO_USERS, ENABLE_PUBLIC_SIGNUP, COOKIE_SECURE, ...) comes from .env
     secrets:
       - jwt_private
     networks: [nephro-net]

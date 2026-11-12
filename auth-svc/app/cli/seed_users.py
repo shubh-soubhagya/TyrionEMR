@@ -27,6 +27,9 @@ _INSERT = text(
 
 async def main(force: bool) -> int:
     s = get_settings()
+    if s.environment == "production":
+        print("Refusing to seed demo users: ENVIRONMENT=production.", file=sys.stderr)
+        return 1
     if not (s.seed_demo_users or force):
         print("SEED_DEMO_USERS is not true; nothing seeded.")
         return 0

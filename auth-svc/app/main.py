@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +16,7 @@ from app.api.routes import wellknown as routes_wellknown
 from app.core.common_setup import install_common_middleware
 from app.core.config import Settings, get_settings
 from app.core.errors import AuthError, error_response
+from app.core.guard import ConfigurationError, enforce_production
 from app.core.logging import configure_logging
 from app.core.metrics import mount_metrics
 from app.core.ratelimit import TokenBucketLimiter
@@ -31,6 +34,7 @@ from app.services.token_service import TokenService
 
 def build_state(app: FastAPI, settings: Settings, clock: Clock, keystore: KeyStore | None = None) -> None:
     """Creates everything the app needs. Separate from the lifespan so tests can call it directly."""
+    enforce_production(settings)               # refuses to start on an unsafe production config
     app.state.settings = settings
     app.state.rate_limiter = TokenBucketLimiter(
         settings.rate_limit_login_per_min, settings.rate_limit_login_burst, clock)
@@ -53,13 +57,26 @@ async def _auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
     return resp
 
 
+def _is_production(settings: Settings | None) -> bool:
+    if settings is not None:
+        return settings.environment == "production"
+    try:
+        return get_settings().environment == "production"
+    except Exception:      # settings incomplete (e.g. exporting the OpenAPI schema without a database)
+        return os.environ.get("ENVIRONMENT") == "production"
+
+
 def create_app(settings: Settings | None = None, clock: Clock = utcnow,
                keystore: KeyStore | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         s = settings or get_settings()
         configure_logging(s.service_name, s.log_level)
-        build_state(app, s, clock, keystore)
+        try:
+            build_state(app, s, clock, keystore)
+        except ConfigurationError as exc:
+            logging.getLogger("auth").critical("startup.refused", extra={"problems": exc.problems})
+            raise
         cleanup = asyncio.create_task(run_cleanup_forever(app.state.sessionmaker, s, clock))
         try:
             yield
@@ -67,8 +84,13 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
             cleanup.cancel()
             await app.state.engine.dispose()
 
+    prod = _is_production(settings)
+    # No interactive docs or schema in production
     app = FastAPI(
         title="auth-svc", version="1.0.0", lifespan=lifespan,
+        docs_url=None if prod else "/docs",
+        redoc_url=None if prod else "/redoc",
+        openapi_url=None if prod else "/openapi.json",
     )
     install_common_middleware(app)
     app.add_exception_handler(AuthError, _auth_error_handler)  # type: ignore[arg-type]
