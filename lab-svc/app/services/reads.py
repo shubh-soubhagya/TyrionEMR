@@ -15,8 +15,8 @@ from app.core import audit
 from app.core.config import Settings
 from app.core.errors import ValidationFailed
 from app.core.security import User
-from app.domain.ckd import EGFR_CATEGORIES
-from app.domain.trends import compute_stats
+from app.domain.ckd import EGFR_LABELS, UACR_LABELS
+from app.domain.trends import Point, trend_stats
 from app.models import PatientLabStatus
 from app.repositories.catalog import CatalogRepository
 from app.repositories.labs import LabRepository
@@ -35,8 +35,6 @@ from app.schemas.reads import (
 from app.services.reports import result_out
 
 ALLOWED_FLAGS = frozenset({"abnormal", "normal", "low", "high", "critical_low", "critical_high", "unknown"})
-EGFR_LABELS = {code: label for code, _, label in EGFR_CATEGORIES}
-UACR_LABELS = {"A1": "Normal to mildly increased", "A2": "Moderately increased", "A3": "Severely increased"}
 
 
 def _f(v) -> float | None:
@@ -86,7 +84,8 @@ class ReadService:
                 test_code=code, unit=catalog[code].canonical_unit,
                 points=[TrendPoint(collected_at=r.collected_at, value=float(r.value), flag=r.flag,
                                    ref_low=_f(r.ref_low), ref_high=_f(r.ref_high)) for r in mine],
-                stats=compute_stats(code, [(r.collected_at, r.value) for r in mine])))     # for THIS window
+                # stats describe THIS window, so the chips under a chart match what the chart shows
+                stats=trend_stats(code, [Point(r.collected_at, r.value) for r in mine]).as_dict()))
         return TrendsOut(patient_id=patient_id, series=series)
 
     async def latest(self, patient_id: uuid.UUID, user: User) -> LatestOut:

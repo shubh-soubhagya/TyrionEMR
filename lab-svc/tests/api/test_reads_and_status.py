@@ -164,7 +164,7 @@ async def test_two_points_are_insufficient_data(api, patients) -> None:
 
 async def test_trends_empty_and_unknown(api, patients) -> None:
     s = (await api.get(f"/labs/patients/{uuid.uuid4()}/trends", params={"tests": "EGFR"})).json()["series"][0]
-    assert s["points"] == [] and s["stats"] is None
+    assert s["points"] == [] and s["stats"] == {"n": 0, "direction": "no_data"}
     assert (await api.get(f"/labs/patients/{uuid.uuid4()}/trends", params={"tests": "NOPE"})).status_code == 422
 
 

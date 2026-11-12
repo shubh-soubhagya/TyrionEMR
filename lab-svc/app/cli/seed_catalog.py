@@ -28,7 +28,7 @@ async def seed_catalog(session: AsyncSession) -> None:
               updated_at = now()"""),
             {"code": t["code"], "name": t["name"], "cu": t["canonical_unit"],
              "au": json.dumps(t["allowed_units"], ensure_ascii=False), "dec": t["decimals"],
-             "mx": Decimal(t["max_value"]), "so": t["sort_order"]})
+             "mx": Decimal(t["plausible_max"]), "so": t["display_order"]})
     for r in RANGES:
         await session.execute(text("""
             INSERT INTO lab_reference_ranges

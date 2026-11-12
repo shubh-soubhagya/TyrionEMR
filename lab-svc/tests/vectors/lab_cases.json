@@ -1,0 +1,15 @@
+[
+  {"id": "creat-umol-high",  "test": "CREAT", "value": "150",   "unit": "µmol/L",        "sex": "M", "age": 67, "expect": {"canonical": "1.695", "flag": "high"}},
+  {"id": "creat-umol-ascii", "test": "CREAT", "value": "168",   "unit": "umol/L",        "sex": "M", "age": 67, "expect": {"canonical": "1.898", "flag": "high"}},
+  {"id": "creat-sex-o",      "test": "CREAT", "value": "1.0",   "unit": "mg/dL",         "sex": "O", "age": 40, "expect": {"canonical": "1.000", "flag": "unknown"}},
+  {"id": "egfr-round-up-g2", "test": "EGFR",  "value": "59.95", "unit": "mL/min/1.73m²", "sex": "F", "age": 50, "expect": {"canonical": "60.0",  "flag": "low", "category": "G2"}},
+  {"id": "egfr-critical",    "test": "EGFR",  "value": "9",     "unit": "mL/min/1.73m2", "sex": "M", "age": 61, "expect": {"canonical": "9.0",   "flag": "critical_low", "category": "G5"}},
+  {"id": "k-at-crit-limit",  "test": "K",     "value": "6.0",   "unit": "mmol/L",        "sex": "M", "age": 61, "expect": {"canonical": "6.00",  "flag": "high"}},
+  {"id": "k-above-crit",     "test": "K",     "value": "6.1",   "unit": "mEq/L",         "sex": "M", "age": 61, "expect": {"canonical": "6.10",  "flag": "critical_high"}},
+  {"id": "k-at-low",         "test": "K",     "value": "3.5",   "unit": "mmol/L",        "sex": "F", "age": 30, "expect": {"canonical": "3.50",  "flag": "normal"}},
+  {"id": "hb-gl-low-female", "test": "HB",    "value": "115",   "unit": "g/L",           "sex": "F", "age": 34, "expect": {"canonical": "11.50", "flag": "low"}},
+  {"id": "ca-mmol",          "test": "CA",    "value": "2.2",   "unit": "mmol/L",        "sex": "F", "age": 72, "expect": {"canonical": "8.82",  "flag": "normal"}},
+  {"id": "phos-mmol-high",   "test": "PHOS",  "value": "1.5",   "unit": "mmol/L",        "sex": "M", "age": 61, "expect": {"canonical": "4.65",  "flag": "high"}},
+  {"id": "bun-urea",         "test": "BUN",   "value": "10",    "unit": "mmol/L (urea)", "sex": "M", "age": 55, "expect": {"canonical": "28.00", "flag": "high"}},
+  {"id": "uacr-mgmmol-a2",   "test": "UACR",  "value": "30",    "unit": "mg/mmol",       "sex": "F", "age": 34, "expect": {"canonical": "265.2", "flag": "high", "uacr_category": "A2"}}
+]

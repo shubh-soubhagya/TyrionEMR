@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from app.domain.clock import Clock
-from app.domain.flagging import RangeRow, select_range
+from app.domain.flagging import RangeDef, select_range
 from app.repositories.catalog import CatalogRepository
 from app.schemas.catalog import AllowedUnit, CatalogOut, LabTestOut, ReferenceRangeOut
 
@@ -16,7 +16,7 @@ def _fmt(v: Decimal) -> str:
     return format(v.normalize(), "f")
 
 
-def range_text(r: RangeRow) -> str:
+def range_text(r: RangeDef) -> str:
     """Same wording as the UI prototype (refText): "0.7–1.3", "≥ 90", "< 30"."""
     if r.low is not None and r.high is not None:
         return f"{_fmt(r.low)}–{_fmt(r.high)}"
@@ -42,7 +42,7 @@ class CatalogService:
             r = select_range(ranges, t.code, sex, None, today)
             out.append(LabTestOut(
                 code=t.code, name=t.name, canonical_unit=t.canonical_unit,
-                allowed_units=[AllowedUnit(unit=u, factor=float(f)) for u, f in t.allowed_units.items()],
+                allowed_units=[AllowedUnit(unit=u, factor=float(f)) for u, f in t.units.items()],
                 decimals=t.decimals, max_value=float(t.plausible_max),
                 reference_range=None if r is None else ReferenceRangeOut(
                     low=_f(r.low), high=_f(r.high), critical_low=_f(r.critical_low),

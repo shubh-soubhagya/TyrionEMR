@@ -47,8 +47,8 @@ class LabRepository:
     async def effective_points(self, patient_id: uuid.UUID) -> list[ResultPoint]:
         q = select(LabResult).where(LabResult.patient_id == patient_id, _effective())
         rows = (await self._s.scalars(q)).all()
-        return [ResultPoint(r.id, r.report_id, r.test_code, r.value, r.unit, r.flag, r.collected_at, r.created_at)
-                for r in rows]
+        return [ResultPoint(r.id, r.report_id, r.test_code, r.value, r.unit, r.flag, r.collected_at, r.created_at,
+                            r.ref_low, r.ref_high) for r in rows]
 
     async def patients_with_results(self) -> list[uuid.UUID]:
         return list((await self._s.scalars(select(LabResult.patient_id).distinct())).all())

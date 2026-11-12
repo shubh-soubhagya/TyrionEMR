@@ -7,7 +7,7 @@ from typing import Annotated
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
-Value = Annotated[Decimal, Field(ge=0, allow_inf_nan=False, max_digits=14, decimal_places=6)]
+Value = Annotated[Decimal, Field(ge=0, allow_inf_nan=False, max_digits=10, decimal_places=4)]
 
 
 class ResultIn(BaseModel):

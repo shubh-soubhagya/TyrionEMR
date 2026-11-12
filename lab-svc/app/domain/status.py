@@ -1,23 +1,22 @@
-"""Builds the patient_lab_status read model from a patient's effective results (HLD 5.4, ADR-015).
+"""Builds the patient_lab_status read model from a patient's current results (LLD B4.6, ADR-015).
 
-Pure: the same function serves the incremental update (inside the write transaction) and the rebuild script,
-so the two can never disagree. ``has_critical`` looks at the LATEST result per test only.
+Pure: the same function serves the in-transaction recompute and the rebuild script, so they cannot disagree.
+``has_critical`` looks at the LATEST result per test only.
 """
 from __future__ import annotations
 
 import uuid
-from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Final
 
-from app.domain.ckd import egfr_category, uacr_category
+from app.domain.ckd import classify_egfr, classify_uacr
 from app.domain.constants import RULES_VERSION
-from app.domain.trends import DEFAULT_CONFIG, TrendConfig, compute_stats
+from app.domain.trends import Point, TrendConfig, trend_stats
 
-SPARK_POINTS: Final = 12
+DEFAULT_SPARK_POINTS: Final = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,30 +29,36 @@ class ResultPoint:
     flag: str
     collected_at: datetime
     created_at: datetime
+    ref_low: Decimal | None = None
+    ref_high: Decimal | None = None
 
 
-def build_status(points: Sequence[ResultPoint], config: TrendConfig = DEFAULT_CONFIG) -> dict[str, Any]:
-    by_test: dict[str, list[ResultPoint]] = defaultdict(list)
-    for p in points:
-        by_test[p.test_code].append(p)
-    ordered = {c: sorted(ps, key=lambda p: (p.collected_at, p.created_at)) for c, ps in by_test.items()}
-    latest_pts = {c: ps[-1] for c, ps in ordered.items()}
-    latest = {c: {"result_id": str(p.id), "report_id": str(p.report_id), "value": float(p.value),
-                  "unit": p.unit, "flag": p.flag, "collected_at": p.collected_at.isoformat()}
-              for c, p in latest_pts.items()}
-    egfr, creat = ordered.get("EGFR", []), ordered.get("CREAT", [])
-    stats_egfr = compute_stats("EGFR", [(p.collected_at, p.value) for p in egfr], config)
-    stats_creat = compute_stats("CREAT", [(p.collected_at, p.value) for p in creat], config)
+def _num(v: Decimal | None) -> float | None:
+    return None if v is None else float(v)
+
+
+def build_status(rows: Sequence[ResultPoint], cfg: TrendConfig = TrendConfig(),  # noqa: B008
+                 spark_points: int = DEFAULT_SPARK_POINTS) -> dict[str, Any]:
+    ordered = sorted(rows, key=lambda r: (r.collected_at, r.created_at, str(r.id)))
+    latest: dict[str, ResultPoint] = {}
+    for r in ordered:
+        latest[r.test_code] = r                          # the last one wins
+    egfr = [r for r in ordered if r.test_code == "EGFR"]
+    creat = [r for r in ordered if r.test_code == "CREAT"]
+    egfr_stats = trend_stats("EGFR", [Point(r.collected_at, r.value) for r in egfr], cfg)
+    creat_stats = trend_stats("CREAT", [Point(r.collected_at, r.value) for r in creat], cfg)
     return {
-        "latest": latest,
-        "egfr_category": egfr_category(latest_pts["EGFR"].value) if "EGFR" in latest_pts else None,
-        "uacr_category": uacr_category(latest_pts["UACR"].value) if "UACR" in latest_pts else None,
-        "egfr_stats": stats_egfr,
-        "creat_stats": stats_creat,
-        "egfr_spark": [{"t": p.collected_at.isoformat(), "v": float(p.value)} for p in egfr[-SPARK_POINTS:]],
-        "has_critical": any(p.flag.startswith("critical") for p in latest_pts.values()),
-        "rapid_decline": bool(stats_egfr and stats_egfr["rapid_decline"]),
-        "result_count": len(points),
-        "last_result_at": max((p.collected_at for p in points), default=None),
+        "latest": {c: {"result_id": str(r.id), "report_id": str(r.report_id), "value": float(r.value),
+                       "unit": r.unit, "flag": r.flag, "collected_at": r.collected_at.isoformat(),
+                       "ref_low": _num(r.ref_low), "ref_high": _num(r.ref_high)} for c, r in latest.items()},
+        "egfr_category": classify_egfr(latest["EGFR"].value) if "EGFR" in latest else None,
+        "uacr_category": classify_uacr(latest["UACR"].value) if "UACR" in latest else None,
+        "egfr_stats": egfr_stats.as_dict() if egfr else None,
+        "creat_stats": creat_stats.as_dict() if creat else None,
+        "egfr_spark": [{"t": r.collected_at.isoformat(), "v": float(r.value)} for r in egfr[-spark_points:]],
+        "has_critical": any(r.flag.startswith("critical") for r in latest.values()),
+        "rapid_decline": egfr_stats.rapid_decline,
+        "result_count": len(ordered),
+        "last_result_at": ordered[-1].collected_at if ordered else None,
         "rules_version": RULES_VERSION,
     }

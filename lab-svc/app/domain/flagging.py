@@ -13,7 +13,7 @@ ABNORMAL_FLAGS: Final[frozenset[str]] = frozenset({"low", "high", "critical_low"
 
 
 @dataclass(frozen=True, slots=True)
-class RangeRow:
+class RangeDef:
     test_code: str
     sex: str | None                     # "M" | "F" | None = any
     age_min: int | None
@@ -26,12 +26,12 @@ class RangeRow:
     range_id: uuid.UUID | None = None      # the catalog row, kept in the result snapshot
 
 
-def select_range(ranges: Iterable[RangeRow], test_code: str, sex: str | None, age: int | None,
-                 on: date) -> RangeRow | None:
+def select_range(ranges: Iterable[RangeDef], test_code: str, sex: str | None, age: int | None,
+                 on: date) -> RangeDef | None:
     """Picks the range that applies: test, then sex (specific over any), then age band (banded over open),
     then the latest ``effective_from`` not after ``on``. No match returns None, which flags as ``unknown``,
     never a silent ``normal``."""
-    best: tuple[tuple[int, int, date], RangeRow] | None = None
+    best: tuple[tuple[int, int, date], RangeDef] | None = None
     for r in ranges:
         if r.test_code != test_code or r.effective_from > on:
             continue
@@ -54,7 +54,7 @@ def age_on(dob: date, on: date) -> int:
     return on.year - dob.year - ((on.month, on.day) < (dob.month, dob.day))
 
 
-def flag_for(value: Decimal, rng: RangeRow | None) -> Flag:
+def flag_for(value: Decimal, rng: RangeDef | None) -> Flag:
     """Critical limits first, then the normal range. Limits are exclusive: a value equal to a limit is not
     beyond it."""
     if rng is None:

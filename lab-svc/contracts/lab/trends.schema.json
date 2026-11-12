@@ -72,56 +72,16 @@
             "anyOf": [
               {
                 "type": "object",
-                "additionalProperties": false,
                 "required": [
                   "n",
-                  "first",
-                  "last",
-                  "abs_change",
-                  "pct_change",
-                  "slope_per_year",
-                  "direction",
-                  "rapid_decline",
-                  "span_days"
+                  "direction"
                 ],
                 "properties": {
                   "n": {
                     "type": "integer"
                   },
-                  "first": {
-                    "type": "number"
-                  },
-                  "last": {
-                    "type": "number"
-                  },
-                  "abs_change": {
-                    "type": "number"
-                  },
-                  "pct_change": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "slope_per_year": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
                   "direction": {
-                    "enum": [
-                      "improving",
-                      "stable",
-                      "worsening",
-                      "insufficient_data"
-                    ]
-                  },
-                  "rapid_decline": {
-                    "type": "boolean"
-                  },
-                  "span_days": {
-                    "type": "integer"
+                    "type": "string"
                   }
                 }
               },

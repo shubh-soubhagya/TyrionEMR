@@ -17,8 +17,8 @@ class CatalogTest(TypedDict):
     canonical_unit: str
     allowed_units: dict[str, str]     # unit -> factor to canonical, strings so Decimal stays exact
     decimals: int
-    max_value: str
-    sort_order: int
+    plausible_max: str
+    display_order: int
 
 
 class RangeSeed(NamedTuple):
@@ -34,22 +34,22 @@ RANGES_EFFECTIVE_FROM: Final = date(2020, 1, 1)
 RANGES_SOURCE: Final = "reference/emr-ui.html prototype (placeholder until the supplied ranges file is loaded)"
 
 CATALOG: Final[tuple[CatalogTest, ...]] = (
-    {"code": "CREAT", "name": "Serum creatinine", "canonical_unit": "mg/dL", "decimals": 2, "max_value": "30",
-     "allowed_units": {"mg/dL": "1", "µmol/L": "0.0113"}, "sort_order": 1},
-    {"code": "EGFR", "name": "eGFR", "canonical_unit": "mL/min/1.73m²", "decimals": 0, "max_value": "200",
-     "allowed_units": {"mL/min/1.73m²": "1"}, "sort_order": 2},
-    {"code": "BUN", "name": "Blood urea nitrogen", "canonical_unit": "mg/dL", "decimals": 1, "max_value": "300",
-     "allowed_units": {"mg/dL": "1", "mmol/L (urea)": "2.8"}, "sort_order": 3},
-    {"code": "K", "name": "Potassium", "canonical_unit": "mmol/L", "decimals": 1, "max_value": "12",
-     "allowed_units": {"mmol/L": "1", "mEq/L": "1"}, "sort_order": 4},
-    {"code": "HB", "name": "Hemoglobin", "canonical_unit": "g/dL", "decimals": 1, "max_value": "25",
-     "allowed_units": {"g/dL": "1", "g/L": "0.1"}, "sort_order": 5},
-    {"code": "CA", "name": "Calcium", "canonical_unit": "mg/dL", "decimals": 1, "max_value": "20",
-     "allowed_units": {"mg/dL": "1", "mmol/L": "4.008"}, "sort_order": 6},
-    {"code": "PHOS", "name": "Phosphorus", "canonical_unit": "mg/dL", "decimals": 1, "max_value": "20",
-     "allowed_units": {"mg/dL": "1", "mmol/L": "3.097"}, "sort_order": 7},
+    {"code": "CREAT", "name": "Serum creatinine", "canonical_unit": "mg/dL", "decimals": 2, "plausible_max": "30",
+     "allowed_units": {"mg/dL": "1", "µmol/L": "0.0113"}, "display_order": 1},
+    {"code": "EGFR", "name": "eGFR", "canonical_unit": "mL/min/1.73m²", "decimals": 0, "plausible_max": "200",
+     "allowed_units": {"mL/min/1.73m²": "1"}, "display_order": 2},
+    {"code": "BUN", "name": "Blood urea nitrogen", "canonical_unit": "mg/dL", "decimals": 1, "plausible_max": "300",
+     "allowed_units": {"mg/dL": "1", "mmol/L (urea)": "2.8"}, "display_order": 3},
+    {"code": "K", "name": "Potassium", "canonical_unit": "mmol/L", "decimals": 1, "plausible_max": "12",
+     "allowed_units": {"mmol/L": "1", "mEq/L": "1"}, "display_order": 4},
+    {"code": "HB", "name": "Hemoglobin", "canonical_unit": "g/dL", "decimals": 1, "plausible_max": "25",
+     "allowed_units": {"g/dL": "1", "g/L": "0.1"}, "display_order": 5},
+    {"code": "CA", "name": "Calcium", "canonical_unit": "mg/dL", "decimals": 1, "plausible_max": "20",
+     "allowed_units": {"mg/dL": "1", "mmol/L": "4.008"}, "display_order": 6},
+    {"code": "PHOS", "name": "Phosphorus", "canonical_unit": "mg/dL", "decimals": 1, "plausible_max": "20",
+     "allowed_units": {"mg/dL": "1", "mmol/L": "3.097"}, "display_order": 7},
     {"code": "UACR", "name": "Urine albumin-creatinine ratio", "canonical_unit": "mg/g", "decimals": 0,
-     "max_value": "20000", "allowed_units": {"mg/g": "1", "mg/mmol": "8.84"}, "sort_order": 8},
+     "plausible_max": "20000", "allowed_units": {"mg/g": "1", "mg/mmol": "8.84"}, "display_order": 8},
 )
 
 RANGES: Final[tuple[RangeSeed, ...]] = (

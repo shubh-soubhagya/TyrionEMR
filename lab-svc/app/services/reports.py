@@ -22,7 +22,7 @@ from app.core.security import User
 from app.domain.clock import Clock
 from app.domain.flagging import age_on, flag_for, select_range
 from app.domain.status import build_status
-from app.domain.units import UnknownUnit, to_canonical
+from app.domain.units import UnknownUnit, resolve_unit, to_canonical
 from app.models import LabReport, LabResult
 from app.repositories.catalog import CatalogRepository
 from app.repositories.labs import LabRepository
@@ -78,15 +78,15 @@ class ReportService:
         if test is None:
             raise ValidationFailed([(f"{field}.test_code", f"Unknown test {test_code}.")])
         try:
-            canon = to_canonical(value, unit, test.allowed_units, test.decimals)
-        except UnknownUnit:
-            allowed = ", ".join(test.allowed_units)
-            raise ValidationFailed([(f"{field}.unit", f"Unit must be one of: {allowed}.")]) from None
+            unit_display = resolve_unit(test, unit)
+        except UnknownUnit as exc:
+            raise ValidationFailed([(f"{field}.unit", f"Unit must be one of: {', '.join(exc.allowed)}.")]) from None
+        canon = to_canonical(test, value, unit_display)
         if canon > test.plausible_max:
             raise ValidationFailed([(f"{field}.value", f"Value is above the plausible limit for {test.name}.")])
         age = age_on(patient.date_of_birth, collected_on)
         rng = select_range(ranges, test_code, patient.sex, age, collected_on)
-        return test, canon, rng, flag_for(canon, rng)
+        return test, unit_display, canon, rng, flag_for(canon, rng)
 
     def _check_date(self, collected_at, patient: PatientBasic) -> None:
         if collected_at > self._clock() + FUTURE_TOLERANCE:
@@ -113,7 +113,7 @@ class ReportService:
             issues: list[tuple[str, str]] = []
             for i, item in enumerate(body.results):
                 try:
-                    _, canon, rng, flag = await self._interpret(
+                    test, unit_shown, canon, rng, flag = await self._interpret(
                         patient, body.collected_at.date(), item.test_code, item.value, item.unit,
                         f"results[{i}]", tests, ranges)
                 except ValidationFailed as exc:
@@ -122,7 +122,7 @@ class ReportService:
                 rows.append(LabResult(
                     id=uuid.uuid4(), report_id=report.id, patient_id=patient_id, collected_at=body.collected_at,
                     test_code=item.test_code, value=canon, unit=tests[item.test_code].canonical_unit,
-                    value_original=item.value, unit_original=item.unit,
+                    value_original=item.value, unit_original=unit_shown,
                     **_snapshot(rng), flag=flag, entered_by=user.id, created_at=now))
             if issues:
                 raise ValidationFailed(issues)          # nothing was written: the transaction rolls back
@@ -156,13 +156,13 @@ class ReportService:
             if await self._repo.is_superseded(result_id):
                 raise AlreadyCorrected()
             tests = {t.code: t for t in await self._catalog.tests()}
-            _, canon, rng, flag = await self._interpret(
+            _, unit_shown, canon, rng, flag = await self._interpret(
                 patient, original.collected_at.date(), original.test_code, body.value, body.unit, "value",
                 tests, await self._catalog.ranges())
             corrected = LabResult(
                 id=uuid.uuid4(), report_id=original.report_id, patient_id=patient_id,
                 collected_at=original.collected_at, test_code=original.test_code, value=canon,
-                unit=tests[original.test_code].canonical_unit, value_original=body.value, unit_original=body.unit,
+                unit=tests[original.test_code].canonical_unit, value_original=body.value, unit_original=unit_shown,
                 **_snapshot(rng), flag=flag, supersedes_id=original.id, correction_reason=body.reason.strip(),
                 entered_by=user.id, created_at=now)
             self._repo.add(corrected)
