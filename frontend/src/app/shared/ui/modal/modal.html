@@ -1,0 +1,16 @@
+<dialog #dialog [class]="size()" [attr.aria-labelledby]="titleId" (close)="onNativeClose()">
+  <div class="modal-h">
+    <div>
+      <h2 [id]="titleId">{{ title() }}</h2>
+      @if (subtitle(); as text) {
+        <p>{{ text }}</p>
+      }
+    </div>
+    <button type="button" class="icon-btn" aria-label="Close" (click)="close()">
+      <emr-icon name="x" />
+    </button>
+  </div>
+  <div class="modal-b">
+    <ng-content />
+  </div>
+</dialog>

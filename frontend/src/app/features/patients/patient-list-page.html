@@ -1,0 +1,137 @@
+<div class="page-h">
+  <div>
+    <h1>Patients</h1>
+    <p>Search by name or patient ID, then open a chart.</p>
+  </div>
+  <button class="btn primary" type="button" (click)="modals.open({ kind: 'patient', patientId: null })">
+    <emr-icon name="plus" [size]="16" />New patient
+  </button>
+</div>
+
+@if (stats(); as s) {
+  <div class="kpis">
+    <div class="kpi"><div class="n">{{ s.total }}</div><div class="l">Patients</div></div>
+    <div class="kpi" [class.hot]="s.att"><div class="n">{{ s.att }}</div><div class="l">Need attention</div></div>
+    <div class="kpi"><div class="n">{{ s.crit }}</div><div class="l">With critical results</div></div>
+    <div class="kpi"><div class="n">{{ s.rapid }}</div><div class="l">Rapid eGFR decline</div></div>
+    <div class="kpi"><div class="n">{{ s.drafts }}</div><div class="l">Draft encounters</div></div>
+  </div>
+}
+
+<div class="panel">
+  <div class="toolbar">
+    <label class="search">
+      <emr-icon name="search" [size]="16" />
+      <input
+        placeholder="Search by name or patient ID (for example PT-000101)"
+        autocomplete="off"
+        aria-label="Search patients"
+        [value]="L.q()"
+        (input)="onSearch($event)"
+      />
+    </label>
+    <select class="inp sm" aria-label="Sex" (change)="setSex($event)">
+      <option value="">All sexes</option>
+      <option value="M" [selected]="L.sex() === 'M'">Male</option>
+      <option value="F" [selected]="L.sex() === 'F'">Female</option>
+    </select>
+    <select class="inp sm" aria-label="Established CKD stage" (change)="setStage($event)">
+      <option value="">All CKD stages</option>
+      @for (s of stageOptions; track s) {
+        <option [selected]="L.stage() === s">{{ s }}</option>
+      }
+      <option value="none" [selected]="L.stage() === 'none'">No stage recorded</option>
+    </select>
+    <label class="chk">
+      <input type="checkbox" [checked]="L.attention()" (change)="setAttention($event)" /> Needs attention
+    </label>
+    <button class="btn ghost sm" type="button" (click)="clearFilters()">Clear filters</button>
+  </div>
+
+  <div aria-live="polite">
+    @if (result(); as r) {
+      @if (r.total) {
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" (click)="sortBy('mrn')">Patient ID{{ arrow('mrn') }}</th>
+              <th class="sortable" (click)="sortBy('name')">Name{{ arrow('name') }}</th>
+              <th class="sortable num" (click)="sortBy('age')">Age{{ arrow('age') }}</th>
+              <th>Gender</th>
+              <th class="sortable" (click)="sortBy('dx')">Primary diagnosis{{ arrow('dx') }}</th>
+              <th>CKD stage</th>
+              <th class="sortable" (click)="sortBy('egfr')">Latest eGFR{{ arrow('egfr') }}</th>
+              <th>eGFR trend</th>
+              <th class="sortable" (click)="sortBy('visit')">Last visit{{ arrow('visit') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (x of r.items; track x.p.id) {
+              <tr class="click" tabindex="0" (click)="open(x.p)" (keydown.enter)="onRowKey($event, x.p)">
+                <td class="mono nowrap">{{ x.p.mrn }}</td>
+                <td>
+                  <div class="cell-name">
+                    <emr-avatar [name]="fullName(x.p)" />
+                    <div>
+                      <b>{{ fullName(x.p) }}</b>
+                      @if (x.a.attention) {
+                        <span style="color: var(--bad)">Needs attention</span>
+                      } @else {
+                        <span>{{ x.p.phone }}</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td class="num">{{ x.age }}</td>
+                <td>{{ sexLabel(x.p.sex) }}</td>
+                <td>
+                  @if (x.dx) {
+                    {{ x.dx }}
+                  } @else {
+                    <span class="nd">None recorded</span>
+                  }
+                </td>
+                <td><emr-ckd-stage-badge [stage]="x.p.ckd" /></td>
+                <td class="nowrap">
+                  @if (x.egfrRes; as e) {
+                    <span class="mono">{{ x.egfr }}</span>&ngsp;<emr-lab-flag [flag]="e.flag" />
+                  } @else {
+                    <span class="nd">No results</span>
+                  }
+                </td>
+                <td><emr-spark [stats]="x.a.trends.EGFR" /></td>
+                <td class="nowrap">
+                  @if (x.visit) {
+                    {{ fmtDate(x.visit) }}
+                  } @else {
+                    <span class="nd">No visits</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="pager">
+          <span>{{ rangeText() }}</span>
+          <div class="row">
+            <button class="btn sm" type="button" [disabled]="r.page <= 1" (click)="page(-1)">
+              <emr-icon name="left" [size]="14" />Previous
+            </button>
+            <span>Page {{ r.page }} of {{ r.pages }}</span>
+            <button class="btn sm" type="button" [disabled]="r.page >= r.pages" (click)="page(1)">
+              Next<emr-icon name="right" [size]="14" />
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="empty">
+          <b>No patients match your search</b>Check the spelling, try a patient ID such as PT-000101, or clear
+          the filters.
+          <div style="margin-top: 12px">
+            <button class="btn" type="button" (click)="clearFilters()">Clear filters</button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

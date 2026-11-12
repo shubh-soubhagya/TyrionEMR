@@ -1,0 +1,55 @@
+<div class="panel" style="margin-bottom: 16px">
+  <div class="panel-h">
+    <h2><emr-icon name="activity" [size]="18" />Kidney function</h2>
+    <a [routerLink]="['/patients', patientId(), 'labs']" class="small">All lab results</a>
+  </div>
+  <div class="panel-b">
+    @let ck = a().ckd;
+    <div class="ckd-strip">
+      <div>
+        <div class="k">Established CKD stage</div>
+        <emr-ckd-stage-badge [stage]="a().p.ckd" />
+      </div>
+      <div>
+        <div class="k">eGFR category, latest result</div>
+        @if (ck.egfrCat; as cat) {
+          <span class="chip teal">{{ cat }} ({{ egfrLabel(cat) }})</span>
+        } @else {
+          <span class="nd">No eGFR on record</span>
+        }
+      </div>
+      <div>
+        <div class="k">Albuminuria category (UACR)</div>
+        @if (ck.uacrCat; as cat) {
+          <span class="chip teal">{{ cat }} ({{ uacrLabel(cat) }})</span>
+        } @else {
+          <span class="nd">No UACR on record</span>
+        }
+      </div>
+      @if (ck.mismatch) {
+        <div>
+          <span class="chip warn"><emr-icon name="alert" [size]="13" />Established stage differs from latest eGFR</span>
+        </div>
+      }
+    </div>
+    <div class="grid g2">
+      @for (c of charts(); track c.t) {
+        <div>
+          <div class="kf-h">
+            <b>{{ LAB[c.t].name }}</b>
+            <span class="muted small">
+              @if (c.s.n) {
+                Latest <b class="mono" style="color: var(--ink)">{{ fmtVal(c.t, c.s.last) }}</b> {{ LAB[c.t].canon }},
+                {{ fmtDate(c.s.pts[c.s.n - 1]?.t) }}
+              } @else {
+                No results yet
+              }
+            </span>
+          </div>
+          <emr-line-chart [pts]="c.s.pts" [test]="c.t" [low]="c.low" [high]="c.high" [stage]="c.stage" />
+          <emr-trend-chips [stats]="c.s" [test]="c.t" />
+        </div>
+      }
+    </div>
+  </div>
+</div>

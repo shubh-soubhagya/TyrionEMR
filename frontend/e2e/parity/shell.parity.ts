@@ -10,8 +10,8 @@ for (const width of WIDTHS) {
     const { ctx, reference, angular } = await newPair(browser, width);
     try {
       // HTML: wait for the dashboard's page header (rendered after its simulated API delay).
-      await openReference(reference, '#/dashboard', '.page-h');
-      await openAngular(angular, '/dashboard', 'emr-dashboard-page');
+      await openReference(reference, '#/dashboard', '.page-h', true);
+      await openAngular(angular, '/dashboard', 'emr-dashboard-page', true);
       const r = await compare('shell', width, reference, angular);
       console.log(`shell ${width}px: ${r.diffPercent}% (${r.diffPixels}px)`);
     } finally {

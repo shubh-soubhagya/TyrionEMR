@@ -1,0 +1,43 @@
+@use 'mixins' as *;
+
+// html:84-88, 279
+:host {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  margin-bottom: var(--space-16);
+}
+
+.kpi {
+  padding: var(--space-14) var(--space-16);
+  border-right: 1px solid var(--color-border-default);
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  .n {
+    font-size: var(--fs-26);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .l {
+    font-size: var(--fs-12-5);
+    color: var(--color-text-muted);
+    margin-top: var(--space-3);
+  }
+
+  &.hot .n {
+    color: var(--color-danger-600);
+  }
+}
+
+@include wide-down {
+  :host {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

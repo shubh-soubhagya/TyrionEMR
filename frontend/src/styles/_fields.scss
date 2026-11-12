@@ -1,0 +1,54 @@
+// Form field look shared by every emr form control (html:102-112). Used as:
+//   @use 'fields'; :host { @include fields.field; }
+@use 'mixins' as *;
+
+@mixin field {
+  display: block;
+  margin-bottom: var(--space-14);
+  min-width: 0;
+
+  .fld {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .fld-l {
+    font-weight: 500;
+    font-size: var(--fs-13);
+    color: var(--color-text-secondary);
+  }
+
+  .req {
+    color: var(--color-danger-600);
+    margin-left: var(--space-2);
+  }
+
+  .control {
+    width: 100%;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-8) var(--space-10);
+    background: var(--color-surface-raised);
+    min-height: var(--control-height);
+
+    &:focus {
+      @include field-focus;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .control.invalid {
+    border-color: var(--color-danger-600);
+  }
+
+  .hint {
+    font-size: var(--fs-12);
+    color: var(--color-text-muted);
+  }
+}

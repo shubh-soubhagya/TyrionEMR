@@ -1,0 +1,45 @@
+<div class="tabs" role="tablist" [attr.aria-label]="label()">
+  @for (tab of tabs(); track tab.key) {
+    @if (tab.link) {
+      <a
+        class="tab"
+        role="tab"
+        [class.ai-tab]="tab.tone === 'ai'"
+        [routerLink]="tab.link"
+        routerLinkActive="active"
+        #rla="routerLinkActive"
+        [attr.aria-selected]="rla.isActive"
+        [attr.aria-controls]="panelId()"
+        [attr.tabindex]="rla.isActive ? 0 : -1"
+      >
+        @if (tab.icon) {
+          <emr-icon [name]="tab.icon" [size]="16" />
+        }
+        {{ tab.label }}
+        @if (tab.count !== undefined) {
+          <span class="ct">{{ tab.count }}</span>
+        }
+      </a>
+    } @else {
+      <button
+        type="button"
+        class="tab"
+        role="tab"
+        [class.active]="selected() === tab.key"
+        [class.ai-tab]="tab.tone === 'ai'"
+        [attr.aria-selected]="selected() === tab.key"
+        [attr.aria-controls]="panelId()"
+        [attr.tabindex]="selected() === tab.key ? 0 : -1"
+        (click)="select(tab)"
+      >
+        @if (tab.icon) {
+          <emr-icon [name]="tab.icon" [size]="16" />
+        }
+        {{ tab.label }}
+        @if (tab.count !== undefined) {
+          <span class="ct">{{ tab.count }}</span>
+        }
+      </button>
+    }
+  }
+</div>

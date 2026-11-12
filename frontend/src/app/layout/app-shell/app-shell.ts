@@ -11,11 +11,13 @@ import { EmrHeader } from '../header/header';
 import { NAV_ITEMS } from '../nav-items';
 import { PLACEHOLDER_USER } from '../placeholder-user';
 import { EmrSidebar } from '../sidebar/sidebar';
+import { ModalHost } from '../../features/modals/modal-host';
+import { EmrTooltip } from '../../shared/ui/tooltip/tooltip';
 
 /** Signed-in frame (html `.shell`): sidebar, sticky top bar, scrolling main content. */
 @Component({
   selector: 'emr-app-shell',
-  imports: [RouterOutlet, EmrSidebar, EmrHeader],
+  imports: [RouterOutlet, EmrSidebar, EmrHeader, ModalHost, EmrTooltip],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',

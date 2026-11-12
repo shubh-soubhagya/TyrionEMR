@@ -25,9 +25,7 @@ import { ICONS, IconName } from './icons';
   ></svg>`,
   styles: `
     :host {
-      display: inline-flex;
-      flex: none;
-      vertical-align: middle;
+      display: contents;
     }
   `,
 })

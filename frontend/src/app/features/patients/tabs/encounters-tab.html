@@ -1,0 +1,43 @@
+<div class="panel">
+  <div class="panel-h">
+    <h2><emr-icon name="file" [size]="17" />Encounters</h2>
+    <button class="btn primary sm" type="button" (click)="modals.open({ kind: 'encounter-form', patientId: id(), encounterId: null })">
+      <emr-icon name="plus" [size]="14" />New encounter
+    </button>
+  </div>
+  @if (encs().length) {
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Type</th><th>Clinician</th><th>Chief complaint</th><th>Assessment</th><th>BP / HR</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        @for (e of encs(); track e.id) {
+          <tr class="click" tabindex="0" (click)="open(e)" (keydown.enter)="open(e)">
+            <td class="nowrap">{{ fmtDate(e.date) }}</td>
+            <td>{{ typeLabel(e.type) }}</td>
+            <td>{{ e.clinician }}</td>
+            <td style="max-width: 240px">
+              @if (e.cc) { {{ e.cc }} } @else { <span class="nd">Not documented</span> }
+            </td>
+            <td style="max-width: 260px" class="small">
+              @if (e.assessment) { {{ short(e.assessment) }} } @else { <span class="nd">Not documented</span> }
+            </td>
+            <td class="mono nowrap">
+              @if (e.vitals && e.vitals.sys) { {{ e.vitals.sys }}/{{ e.vitals.dia }} } @else { - }@if (e.vitals && e.vitals.hr) { / {{ e.vitals.hr }} }
+            </td>
+            <td>
+              <span class="chip" [class.ok]="e.status === 'final'" [class.warn]="e.status !== 'final'">{{ e.status === 'final' ? 'Final' : 'Draft' }}</span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <div class="empty">
+      <b>No encounters yet</b>Record the first visit to start this patient's clinical history.
+      <div style="margin-top: 12px">
+        <button class="btn primary" type="button" (click)="modals.open({ kind: 'encounter-form', patientId: id(), encounterId: null })">New encounter</button>
+      </div>
+    </div>
+  }
+</div>

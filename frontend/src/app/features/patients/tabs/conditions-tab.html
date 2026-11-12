@@ -1,0 +1,83 @@
+@if (v(); as d) {
+  <div class="panel" style="margin-bottom: 14px">
+    <div class="panel-b">
+      <div class="row" style="justify-content: space-between">
+        <div class="row" style="gap: 18px">
+          <label class="fld" style="margin: 0">
+            <span class="fld-l">Established CKD stage</span>
+            <select class="inp sm" style="min-width: 180px" (change)="setStage($event)">
+              <option value="">Not set</option>
+              @for (s of stages; track s) {
+                <option [selected]="d.a.p.ckd === s">{{ s }}</option>
+              }
+            </select>
+          </label>
+          <div>
+            <div class="fld-l">eGFR category of latest result</div>
+            <div style="margin-top: 6px">
+              @if (d.a.ckd.egfrCat; as cat) {
+                <span class="chip teal">{{ cat }} ({{ egfrLabel(cat) }})</span>
+              } @else {
+                <span class="nd">No eGFR on record</span>
+              }
+            </div>
+          </div>
+        </div>
+        <button class="btn primary" type="button" (click)="modals.open({ kind: 'condition', patientId: id() })">
+          <emr-icon name="plus" [size]="16" />Add condition
+        </button>
+      </div>
+      @if (d.a.ckd.mismatch) {
+        <div class="alert warn" style="margin-top: 12px">
+          <emr-icon name="alert" [size]="16" />
+          <div>
+            <b>Stage mismatch.</b> Established stage {{ d.a.ckd.established }} differs from the latest eGFR
+            category {{ d.a.ckd.egfrCat }}. One eGFR value does not define a CKD stage, so review before
+            changing the established stage.
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  @for (s of d.sections; track s.title) {
+    <div class="panel" style="margin-bottom: 14px">
+      <div class="panel-h">
+        <h2>{{ s.title }}</h2>
+        <span class="muted small">{{ s.rows.length }} recorded</span>
+      </div>
+      @if (s.rows.length) {
+        <table>
+          <thead>
+            <tr><th>ICD-10</th><th>Description</th><th>Onset</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (c of s.rows; track c.id) {
+              <tr>
+                <td class="mono">{{ c.icd10 || '-' }}</td>
+                <td>
+                  {{ c.desc }}
+                  @if (c.isPrimary) {
+                    <span class="chip teal"><emr-icon name="star" [size]="13" />Primary</span>
+                  }
+                </td>
+                <td>{{ fmtDate(c.onset) }}</td>
+                <td>
+                  <span class="chip" [class.warn]="c.status === 'active'" [class.ok]="c.status !== 'active'">{{ c.status === 'active' ? 'Active' : 'Resolved' }}</span>
+                </td>
+                <td class="num nowrap">
+                  @if (c.status === 'active' && !c.isPrimary) {
+                    <button class="btn sm" type="button" (click)="setPrimary(c.id)">Set as primary</button>&ngsp;
+                  }
+                  <button class="btn sm ghost" type="button" (click)="toggle(c.id)">{{ c.status === 'active' ? 'Mark resolved' : 'Reactivate' }}</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <div class="empty">None recorded.</div>
+      }
+    </div>
+  }
+}

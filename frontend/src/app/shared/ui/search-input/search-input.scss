@@ -1,0 +1,58 @@
+@use 'mixins' as *;
+
+// html:151-153
+:host {
+  display: block;
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-10);
+  height: var(--control-height);
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+
+  &:focus-within {
+    border-color: var(--color-primary-600);
+    box-shadow: var(--shadow-focus-halo);
+  }
+
+  input {
+    border: 0;
+    outline: none;
+    flex: 1;
+    min-width: 0;
+    height: 34px;
+    background: transparent;
+
+    // The native clear X would duplicate our own button.
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+  }
+}
+
+.clear {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+
+  &:hover {
+    background: var(--color-surface-page);
+  }
+}
+
+.sr-only {
+  @include visually-hidden;
+}

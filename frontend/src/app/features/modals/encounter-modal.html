@@ -1,0 +1,108 @@
+<emr-modal-shell
+  [title]="editing() ? 'Edit draft encounter' : 'New encounter'"
+  [sub]="'Patient ' + patientMrn() + '. Drafts can be edited; final encounters are locked.'"
+  size="lg"
+  (closed)="closed.emit()"
+>
+  <form [formGroup]="form" novalidate (ngSubmit)="submit('draft')">
+    <div>
+      @if (general()) {
+        <div class="alert danger" style="margin-bottom: 12px"><emr-icon name="alert" [size]="16" /><div><b>{{ general() }}</b></div></div>
+      }
+    </div>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">Visit date and time<b class="req">*</b></span>
+        <input type="datetime-local" formControlName="date" [class.invalid]="errors()['date']" />
+        <span class="err">{{ errors()['date'] }}</span></label>
+      <label class="fld"><span class="fld-l">Visit type</span>
+        <select formControlName="type">
+          <option value="new">New visit</option>
+          <option value="follow_up">Follow-up</option>
+          <option value="emergency">Emergency</option>
+        </select><span class="err"></span></label>
+      <label class="fld"><span class="fld-l">Clinician</span><input [value]="clinician" readonly /><span class="err"></span></label>
+    </div>
+
+    <h3 style="margin: 4px 0 8px">Vitals</h3>
+    <div class="vit" style="margin-bottom: 6px">
+      @for (x of vit; track x.key) {
+        <label class="fld"><span class="fld-l">{{ x.label }} <span class="muted">({{ x.unit }})</span></span>
+          <input type="number" [attr.step]="x.step" [formControlName]="x.key" [class.invalid]="errors()[x.key]" />
+          <span class="err">{{ errors()[x.key] }}</span></label>
+      }
+    </div>
+    @for (w of softWarning(); track w) {
+      <div class="hint" style="color: var(--warn); margin-bottom: 6px" role="status">{{ w }}</div>
+    }
+
+    <label class="fld"><span class="fld-l">Chief complaint</span>
+      <input formControlName="cc" maxlength="200" [class.invalid]="errors()['cc']" />
+      <span class="hint">Required to finalize.</span>
+      <span class="err">{{ errors()['cc'] }}</span></label>
+
+    <div class="fld">
+      <span class="fld-l">Symptoms</span>
+      <div class="sym-box" id="sym-box">
+        @for (s of symptoms(); track s) {
+          <span class="chip teal">{{ s }}<button type="button" [attr.aria-label]="'Remove ' + s" (click)="removeSymptom(s)">×</button></span>
+        }
+      </div>
+      <div class="row">
+        <input
+          class="inp sm"
+          id="sym-in"
+          placeholder="Type a symptom and press Enter"
+          list="sym-list"
+          style="width: 280px"
+          (input)="onSymptomInput($event)"
+          (keydown.enter)="addSymptom($event)"
+        />
+        <datalist id="sym-list">
+          @for (s of suggestions; track s) { <option>{{ s }}</option> }
+        </datalist>
+        <button type="button" class="btn sm" (click)="addSymptom()">Add</button>
+      </div>
+    </div>
+
+    <label class="fld"><span class="fld-l">Clinical examination notes</span><textarea formControlName="exam"></textarea><span class="err"></span></label>
+    <label class="fld"><span class="fld-l">Clinical assessment</span>
+      <textarea formControlName="assessment" [class.invalid]="errors()['assessment']"></textarea>
+      <span class="hint">Required to finalize.</span>
+      <span class="err">{{ errors()['assessment'] }}</span></label>
+
+    <div class="fld">
+      <span class="fld-l">Diagnoses</span>
+      <div id="dx-box">
+        @for (row of dxRows.controls; track $index) {
+          <div class="dx-row" [formGroup]="row">
+            <input class="inp" formControlName="icd" placeholder="ICD-10" />
+            <input class="inp" formControlName="desc" placeholder="Diagnosis description" />
+            <label class="chk small"><input type="checkbox" formControlName="prob" /> Add to problem list</label>
+            <button type="button" class="icon-btn" aria-label="Remove diagnosis" (click)="removeDx($index)"><emr-icon name="x" [size]="16" /></button>
+          </div>
+        }
+      </div>
+      <div><button type="button" class="btn sm" (click)="addDx()"><emr-icon name="plus" [size]="14" />Add diagnosis</button></div>
+      <span class="err">{{ errors()['dx'] }}</span>
+    </div>
+
+    <label class="fld"><span class="fld-l">Treatment and follow-up plan</span>
+      <textarea formControlName="plan" [class.invalid]="errors()['plan']"></textarea>
+      <span class="hint">Required to finalize.</span>
+      <span class="err">{{ errors()['plan'] }}</span></label>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">Follow-up date</span>
+        <input type="date" formControlName="followUp" [class.invalid]="errors()['followUp']" />
+        <span class="err">{{ errors()['followUp'] }}</span></label>
+    </div>
+
+    <div class="form-actions">
+      @if (editing()) {
+        <button type="button" class="btn danger" style="margin-right: auto" (click)="deleteDraft()">Delete draft</button>
+      }
+      <button type="button" class="btn" (click)="closed.emit()">Cancel</button>
+      <button class="btn" type="submit">Save draft</button>
+      <button class="btn primary" type="button" (click)="submit('final')">Finalize encounter</button>
+    </div>
+  </form>
+</emr-modal-shell>

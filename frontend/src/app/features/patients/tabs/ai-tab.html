@@ -1,0 +1,264 @@
+<div id="ai-pane">
+  @if (view(); as v) {
+    <div class="panel" style="margin-bottom: 16px; border-color: var(--ai-100)">
+      <div class="panel-b">
+        <div class="row" style="justify-content: space-between; align-items: flex-start; gap: 20px">
+          <div style="max-width: 62ch">
+            <h2 style="display: flex; gap: 8px; align-items: center; color: var(--ai)">
+              <emr-icon name="spark" [size]="18" />AI clinical summary
+            </h2>
+            <p class="muted" style="margin-top: 6px">
+              Summarizes this patient's history, kidney function trends and abnormal results. Numbers, flags and
+              record gaps come from the chart itself. The AI only writes the narrative and follow-up
+              considerations, and shows its sources.
+            </p>
+          </div>
+          <div style="min-width: 260px">
+            <div class="row">
+              <button class="btn ai" type="button" [disabled]="v.running" (click)="generate(false)">
+                <emr-icon name="spark" [size]="16" />{{ v.running ? 'Generating' : 'Generate summary' }}
+              </button>
+              @if (v.hist.length) {
+                <button class="btn" type="button" [disabled]="v.running" (click)="generate(true)">
+                  <emr-icon name="refresh" [size]="15" />Regenerate
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (v.running || v.R?.status === 'error') {
+      @if (v.R; as R) {
+        <div class="panel" style="margin-bottom: 16px">
+          <div class="panel-h">
+            <h3>{{ v.running ? 'Working on it' : 'Request failed' }}</h3>
+            @if (!v.running) {
+              <button class="btn sm" type="button" (click)="generate(false)">Try again</button>
+            }
+          </div>
+          @if (R.status === 'error') {
+            <div class="panel-b" style="padding-bottom: 0">
+              <div class="alert danger">
+                <emr-icon name="alert" [size]="16" />
+                <div><b>The summary could not be created.</b> {{ R.error?.message }} Nothing was saved. Try again in a moment.</div>
+              </div>
+            </div>
+          }
+          <ul class="steps">
+            @for (s of R.steps; track s.t) {
+              <li class="step" [class]="'step ' + s.st">
+                <span class="dot">
+                  @if (stepIcon(s.st); as ic) {
+                    <emr-icon [name]="ic" [size]="s.st === 'warn' ? 12 : 13" />
+                  }
+                </span>
+                <div>
+                  <div class="t">{{ s.t }}</div>
+                  <div class="d">{{ s.note || s.d }}</div>
+                </div>
+                <span class="ms">{{ s.ms !== null ? s.ms + ' ms' : '' }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
+
+    @if (v.sel && !v.running) {
+      @let s = v.sel;
+      <div class="panel" style="margin-bottom: 16px">
+        <div class="panel-h">
+          <div class="row">
+            <h2>Summary</h2>
+            <span class="chip" [class.ok]="s.status === 'completed'" [class.warn]="s.status !== 'completed'">{{ s.status === 'completed' ? 'Completed' : 'Partial result' }}</span>
+            @if (s.attempts > 1) { <span class="chip info">Corrected once automatically</span> }
+          </div>
+          <span class="muted small">Generated {{ fmtDT(s.createdAt) }}</span>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 16px">
+        <div class="panel-h">
+          <h3><emr-icon name="db" [size]="16" />Calculated from the chart</h3>
+          <span class="chip teal">Not written by the AI</span>
+        </div>
+        <div class="panel-b">
+          <div class="grid g3" style="margin-bottom: 16px">
+            <div><div class="muted small">Established CKD stage</div><div style="font-size: 20px; font-weight: 600">{{ s.facts.ckd.established || 'Not set' }}</div></div>
+            <div><div class="muted small">eGFR category, latest result</div><div style="font-size: 20px; font-weight: 600">{{ s.facts.ckd.egfrCat || '-' }}</div></div>
+            <div><div class="muted small">Albuminuria category</div><div style="font-size: 20px; font-weight: 600">{{ s.facts.ckd.uacrCat || '-' }}</div></div>
+          </div>
+          <table style="margin-bottom: 14px">
+            <thead>
+              <tr><th style="padding-left: 0">Trend</th><th>First → latest</th><th>Change</th><th>Per year</th><th>Direction</th></tr>
+            </thead>
+            <tbody>
+              @for (row of [{ k: 'EGFR', nm: 'eGFR' }, { k: 'CREAT', nm: 'Creatinine' }]; track row.k) {
+                @let t = s.facts.trends[row.k === 'EGFR' ? 'EGFR' : 'CREAT'];
+                <tr>
+                  <td>{{ row.nm }}</td>
+                  <td class="mono">@if (t.n) { {{ fmtVal(row.k === 'EGFR' ? 'EGFR' : 'CREAT', t.first ?? 0) }} → {{ fmtVal(row.k === 'EGFR' ? 'EGFR' : 'CREAT', t.last ?? 0) }} } @else { - }</td>
+                  <td class="mono">@if (t.n > 1) { {{ signed(t.pctChange ?? 0, 0) }}% } @else { - }</td>
+                  <td class="mono">@if (t.slopePerYear !== null && t.slopePerYear !== undefined) { {{ signed(t.slopePerYear, row.k === 'EGFR' ? 1 : 2) }} } @else { - }</td>
+                  <td>
+                    @switch (trendDir(t)) {
+                      @case ('none') { <span class="chip">No data</span> }
+                      @case ('insufficient_data') { <span class="chip warn">Insufficient data (needs 3+ results)</span> }
+                      @case ('worsening') { <span class="chip danger"><emr-icon name="dn" [size]="13" />Worsening</span> }
+                      @case ('improving') { <span class="chip ok"><emr-icon name="up" [size]="13" />Improving</span> }
+                      @default { <span class="chip">Stable</span> }
+                    }
+                    @if (t.rapidDecline) { &ngsp;<span class="chip danger"><emr-icon name="alert" [size]="13" />Rapid decline</span> }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <div class="fld-l" style="margin-bottom: 6px">Latest abnormal results</div>
+          @if (s.facts.abnormal.length) {
+            <div class="row" style="gap: 8px">
+              @for (r of s.facts.abnormal; track r.test) {
+                <span class="chip" [class.danger]="r.flag.indexOf('critical') === 0" [class.info]="r.flag === 'low'" [class.warn]="r.flag === 'high'">
+                  {{ LAB[r.test].name }} <b class="mono">{{ fmtVal(r.test, r.value) }}</b> {{ r.unit }}
+                  {{ r.flag.replace('_', ' ') }}
+                </span>
+              }
+            </div>
+          } @else {
+            <span class="muted">None among the latest results.</span>
+          }
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 16px">
+        <div class="panel-h">
+          <h3><emr-icon name="clip" [size]="16" />Missing or inconsistent information</h3>
+          <span class="chip warn">Checked by rules, not by AI</span>
+        </div>
+        @for (g of s.gaps; track $index) {
+          <div class="list-item">
+            <div class="row" style="gap: 10px; align-items: flex-start">
+              <span class="chip" [class.warn]="g.kind === 'missing'" [class.danger]="g.kind !== 'missing'">{{ g.kind === 'missing' ? 'Missing' : 'Inconsistent' }}</span>
+              <div>{{ g.message }}</div>
+            </div>
+            <span class="chip" [class.danger]="g.sev === 'high'" [class.warn]="g.sev === 'medium'">{{ cap(g.sev) }} priority</span>
+          </div>
+        } @empty {
+          <div class="empty">
+            <emr-icon name="check" [size]="22" /><b>No gaps found</b>Nothing is missing or inconsistent in the record.
+          </div>
+        }
+      </div>
+
+      @if (s.output; as o) {
+        <div class="ai-panel" style="margin-bottom: 16px">
+          <div class="ai-banner"><emr-icon name="spark" [size]="18" />AI-generated narrative</div>
+          @for (sec of [{ h: 'Nephrology history', x: o.history_summary }, { h: 'Conditions, medications and allergies', x: o.comorbidity_summary }, { h: 'Creatinine and eGFR trends', x: o.trend_commentary }, { h: 'Abnormal findings', x: o.abnormal_commentary }]; track sec.h) {
+            <div class="ai-sec">
+              <h3>{{ sec.h }}</h3>
+              <p>{{ sec.x.text }}</p>
+              @if (sec.x.source_refs.length) {
+                <div class="refs">
+                  <span class="muted small" style="align-self: center">Sources:</span>
+                  @for (r of uniq(sec.x.source_refs); track r) {
+                    <span class="chip ref" tabindex="0" role="link" title="Open the source record" (click)="openRef(r)" (keydown.enter)="openRef(r)">{{ refLabel(r) }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+          <div class="ai-sec">
+            <h3>Follow-up considerations for clinician review</h3>
+            @for (x of o.follow_up_considerations; track x.consideration) {
+              <div class="fu">
+                <b>{{ x.consideration }}</b><span>{{ x.rationale }}</span>
+                @if (x.source_refs.length) {
+                  <div class="refs">
+                    <span class="muted small" style="align-self: center">Sources:</span>
+                    @for (r of uniq(x.source_refs); track r) {
+                      <span class="chip ref" tabindex="0" role="link" title="Open the source record" (click)="openRef(r)" (keydown.enter)="openRef(r)">{{ refLabel(r) }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            } @empty {
+              <p class="muted">No follow-up considerations were generated from the available data.</p>
+            }
+          </div>
+          @if (o.not_documented.length) {
+            <div class="ai-sec">
+              <h3>Not documented in the record</h3>
+              <div class="row" style="gap: 6px">
+                @for (x of o.not_documented; track x) { <span class="chip">{{ x }}</span> }
+              </div>
+            </div>
+          }
+          @if (s.validation; as val) {
+            <div class="ai-sec row" style="gap: 8px">
+              <span class="chip ok"><emr-icon name="check" [size]="13" />{{ val.refsOk }} of {{ val.refsTotal }} sources found in the record</span>
+              <span class="chip" [class.danger]="val.lint" [class.ok]="!val.lint"><emr-icon name="check" [size]="13" />Safety check: {{ val.lint ? val.lint + ' flagged' : 'passed' }}</span>
+              <button class="btn sm" style="margin-left: auto" type="button" (click)="copy(s)"><emr-icon name="copy" [size]="14" />Copy narrative</button>
+            </div>
+          }
+          <div class="disclaimer">
+            <emr-icon name="info" [size]="18" />
+            <div><b>Clinical review required.</b> {{ DISCLAIMER }} This narrative is stored separately and is not part of the patient record.</div>
+          </div>
+        </div>
+      } @else {
+        <div class="ai-panel" style="margin-bottom: 16px">
+          <div class="ai-banner"><emr-icon name="spark" [size]="18" />AI-generated narrative</div>
+          <div class="ai-sec">
+            <div class="alert warn">
+              <emr-icon name="alert" [size]="16" />
+              <div><b>The AI narrative is unavailable right now.</b> The facts and record gaps above do not depend on the AI and are still correct. Try again in a minute.</div>
+            </div>
+          </div>
+          <div class="disclaimer"><emr-icon name="info" [size]="18" /><div>{{ DISCLAIMER }}</div></div>
+        </div>
+      }
+      <div class="panel">
+        <details class="fold">
+          <summary><emr-icon name="right" [size]="14" />What the AI was given (name and patient ID removed)</summary>
+          <pre class="code">{{ json(s.contextSnapshot) }}</pre>
+        </details>
+      </div>
+    } @else if (!v.running && v.R?.status !== 'error') {
+      <div class="panel">
+        <div class="empty"><b>No summary yet</b>Generate one to see computed facts, record gaps and an AI narrative with sources.</div>
+      </div>
+    }
+
+    @if (v.hist.length > 0 && !v.running) {
+      <div class="panel" style="margin-top: 16px">
+        <div class="panel-h"><h3>Previous summaries</h3><span class="muted small">{{ v.hist.length }} saved</span></div>
+        @for (h of v.hist.slice(0, 6); track h.id) {
+          <div class="list-item">
+            <div><b>{{ fmtDT(h.createdAt) }}</b></div>
+            <div class="row">
+              <span class="chip" [class.ok]="h.status === 'completed'" [class.warn]="h.status !== 'completed'">{{ h.status === 'completed' ? 'Completed' : 'Partial' }}</span>
+              <button class="btn sm" [class.ghost]="h.id !== v.sel?.id" type="button" (click)="open(h)">{{ h.id === v.sel?.id ? 'Showing' : 'Open' }}</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <details class="demo-opt">
+      <summary>Demo options</summary>
+      <div class="panel-b">
+        <label class="fld" style="margin-bottom: 10px">
+          <span class="fld-l">Simulate a scenario</span>
+          <select class="inp" [disabled]="v.running" (change)="setSim($event)">
+            @for (o of simOptions; track o.v) {
+              <option [value]="o.v" [selected]="ai.sim() === o.v">{{ o.l }}</option>
+            }
+          </select>
+        </label>
+        <div class="small muted">Simulates a failure so you can see how the summary handles it. Not needed for normal use.</div>
+      </div>
+    </details>
+  }
+</div>

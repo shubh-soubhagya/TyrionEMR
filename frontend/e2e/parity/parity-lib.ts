@@ -62,20 +62,20 @@ export async function newPair(
   return { ctx, reference, angular };
 }
 
-export async function openReference(page: Page, hash: string, readySelector: string) {
+export async function openReference(page: Page, hash: string, readySelector: string, mask = false) {
   await page.goto(`${REFERENCE_URL}${hash}`);
   await page.waitForSelector(readySelector);
-  await settle(page);
+  await settle(page, mask);
 }
 
-export async function openAngular(page: Page, path: string, readySelector: string) {
+export async function openAngular(page: Page, path: string, readySelector: string, mask = false) {
   await page.goto(`${ANGULAR_ORIGIN}${path}`);
   await page.waitForSelector(readySelector);
-  await settle(page);
+  await settle(page, mask);
 }
 
-async function settle(page: Page) {
-  await page.addStyleTag({ content: MASK_MAIN_CSS });
+async function settle(page: Page, mask: boolean) {
+  if (mask) await page.addStyleTag({ content: MASK_MAIN_CSS });
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -87,11 +87,17 @@ export async function compare(
   angular: Page,
 ): Promise<ParityResult> {
   mkdirSync(OUT_DIR, { recursive: true });
-  const a = PNG.sync.read(await reference.screenshot());
-  const b = PNG.sync.read(await angular.screenshot());
-  if (a.width !== b.width || a.height !== b.height) {
-    throw new Error(`size mismatch ${a.width}x${a.height} vs ${b.width}x${b.height}`);
-  }
+  const shotA = PNG.sync.read(await reference.screenshot({ fullPage: true }));
+  const shotB = PNG.sync.read(await angular.screenshot({ fullPage: true }));
+  const height = Math.max(shotA.height, shotB.height);
+  const pad = (img: PNG): PNG => {
+    const out = new PNG({ width: img.width, height });
+    out.data.fill(0xff);
+    PNG.bitblt(img, out, 0, 0, img.width, img.height, 0, 0);
+    return out;
+  };
+  const a = pad(shotA);
+  const b = pad(shotB);
 
   const diff = new PNG({ width: a.width, height: a.height });
   const diffPixels = pixelmatch(a.data, b.data, diff.data, a.width, a.height, { threshold: 0.1 });
@@ -101,7 +107,9 @@ export async function compare(
   const gap = 8;
   const out = new PNG({ width: a.width * 3 + gap * 2, height: a.height });
   out.data.fill(0xcc);
-  [a, b, diff].forEach((img, i) => PNG.bitblt(img, out, 0, 0, a.width, a.height, i * (a.width + gap), 0));
+  [a, b, diff].forEach((img, i) =>
+    PNG.bitblt(img, out, 0, 0, a.width, a.height, i * (a.width + gap), 0),
+  );
   writeFileSync(join(OUT_DIR, `${screen}-${width}.png`), PNG.sync.write(out));
 
   const result: ParityResult = {

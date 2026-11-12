@@ -1,0 +1,12 @@
+<emr-icon [name]="icon()" [size]="16" />
+<div class="body">
+  @if (title(); as text) {
+    <b>{{ text }}</b>
+  }
+  <ng-content />
+</div>
+@if (dismissible()) {
+  <button type="button" class="close" aria-label="Dismiss" (click)="dismiss()">
+    <emr-icon name="x" [size]="14" />
+  </button>
+}

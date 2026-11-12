@@ -1,0 +1,77 @@
+@if (a(); as a) {
+  <div id="pt-shell">
+    <div class="crumbs"><a routerLink="/patients">Patients</a> / {{ fullName(a.p) }}</div>
+    <div class="pt-head">
+      <div class="pt-id">
+        <emr-avatar [name]="fullName(a.p)" size="lg" />
+        <div>
+          <h1>{{ fullName(a.p) }}</h1>
+          <div class="pt-meta">
+            <span class="chip mono">{{ a.p.mrn }}</span>
+            <span class="chip">{{ a.age }} years, {{ sexLabel(a.p.sex) }}</span>
+            <span class="chip">DOB {{ fmtDate(a.p.dob) }}</span>
+            @switch (a.p.allergyStatus) {
+              @case ('has') {
+                <span class="chip danger"><emr-icon name="alert" [size]="13" />Allergies: {{ allergyNames() }}</span>
+              }
+              @case ('nka') {
+                <span class="chip ok"><emr-icon name="check" [size]="13" />No known allergies</span>
+              }
+              @default {
+                <span class="chip warn"><emr-icon name="alert" [size]="13" />Allergy status unknown</span>
+              }
+            }
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" (click)="modals.open({ kind: 'encounter-form', patientId: id(), encounterId: null })">
+          <emr-icon name="file" [size]="16" />New encounter
+        </button>
+        <button class="btn" type="button" (click)="modals.open({ kind: 'lab', patientId: id() })">
+          <emr-icon name="flask" [size]="16" />Add lab report
+        </button>
+        <a class="btn ai" [routerLink]="['/patients', id(), 'ai']" style="text-decoration: none">
+          <emr-icon name="spark" [size]="16" />AI summary
+        </a>
+      </div>
+    </div>
+    <div class="pt-meta" style="margin-bottom: 14px">
+      <span class="muted small">CKD stage (established by clinician)</span>
+      <emr-ckd-stage-badge [stage]="a.p.ckd" />
+      <span class="muted small" style="margin-left: 10px">eGFR category (latest result)</span>
+      @if (a.ckd.egfrCat) {
+        <span class="chip teal">{{ a.ckd.egfrCat }}</span>
+      } @else {
+        <span class="nd">No eGFR</span>
+      }
+      @if (a.ckd.mismatch) {
+        <span class="chip warn"><emr-icon name="alert" [size]="13" />Does not match established stage</span>
+      }
+    </div>
+    <nav class="tabs" aria-label="Patient chart sections">
+      @for (t of tabs; track t.key) {
+        <a
+          class="tab"
+          [class.ai-tab]="t.key === 'ai'"
+          [routerLink]="['/patients', id(), t.key]"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+        >
+          <emr-icon [name]="t.icon" [size]="16" />{{ t.label }}@if (counts()[t.key] !== undefined) {
+            <span class="ct">{{ counts()[t.key] }}</span>
+          }
+        </a>
+      }
+    </nav>
+    <div id="tab-body"><router-outlet /></div>
+  </div>
+} @else {
+  <div class="panel">
+    <div class="empty">
+      <emr-icon name="alert" [size]="30" /><b>Not found</b><span>Patient not found</span>
+      <div class="small muted" style="margin-top: 8px">NOT_FOUND</div>
+      <div style="margin-top: 14px"><a class="btn" routerLink="/patients">Back</a></div>
+    </div>
+  </div>
+}

@@ -1,0 +1,62 @@
+<emr-modal-shell
+  [title]="patient() ? 'Edit patient details' : 'Register new patient'"
+  [sub]="patient() ? patient()?.mrn : 'Synthetic data only. Do not enter real patient information.'"
+  size="lg"
+  (closed)="closed.emit()"
+>
+  <form [formGroup]="form" novalidate (ngSubmit)="submit()">
+    <div>
+      @if (general()) {
+        <div class="alert danger" style="margin-bottom: 12px"><div><b>{{ general() }}</b></div></div>
+      }
+    </div>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">First name<b class="req">*</b></span>
+        <input formControlName="first" maxlength="60" [class.invalid]="errors()['first']" />
+        <span class="err">{{ errors()['first'] }}</span></label>
+      <label class="fld"><span class="fld-l">Last name<b class="req">*</b></span>
+        <input formControlName="last" maxlength="60" [class.invalid]="errors()['last']" />
+        <span class="err">{{ errors()['last'] }}</span></label>
+    </div>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">Date of birth<b class="req">*</b></span>
+        <input type="date" formControlName="dob" [max]="today" [class.invalid]="errors()['dob']" />
+        <span class="hint">Age is calculated from this date.</span>
+        <span class="err">{{ errors()['dob'] }}</span></label>
+      <label class="fld"><span class="fld-l">Sex<b class="req">*</b></span>
+        <select formControlName="sex">
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+          <option value="O">Other</option>
+        </select>
+        <span class="err"></span></label>
+    </div>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">Phone</span>
+        <input formControlName="phone" placeholder="+91 98xxxxxxxx" [class.invalid]="errors()['phone']" />
+        <span class="err">{{ errors()['phone'] }}</span></label>
+      <label class="fld"><span class="fld-l">Email</span>
+        <input type="email" formControlName="email" [class.invalid]="errors()['email']" />
+        <span class="err">{{ errors()['email'] }}</span></label>
+    </div>
+    <label class="fld"><span class="fld-l">Address</span><input formControlName="address" /><span class="err"></span></label>
+    <label class="fld"><span class="fld-l">Past medical history</span><textarea formControlName="pmh"></textarea><span class="err"></span></label>
+    <div class="f-row">
+      <label class="fld"><span class="fld-l">Family history</span><textarea formControlName="fh"></textarea><span class="err"></span></label>
+      <label class="fld"><span class="fld-l">Social history</span><textarea formControlName="sh"></textarea><span class="err"></span></label>
+    </div>
+    @if (!patient()) {
+      <label class="fld"><span class="fld-l">Allergy status</span>
+        <select formControlName="als">
+          <option value="unknown">Unknown (not yet asked)</option>
+          <option value="nka">No known allergies</option>
+        </select>
+        <span class="hint">Add specific allergies from the chart after registering.</span>
+        <span class="err"></span></label>
+    }
+    <div class="form-actions">
+      <button type="button" class="btn" (click)="closed.emit()">Cancel</button>
+      <button class="btn primary" type="submit">{{ patient() ? 'Save changes' : 'Register patient' }}</button>
+    </div>
+  </form>
+</emr-modal-shell>

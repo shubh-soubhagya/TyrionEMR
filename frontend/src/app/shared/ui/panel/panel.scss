@@ -1,0 +1,37 @@
+// html:79-83, 200
+:host {
+  display: block;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+  overflow-x: auto;
+}
+
+:host(.ai) {
+  border-color: var(--color-ai-100);
+  border-left: 4px solid var(--color-ai-600);
+}
+
+.panel-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-10);
+  padding: var(--space-13) var(--space-16);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+}
+
+.panel-b {
+  padding: var(--space-16);
+
+  &.flush {
+    padding: 0;
+  }
+}

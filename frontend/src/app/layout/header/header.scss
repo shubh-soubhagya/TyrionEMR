@@ -133,17 +133,3 @@
   }
 }
 
-@include narrow-down {
-  .menu-btn {
-    display: grid;
-  }
-
-  .topbar {
-    padding-inline: var(--space-16);
-  }
-
-  // Keep the bar on one line: the name block is the first thing to give way.
-  .user-btn .who {
-    display: none;
-  }
-}

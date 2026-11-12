@@ -1,0 +1,224 @@
+<emr-page-header
+  title="UI kit"
+  subtitle="Dev only. Every shared component in every state, with hardcoded data."
+/>
+
+<section>
+  <h2>Buttons</h2>
+  <div class="row">
+    <button emr-button type="button">Default</button>
+    <button emr-button type="button" variant="primary">Primary</button>
+    <button emr-button type="button" variant="ai" icon="spark">AI</button>
+    <button emr-button type="button" variant="danger">Danger</button>
+    <button emr-button type="button" variant="ghost">Ghost</button>
+    <button emr-button type="button" variant="primary" size="sm" icon="plus">Small</button>
+    <button emr-button type="button" disabled>Disabled</button>
+    <button emr-button type="button" variant="primary" [loading]="true">Loading</button>
+    <button emr-button type="button" variant="primary" iconEnd="right">Icon right</button>
+    <a emr-button href="#" variant="primary">Anchor</a>
+  </div>
+  <div class="row">
+    <button
+      emr-button
+      type="button"
+      variant="primary"
+      [loading]="demoButtonBusy()"
+      (click)="simulateSave()"
+    >
+      Click to save (1.5 s)
+    </button>
+  </div>
+  <div class="row">
+    <button emr-button type="button" variant="primary" block>Full width</button>
+  </div>
+</section>
+
+<section>
+  <h2>Badges, flags, stages</h2>
+  <div class="row">
+    @for (tone of tones; track tone) {
+      <emr-badge [tone]="tone">{{ tone }}</emr-badge>
+    }
+    <emr-badge tone="warn" icon="alert">With icon</emr-badge>
+  </div>
+  <div class="row">
+    @for (flag of flags; track flag) {
+      <emr-lab-flag [flag]="flag" rangeText="Reference 0.7–1.3 mg/dL" />
+    }
+  </div>
+  <div class="row">
+    @for (stage of stages; track stage) {
+      <emr-ckd-stage-badge [stage]="stage" />
+    }
+    <emr-ckd-stage-badge [stage]="'G3b'" [showLabel]="true" />
+    <emr-ckd-stage-badge [stage]="null" />
+  </div>
+  <div class="row">
+    <emr-value-with-unit [value]="1.9" unit="mg/dL" [decimals]="2" [mono]="true" />
+    <emr-value-with-unit [value]="null" unit="mg/dL" />
+    <emr-value-with-unit value="" />
+    <emr-avatar name="Anita Rao" />
+    <emr-avatar name="Anita Rao" size="lg" />
+    <emr-spinner />
+  </div>
+</section>
+
+<section>
+  <h2>Alerts</h2>
+  <div class="stack">
+    <emr-alert tone="info" title="Info"
+      >The established stage differs from the latest eGFR.</emr-alert
+    >
+    <emr-alert tone="ok">Saved.</emr-alert>
+    <emr-alert tone="warn" title="Stage mismatch" dismissible
+      >One eGFR does not define a stage.</emr-alert
+    >
+    <emr-alert tone="danger">Invalid email or password.</emr-alert>
+  </div>
+</section>
+
+<section>
+  <h2>Form fields</h2>
+  <form class="form" [formGroup]="form" (ngSubmit)="submitForm()">
+    <emr-text-field label="Full name" formControlName="name" hint="As on the ID card." />
+    <emr-text-field
+      label="Systolic BP"
+      type="number"
+      suffix="mmHg"
+      formControlName="sbp"
+      hint="Blocking limits 60 to 260."
+    />
+    <emr-select label="Sex" formControlName="sex" [options]="sexOptions" />
+    <emr-select label="Visit type" formControlName="type" [options]="typeOptions" size="sm" />
+    <emr-date-field label="Visit date" formControlName="visit" />
+    <emr-textarea label="Notes" formControlName="notes" />
+    <emr-checkbox label="Add to problem list" formControlName="confirm" />
+    <emr-radio-group label="Visit type (radio)" formControlName="type" [options]="typeOptions" />
+    <div class="row">
+      <button emr-button type="submit" variant="primary">Validate (shows errors)</button>
+    </div>
+  </form>
+</section>
+
+<section>
+  <h2>Search, tabs, pagination</h2>
+  <div class="row">
+    <emr-search-input placeholder="Search by name or patient ID" [(value)]="search" />
+    <span class="muted small">value: "{{ search() }}"</span>
+  </div>
+  <emr-tabs [tabs]="tabs" [(selected)]="tab" label="Demo tabs" />
+  <p class="muted small">Selected tab: {{ tab() }} (use arrow keys)</p>
+  <emr-panel [flush]="true">
+    <emr-pagination
+      [page]="page()"
+      [total]="42"
+      [pageSize]="8"
+      noun="patients"
+      (pageChange)="page.set($event)"
+    />
+  </emr-panel>
+</section>
+
+<section>
+  <h2>KPI strip and panels</h2>
+  <emr-kpi-strip [items]="kpis" />
+  <div class="grid2">
+    <emr-panel title="Panel with header"><p>Body text.</p></emr-panel>
+    <emr-panel title="AI panel" accent="ai"><p>Violet accent.</p></emr-panel>
+  </div>
+</section>
+
+<section>
+  <h2>Data table</h2>
+  <div class="row">
+    <button
+      emr-button
+      size="sm"
+      type="button"
+      (click)="tableState.set('ready'); showRows.set(true)"
+    >
+      Rows
+    </button>
+    <button emr-button size="sm" type="button" (click)="tableState.set('loading')">Loading</button>
+    <button
+      emr-button
+      size="sm"
+      type="button"
+      (click)="tableState.set('ready'); showRows.set(false)"
+    >
+      Empty
+    </button>
+    <button emr-button size="sm" type="button" (click)="tableState.set('error')">Error</button>
+    <span class="muted small">Clicked: {{ clicked() || 'none' }}</span>
+  </div>
+  <emr-panel [flush]="true">
+    <emr-data-table
+      label="Demo patients"
+      [columns]="columns"
+      [rows]="showRows() ? rows : []"
+      [state]="tableState()"
+      [rowKey]="rowKey"
+      [rowClickable]="true"
+      emptyTitle="No patients match your search"
+      emptyText="Check the spelling or clear the filters."
+      (rowClick)="clicked.set($event.name)"
+      (retry)="tableState.set('ready')"
+    >
+      <ng-template emrCell="id" [emrCellOf]="rows" let-row
+        ><span class="mono">{{ row.id }}</span></ng-template
+      >
+      <ng-template emrCell="egfr" [emrCellOf]="rows" let-row>
+        <emr-value-with-unit [value]="row.egfr" emptyText="No results" [mono]="true" />
+      </ng-template>
+    </emr-data-table>
+  </emr-panel>
+</section>
+
+<section>
+  <h2>States, skeleton, toast, modal</h2>
+  <div class="grid2">
+    <emr-panel
+      ><emr-empty-state title="No encounters yet" icon="file"
+        >Record the first visit.</emr-empty-state
+      ></emr-panel
+    >
+    <emr-panel
+      ><emr-error-state
+        [status]="500"
+        message="The data could not be loaded."
+        code="UPSTREAM_UNAVAILABLE"
+    /></emr-panel>
+    <emr-panel
+      ><emr-error-state [status]="404" message="Patient not found." [retryable]="false"
+    /></emr-panel>
+    <emr-panel><emr-skeleton /></emr-panel>
+  </div>
+  <div class="row">
+    <button emr-button type="button" (click)="toast.success('Patient saved.')">
+      Success toast
+    </button>
+    <button emr-button type="button" (click)="toast.error('Could not save the encounter.')">
+      Error toast
+    </button>
+    <button emr-button type="button" (click)="toast.info('Nothing has changed.')">
+      Info toast
+    </button>
+    <button emr-button type="button" variant="primary" (click)="modalOpen.set(true)">
+      Open modal
+    </button>
+  </div>
+  <emr-modal title="Add medication" subtitle="Demo dialog" [(open)]="modalOpen">
+    <p>Native dialog: focus is trapped, Escape closes, focus returns to the opener.</p>
+  </emr-modal>
+</section>
+
+<section>
+  <h2>Icons</h2>
+  <div class="icons">
+    @for (name of iconNames; track name) {
+      <div class="icon-cell">
+        <emr-icon [name]="name" [size]="20" /><span class="small muted">{{ name }}</span>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,9 @@
+@if (loading()) {
+  <emr-spinner [size]="iconSize()" />
+} @else if (icon(); as name) {
+  <emr-icon [name]="name" [size]="iconSize()" />
+}
+<ng-content />
+@if (iconEnd(); as name) {
+  <emr-icon [name]="name" [size]="iconSize()" />
+}

@@ -1,0 +1,18 @@
+<label class="search">
+  <emr-icon name="search" [size]="16" />
+  <span class="sr-only">{{ label() }}</span>
+  <input
+    #field
+    type="search"
+    autocomplete="off"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    (input)="onInput($event)"
+    (keydown)="onKeydown($event, field)"
+  />
+  @if (value()) {
+    <button type="button" class="clear" aria-label="Clear search" (click)="clear(field)">
+      <emr-icon name="x" [size]="14" />
+    </button>
+  }
+</label>

@@ -1,0 +1,47 @@
+@use 'fields' as f;
+@use 'mixins' as *;
+
+:host {
+  @include f.field;
+}
+
+// The border lives on .box so a prefix/suffix (units) sits inside the same outline.
+.box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-10);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+
+  &:focus-within {
+    @include field-focus;
+  }
+
+  &.invalid {
+    border-color: var(--color-danger-600);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    padding: var(--space-8) 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.affix {
+  color: var(--color-text-muted);
+  font-size: var(--fs-12-5);
+  white-space: nowrap;
+}

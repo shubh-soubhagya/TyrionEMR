@@ -1,0 +1,60 @@
+// html:130-135
+:host {
+  display: flex;
+  gap: var(--space-10);
+  padding: var(--space-11) var(--space-14);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  font-size: var(--fs-13-5);
+  align-items: flex-start;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+emr-icon {
+  margin-top: var(--space-2);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+
+  b {
+    display: block;
+  }
+}
+
+.close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  line-height: 0;
+}
+
+:host(.warn) {
+  background: var(--color-warning-50);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
+:host(.danger) {
+  background: var(--color-danger-50);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
+}
+
+:host(.info) {
+  background: var(--color-info-50);
+  border-color: var(--color-info-border);
+  color: var(--color-info-text);
+}
+
+:host(.ok) {
+  background: var(--color-success-50);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
+}

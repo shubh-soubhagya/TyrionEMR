@@ -1,0 +1,76 @@
+<table [attr.aria-label]="label()" [attr.aria-busy]="state() === 'loading' ? 'true' : null">
+  <thead>
+    <tr>
+      @for (col of columns(); track col.key) {
+        <th scope="col" [class.num]="col.align === 'end'" [attr.aria-sort]="ariaSort(col)">
+          @if (col.sortable) {
+            <button type="button" class="sort" (click)="toggleSort(col)">
+              {{ col.header }}
+              @if (sortKey() === col.key) {
+                <span aria-hidden="true">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+              }
+            </button>
+          } @else {
+            {{ col.header }}
+          }
+        </th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @switch (state()) {
+      @case ('loading') {
+        @for (n of skeletonList(); track n) {
+          <tr>
+            @for (col of columns(); track col.key) {
+              <td><emr-skeleton [widths]="['70%']" /></td>
+            }
+          </tr>
+        }
+      }
+      @case ('error') {
+        <tr>
+          <td [attr.colspan]="columns().length">
+            <emr-error-state [message]="errorMessage()" (retry)="retry.emit()" />
+          </td>
+        </tr>
+      }
+      @default {
+        @for (row of rows(); track trackRow($index, row); let i = $index) {
+          <tr
+            [class.click]="rowClickable()"
+            [attr.tabindex]="rowClickable() ? 0 : null"
+            (click)="activate(row)"
+            (keydown.enter)="activate(row, $event)"
+            (keydown.space)="activate(row, $event)"
+          >
+            @for (col of columns(); track col.key) {
+              <td [class.num]="col.align === 'end'" [class.nowrap]="col.nowrap">
+                @if (templates().get(col.key); as tpl) {
+                  <ng-container
+                    [ngTemplateOutlet]="tpl"
+                    [ngTemplateOutletContext]="{ $implicit: row, index: i }"
+                  />
+                } @else {
+                  @if (cellText(row, col.key); as text) {
+                    {{ text }}
+                  } @else {
+                    <span class="nd">Not documented</span>
+                  }
+                }
+              </td>
+            }
+          </tr>
+        } @empty {
+          <tr>
+            <td [attr.colspan]="columns().length">
+              <emr-empty-state [title]="emptyTitle()">
+                {{ emptyText() }}
+              </emr-empty-state>
+            </td>
+          </tr>
+        }
+      }
+    }
+  </tbody>
+</table>

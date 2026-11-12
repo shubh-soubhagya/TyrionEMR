@@ -1,0 +1,10 @@
+@if (title()) {
+  <div class="panel-h">
+    <h2>{{ title() }}</h2>
+    <div class="actions"><ng-content select="[emr-panel-actions]" /></div>
+  </div>
+}
+<div class="panel-b" [class.flush]="flush()">
+  <ng-content />
+</div>
+<ng-content select="[emr-panel-footer]" />

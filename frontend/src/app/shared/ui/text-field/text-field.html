@@ -1,0 +1,33 @@
+<label class="fld">
+  <span class="fld-l"
+    >{{ label() }}
+    @if (isRequired()) {
+      <b class="req" aria-hidden="true">*</b>
+    }
+  </span>
+  <span class="box" [class.invalid]="showError()">
+    @if (prefix(); as text) {
+      <span class="affix">{{ text }}</span>
+    }
+    <input
+      [type]="type()"
+      [value]="displayValue()"
+      [placeholder]="placeholder()"
+      [disabled]="disabled()"
+      [attr.autocomplete]="autocomplete()"
+      [attr.step]="step()"
+      [attr.aria-invalid]="showError() ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-required]="isRequired() ? 'true' : null"
+      (input)="onInput($event)"
+      (blur)="markTouched()"
+    />
+    @if (suffix(); as text) {
+      <span class="affix">{{ text }}</span>
+    }
+  </span>
+  @if (hint(); as text) {
+    <span class="hint" [id]="hintId">{{ text }}</span>
+  }
+  <emr-form-field-error [errors]="showError() ? errors() : null" [id]="errorId" />
+</label>

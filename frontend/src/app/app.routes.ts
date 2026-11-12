@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
+import { environment } from '@env/environment';
 import { EmrAppShell } from '@layout/app-shell/app-shell';
 
 // Route map from docs/ui-inventory.md section 8 (HLD 15.1). Every page is lazy-loaded; the shell
 // is eager because it is the frame around all signed-in pages.
 // Guards (authGuard / guestGuard) arrive with Phase 5.
-const tab = (title: string) => ({ title });
 
 export const routes: Routes = [
   {
@@ -20,6 +20,15 @@ export const routes: Routes = [
     component: EmrAppShell,
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      // Dev-only component catalogue: not registered in production builds.
+      ...(environment.production
+        ? []
+        : [
+            {
+              path: 'dev/ui-kit',
+              loadComponent: () => import('@features/dev/ui-kit-page').then((m) => m.UiKitPage),
+            },
+          ]),
       {
         path: 'dashboard',
         loadComponent: () =>
@@ -36,13 +45,30 @@ export const routes: Routes = [
           import('@features/patients/patient-shell-page').then((m) => m.PatientShellPage),
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'overview' },
-          // Placeholders: each tab gets its own lazy component in its feature phase.
-          { path: 'overview', ...placeholderTab(), data: tab('Overview') },
-          { path: 'conditions', ...placeholderTab(), data: tab('Conditions') },
-          { path: 'meds', ...placeholderTab(), data: tab('Medications and allergies') },
-          { path: 'encounters', ...placeholderTab(), data: tab('Encounters') },
-          { path: 'labs', ...placeholderTab(), data: tab('Labs') },
-          { path: 'ai', ...placeholderTab(), data: tab('AI summary') },
+          {
+            path: 'overview',
+            loadComponent: () => import('@features/patients/tabs/overview-tab').then((m) => m.OverviewTab),
+          },
+          {
+            path: 'conditions',
+            loadComponent: () => import('@features/patients/tabs/conditions-tab').then((m) => m.ConditionsTab),
+          },
+          {
+            path: 'meds',
+            loadComponent: () => import('@features/patients/tabs/meds-tab').then((m) => m.MedsTab),
+          },
+          {
+            path: 'encounters',
+            loadComponent: () => import('@features/patients/tabs/encounters-tab').then((m) => m.EncountersTab),
+          },
+          {
+            path: 'labs',
+            loadComponent: () => import('@features/patients/tabs/labs-tab').then((m) => m.LabsTab),
+          },
+          {
+            path: 'ai',
+            loadComponent: () => import('@features/patients/tabs/ai-tab').then((m) => m.AiTab),
+          },
         ],
       },
     ],
@@ -53,9 +79,3 @@ export const routes: Routes = [
   },
 ];
 
-function placeholderTab() {
-  return {
-    loadComponent: () =>
-      import('@features/patients/patient-tab-placeholder').then((m) => m.PatientTabPlaceholder),
-  };
-}

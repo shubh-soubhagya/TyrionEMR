@@ -1,0 +1,86 @@
+@if (v(); as d) {
+  <div class="grid g-main">
+    <div class="panel">
+      <div class="panel-h">
+        <h2><emr-icon name="pill" [size]="17" />Medications</h2>
+        <div class="row">
+          <label class="chk small">
+            <input type="checkbox" [checked]="showAll()" (change)="toggleAll($event)" /> Show discontinued
+          </label>
+          <button class="btn sm primary" type="button" (click)="modals.open({ kind: 'med', patientId: id() })">
+            <emr-icon name="plus" [size]="14" />Add medication
+          </button>
+        </div>
+      </div>
+      @if (d.meds.length) {
+        <table>
+          <thead>
+            <tr><th>Medication</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Started</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (m of d.meds; track m.id) {
+              <tr>
+                <td><b>{{ m.name }}</b></td>
+                <td>{{ m.dose }}</td>
+                <td>{{ m.route }}</td>
+                <td>{{ m.freq }}</td>
+                <td>{{ fmtDate(m.start) }}</td>
+                <td>
+                  <span class="chip" [class.ok]="m.status === 'active'">{{ m.status === 'active' ? 'Active' : 'Discontinued ' + fmtDate(m.end) }}</span>
+                </td>
+                <td class="num">
+                  @if (m.status === 'active') {
+                    <button class="btn sm ghost" type="button" (click)="stop(m.id)">Discontinue</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <div class="empty"><b>No medications documented</b>Add current medications, or leave this empty if the patient takes none.</div>
+      }
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">
+        <h2><emr-icon name="alert" [size]="17" />Allergies</h2>
+        <button class="btn sm primary" type="button" (click)="modals.open({ kind: 'allergy', patientId: id() })">
+          <emr-icon name="plus" [size]="14" />Add allergy
+        </button>
+      </div>
+      <div class="panel-b" style="border-bottom: 1px solid var(--line)">
+        @switch (d.p.allergyStatus) {
+          @case ('has') {
+            <div class="alert danger"><emr-icon name="alert" [size]="16" /><div><b>Has documented allergies</b></div></div>
+          }
+          @case ('nka') {
+            <div class="alert ok"><emr-icon name="check" [size]="16" /><div><b>No known allergies</b> confirmed with the patient.</div></div>
+          }
+          @default {
+            <div class="alert warn">
+              <emr-icon name="alert" [size]="16" />
+              <div>
+                <b>Allergy status unknown.</b> It has not been asked or recorded yet.
+                @if (!d.allergies.length) {
+                  <div style="margin-top: 8px"><button class="btn sm" type="button" (click)="markNka()">Confirm no known allergies</button></div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+      @for (x of d.allergies; track x.id) {
+        <div class="list-item">
+          <div>
+            <b>{{ x.allergen }}</b>&ngsp;<span class="chip" [class.danger]="x.severity === 'severe'" [class.warn]="x.severity === 'moderate'">{{ cap(x.severity) }}</span>
+            <div class="small muted">{{ x.reaction || 'Reaction not documented' }}</div>
+          </div>
+          <button class="icon-btn" type="button" aria-label="Remove allergy" (click)="removeAllergy(x.id)">
+            <emr-icon name="trash" [size]="16" />
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

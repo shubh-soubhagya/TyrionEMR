@@ -1,5 +1,6 @@
-// Order matters: tokens first, then reset, then element styles.
+// Order matters: tokens first, then reset, then element styles, then the reference stylesheet.
 // Fonts are self-hosted via @fontsource and listed in angular.json "styles".
 @use 'styles/tokens';
 @use 'styles/reset';
 @use 'styles/typography';
+@use 'styles/reference';
