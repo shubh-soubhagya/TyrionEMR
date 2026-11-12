@@ -5,6 +5,7 @@ PY := .venv/Scripts/python
 ifeq ($(wildcard .venv/bin/python),.venv/bin/python)
 PY := .venv/bin/python
 endif
+# CI has no virtualenv: run `make <target> PY=python` (a command-line variable overrides the lines above)
 # load local settings (gitignored) when present
 -include .env
 export

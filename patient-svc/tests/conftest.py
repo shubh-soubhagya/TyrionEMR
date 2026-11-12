@@ -171,6 +171,9 @@ def migrated_db() -> str:
     """Runs ``alembic upgrade head`` once per session against the TEST database and returns its URL."""
     url = os.environ.get("PATIENT_TEST_DATABASE_URL")
     if not url:
+        if os.environ.get("REQUIRE_DB_TESTS") == "1":
+            # CI sets this, so a misconfigured pipeline FAILS instead of quietly skipping the API and DB tests
+            pytest.fail("PATIENT_TEST_DATABASE_URL is not set but REQUIRE_DB_TESTS=1", pytrace=False)
         pytest.skip("PATIENT_TEST_DATABASE_URL not set")
     env = {**os.environ, "PATIENT_DATABASE_URL": url}
     subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=env, check=True,

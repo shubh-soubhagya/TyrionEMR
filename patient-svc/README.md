@@ -44,6 +44,7 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 | `CLINICIAN_NAME_NEGATIVE_TTL_S` | 30 | how long a failed lookup is remembered (protects auth-svc during an outage) |
 | `CLINICIAN_NAME_CACHE_MAX` | 1000 | cache size cap; the oldest entry is evicted |
 | `CLINIC_TZ` | `Asia/Kolkata` | "today" for date-only rules |
+| `MAX_BODY_BYTES` | 1048576 | request bodies above this are rejected with `413 PAYLOAD_TOO_LARGE` |
 
 ## Runtime dependencies
 
@@ -53,14 +54,29 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 | auth-svc `/.well-known/jwks.json` | verifying access tokens | cached keys keep working; new key ids fail until it is back |
 | auth-svc `/auth/me` | the clinician name stored on a new encounter | the name is null and the write still succeeds; the same clinician's later edit or finalize fills it in |
 
+## Rules the tests prove
+
+| Rule | Test |
+|---|---|
+| A final encounter, its vitals and diagnoses can never change, and nothing is hard-deleted (database triggers) | `tests/db/test_db_guards.py` |
+| Every write has exactly one audit row, holding field names and never values; a failed write leaves none | `tests/api/test_audit.py` |
+| The clinician name comes from auth-svc `/auth/me`, is null when it is unreachable, and is filled only by its own creator | `tests/api/test_clinician_name.py`, `tests/unit/test_clinician_directory.py` |
+| No HTTP call is ever made while a database transaction (and the patient row lock) is open | `FakeDirectory` in `tests/conftest.py`, exercised by `test_clinician_name.py` |
+| Migration 0003 turns the old placeholder into NULL, even on final encounters, then restores the guard | `tests/db/test_migration_0003.py` |
+| No patient data (names, phone, notes, diagnoses, search text) appears in the service's logs | `tests/api/test_no_phi_in_logs.py`, `tests/unit/test_core.py` |
+| A request body above the limit is rejected with 413, whether it declares a length or streams chunked | `tests/api/test_no_phi_in_logs.py` (body-limit tests) |
+| The internal chart has no name, MRN or contact field; contract files guard every internal response | `tests/api/test_internal.py`, `contracts/patient/` |
+| Every demo scenario fact survives a seed change | `tests/api/test_seed.py` |
+| Layering: `domain` is pure and routers never touch repositories | `tests/unit/test_layers.py` |
+
 ## Open items
 
 | # | Item |
 |---|---|
 | O1 | Seed namespace: this service uses `9b3f6a52-...` (its design doc); lab-svc's doc lists `6f1c2d3e-...`, and auth-svc seeds users with random ids. All three must share one namespace (`app/domain/seed_ids.py`) before lab-svc is seeded, or lab results will point at patients that do not exist. |
 | O2 | List sorted by last visit or primary diagnosis takes about 270 ms at 10,000 patients / 200,000 encounters (target 150 ms). The design's upgrade path is a `last_visit` column maintained at finalize. Everything else meets its target; see `docs/db/explain/README.txt`. |
+| O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
 | O3 | Dockerfile and compose file are copied from auth-svc but not yet built or run. |
-| O4 | `requirements-dev.lock` is not generated yet (`make lock` kept timing out on the package index); `requirements.lock` and `requirements-build.lock` are. |
 
 ## Deviations from the design document
 
@@ -73,4 +89,5 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 | D5 | Config names `DB_POOL_SIZE` etc. | `PATIENT_DB_POOL_SIZE`, ... | auth-svc prefixes service-specific DB settings |
 | D6 | Clinician name from a JWT `name` claim (LLD §27.1 #1) | `clinician_name` is resolved from auth-svc `/auth/me` with the caller's token, cached per user, and is nullable when auth-svc is unreachable | auth-svc keeps tokens free of PII (its LLD §17.9) and that will not change; a `name` claim is ignored |
 | D7 | `encounter_diagnoses` as in §9.2 | + `category` column (migration 0002) | A draft's explicit diagnosis category must survive until finalize, when the problem-list entry is created |
+| D8 | Encounter `clinician_name` NOT NULL | Nullable (migration 0003); `set_updated_at()` honours an explicit `updated_at` | The name is resolved from auth-svc and can be unknown; the injected clock must be able to control timestamps |
 
