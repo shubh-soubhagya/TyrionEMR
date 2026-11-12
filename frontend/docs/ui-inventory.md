@@ -398,12 +398,12 @@ Selector prefix `emr-`. Presentational unless marked (container). Inputs/outputs
 | Flags `critical-low`                                                                                                       | `critical_low`, `critical_high`, `unknown`                                                                                                                                      | Underscore                                                                                                        |
 | Tabs `/overview /encounters /labs /ai-summary`                                                                             | `overview, conditions, meds, encounters, labs, ai`                                                                                                                              | HTML names                                                                                                        |
 | Password ≥ 8                                                                                                               | ≥ 10, letter + digit, not common (html:620; HLD §7.1)                                                                                                                           | 10                                                                                                                |
-| Token mirrored in `sessionStorage`                                                                                         | Memory only, httpOnly refresh cookie, single-flight refresh (HLD §15.2)                                                                                                         | Follow HLD; contradicts Phase 5 prompt ❓                                                                         |
+| Token mirrored in `sessionStorage` | Memory only, httpOnly refresh cookie `nephro_rt`, single-flight refresh (HLD §15.2; confirmed in `auth-svc/`) | **Decided (decisions.md D3):** in-memory access token + silent refresh. No Web Storage. |
 | 401 → clear session, redirect                                                                                              | Refresh once and retry; only if refresh fails go to login                                                                                                                       | HLD                                                                                                               |
 | Trend: 2+ points, ±5%                                                                                                      | ≥3 points else "Insufficient data (needs 3+ results)"; OLS slope per year; eGFR ±2/yr, creatinine ±0.1/yr; rapid decline ≤ −5/yr (html:402-414)                                 | HTML/HLD; trend stats come from API                                                                               |
 | Chart empty state if < 2 points                                                                                            | 0 points → "No X results in this period"; 1–2 points still draw                                                                                                                 | HTML                                                                                                              |
-| Vitals limits BP 60–260/30–160, HR 30–220, T 34–42, Wt 2–300, SpO2                                                         | sys 50–300, dia 20–200, HR 20–300, T 30–45, Wt 1–500, **no SpO2** (html:918)                                                                                                    | ❓ Recommend HTML limits as blocking; add the prompt's narrower values only as soft warnings. Needs your decision |
-| Lab plausibility creatinine 0.1–25, eGFR 1–200, BUN 1–250, K 1.5–9, Hb 3–25, Ca 4–16, Phos 0.5–15, UACR 0–10000            | max only: 30, 200, 300, 12, 25, 20, 20, 20000; min 0                                                                                                                            | ❓ same as above                                                                                                  |
+| Vitals limits BP 60–260/30–160, HR 30–220, T 34–42, Wt 2–300, SpO2 | sys 50–300, dia 20–200, HR 20–300, T 30–45, Wt 1–500, **no SpO2** (html:918) | **Decided (D1):** the prompt limits block typos; out-of-normal but plausible values give a soft warning, not an error. SpO2 omitted (not in HTML or HLD). |
+| Lab plausibility creatinine 0.1–25, eGFR 1–200, BUN 1–250, K 1.5–9, Hb 3–25, Ca 4–16, Phos 0.5–15, UACR 0–10000 | max only: 30, 200, 300, 12, 25, 20, 20, 20000; min 0 | **Decided by analogy (D1):** prompt limits block typos; abnormal-but-plausible values are saved and flagged. ⚑ extension, not explicitly confirmed. |
 | Follow-up date "must be after" visit                                                                                       | "cannot be before the visit" (html:959)                                                                                                                                         | HTML (same day allowed)                                                                                           |
 | Encounter diagnoses with ICD format and one "primary" toggle                                                               | "Add to problem list" checkbox per row; primary is set on the Conditions tab                                                                                                    | HTML. ICD-10 format check ⚑ is extra                                                                              |
 | Encounter types new / follow-up / review                                                                                   | `new, follow_up, emergency`                                                                                                                                                     | HTML                                                                                                              |
@@ -411,7 +411,7 @@ Selector prefix `emr-`. Presentational unless marked (container). Inputs/outputs
 | Encounter save only                                                                                                        | Draft **and** Finalize (final is read-only, finalize confirmation)                                                                                                              | HTML/HLD                                                                                                          |
 | Phase 4 trend.ts, CKD-EPI hint "calculated eGFR"                                                                           | Not in HTML. HTML computes eGFR only for seed data/gap rule                                                                                                                     | ⚑ Drop the hint unless you want it; classification and trends come from the API                                   |
 | AI summary: synchronous POST, 6 bullet sections, cancel, print, timeout                                                    | POST 202 + polling; sections are paragraphs plus follow-up list; no cancel or print                                                                                             | HLD contract. Bullets ❓: HTML renders paragraphs, assignment says nothing. Recommend paragraphs as in HTML       |
-| Disclaimer wording (CLAUDE.md §7) "…It is not a diagnosis or treatment recommendation. Verify against the patient record." | HTML: "AI-generated content for clinician review only. It is not a diagnosis or a treatment recommendation. Verify everything against the source record."; HLD: server-injected | ❓ Display the server's string; fallback constant. Decide which wording is canonical                              |
+| Disclaimer wording (CLAUDE.md §7) "…It may be incomplete or inaccurate. It is not a diagnosis or treatment recommendation. Verify against the patient record." | HTML: "AI-generated content for clinician review only. It is not a diagnosis or a treatment recommendation. Verify everything against the source record."; HLD: server-injected | **Decided (D2):** CLAUDE.md wording, one constant, HTML styling kept. Backend should return the same text. |
 | Missing phases                                                                                                             | Dashboard, Conditions tab, Meds and allergies tab, patient register/edit, encounter draft/finalize, global search, KPI strips                                                   | Not covered by Phases 5-11 as written. Need adding (see §8)                                                       |
 | Phase 6: table to cards on mobile "follow the HTML"                                                                        | HTML scrolls the table                                                                                                                                                          | Scroll                                                                                                            |
 
@@ -445,16 +445,22 @@ Selector prefix `emr-`. Presentational unless marked (container). Inputs/outputs
 11. Focus ring is good (`:focus-visible` teal 2px).
 12. `prefers-reduced-motion` handled.
 
-### 7.4 Ambiguities needing a decision ❓
+### 7.4 Ambiguities and their resolution
 
-1. Vitals/lab plausibility limits (HTML vs prompt).
-2. Canonical disclaimer wording.
-3. Token storage (Phase 5 sessionStorage vs HLD memory + cookie).
-4. Whether to keep a client-side calculated-eGFR hint.
-5. Mobile: table scroll vs cards.
-6. SpO2: HTML has none.
-7. `/patients/stats` for the list KPIs.
+Resolved on 2026-11-12, recorded in `decisions.md`:
+
+1. Vitals and lab plausibility limits: **D1** (prompt limits block typos; abnormal-but-plausible is a soft warning; SpO2 omitted).
+2. Canonical disclaimer wording: **D2** (CLAUDE.md wording, HTML styling).
+3. Token storage: **D3** (in-memory access token + silent refresh; `auth-svc` issues an httpOnly refresh cookie).
+4. Phase 2 additions (mobile drawer, user menu, skip link, `menu` icon, narrow name hiding, placeholder user): **D4**, approved.
+
+Still open:
+
+5. Client-side calculated-eGFR hint: not in the HTML or HLD. Default: skip.
+6. Mobile tables: default is the HTML's horizontal scroll.
+7. `/patients/stats` for the list KPIs: not in the HLD.
 8. Reference ranges and CKD criteria are described as "supplied" but only placeholders exist.
+9. ai-svc disclaimer string should be aligned to D2.
 
 ## 8. Proposed route map
 

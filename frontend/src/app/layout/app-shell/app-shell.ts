@@ -9,6 +9,7 @@ import {
 import { Router, RouterOutlet } from '@angular/router';
 import { EmrHeader } from '../header/header';
 import { NAV_ITEMS } from '../nav-items';
+import { PLACEHOLDER_USER } from '../placeholder-user';
 import { EmrSidebar } from '../sidebar/sidebar';
 
 /** Signed-in frame (html `.shell`): sidebar, sticky top bar, scrolling main content. */
@@ -29,10 +30,9 @@ export class EmrAppShell {
   protected readonly navItems = NAV_ITEMS;
   protected readonly navOpen = signal(false);
 
-  // Placeholder identity (synthetic clinician from the prototype). Phase 5 replaces these with
-  // the signed-in user from AuthService, and signOut() with a real logout.
-  protected readonly userName = 'Dr. Anita Rao';
-  protected readonly userRole = 'Nephrologist';
+  // TODO(phase-5): replace with the signed-in user from AuthService and delete placeholder-user.ts.
+  protected readonly userName = PLACEHOLDER_USER.name;
+  protected readonly userRole = PLACEHOLDER_USER.role;
 
   protected toggleNav(): void {
     const opening = !this.navOpen();
