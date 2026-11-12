@@ -20,8 +20,8 @@ The first build (commits `38014f4`, `e8bae55`, `7a19ace`) was made from the syst
 | 8 | Public read APIs | B6.4–B6.7, B7.3–B7.6 | ✅ |
 | 9 | Internal endpoints and contracts | B7.8, B7.9, B13.4 | ✅ |
 | 10 | Observability and audit | B12 | ✅ |
-| 11 | Seed profiles, image, handover | B11, B14 | ☐ |
-| 12 | Test-plan closure | B13 | ☐ |
+| 11 | Seed profiles, image, handover | B11, B14 | ✅ |
+| 12 | Test-plan closure | B13 | ✅ |
 
 Out of scope here (LLD B17 step 10): the Angular lab form, Labs tab and patient-list wiring, and the browser side of the shared vectors.
 

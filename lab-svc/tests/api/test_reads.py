@@ -96,9 +96,10 @@ async def test_report_id_filter(api, patients) -> None:
     assert page["total"] == 2 and {x["report_id"] for x in page["items"]} == {first["report"]["id"]}
 
 
-async def test_superseded_rows_are_hidden_unless_asked_for(api, patients) -> None:
+async def test_superseded_rows_are_hidden_unless_asked_for(api, patients, clock) -> None:
     pid = patients.add()
     res = (await add(api, pid, 0, K=6.8))["results"][0]
+    clock.advance(seconds=5)                          # a correction is always entered after the original
     cur = (await correct(api, res["id"], 4.2)).json()["current"]
     default = (await api.get(f"/labs/patients/{pid}/results")).json()
     assert [x["id"] for x in default["items"]] == [cur["id"]] and default["items"][0]["is_correction"] is True
