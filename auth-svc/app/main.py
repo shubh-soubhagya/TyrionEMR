@@ -59,13 +59,22 @@ async def _auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
     return resp
 
 
-def _is_production(settings: Settings | None) -> bool:
+def _peek(settings: Settings | None, name: str, default):
+    """A setting needed while the app object is built, before the lifespan loads full settings. Falls back to
+    the environment when settings are incomplete (e.g. exporting the OpenAPI schema without a database)."""
     if settings is not None:
-        return settings.environment == "production"
+        return getattr(settings, name)
     try:
-        return get_settings().environment == "production"
-    except Exception:      # settings incomplete (e.g. exporting the OpenAPI schema without a database)
-        return os.environ.get("ENVIRONMENT") == "production"
+        return getattr(get_settings(), name)
+    except Exception:
+        raw = os.environ.get(name.upper())
+        if raw is None:
+            return default
+        return raw.lower() not in ("0", "false", "no") if isinstance(default, bool) else raw
+
+
+def _is_production(settings: Settings | None) -> bool:
+    return _peek(settings, "environment", "development") == "production"
 
 
 def create_app(settings: Settings | None = None, clock: Clock = utcnow,
@@ -100,7 +109,8 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
     app.include_router(routes_auth.router, prefix="/auth", tags=["auth"])
     app.include_router(routes_wellknown.router)
     app.include_router(routes_health.router)
-    mount_metrics(app)
+    if _peek(settings, "metrics_enabled", True):
+        mount_metrics(app)
     return app
 
 

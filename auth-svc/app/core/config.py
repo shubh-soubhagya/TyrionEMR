@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     argon2_max_concurrency: int = 4
     argon2_queue_timeout_s: float = 2.0         # max wait for a hash slot before 503 SERVICE_BUSY
 
+    # /metrics is for the internal network only (Prometheus). Turn it off if nothing scrapes it.
+    metrics_enabled: bool = True
+
     seed_demo_users: bool = False
     uvicorn_workers: int = 2
 
