@@ -597,6 +597,37 @@ def upgrade():
     # op.create_table(...) for users and refresh_tokens, then indexes, as in §15.2
 ```
 
+### 15.4b Later migrations
+
+| Revision | Change |
+|---|---|
+| `0002` | `users.last_failed_at timestamptz NULL` (failure decay, R10) |
+| `0003` | `ck_rt_revoked_reason` also allows `password_changed` |
+| `0004` | table `auth_events` (below) |
+
+```sql
+CREATE TABLE auth_events (
+    id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    at          timestamptz NOT NULL,
+    event       text        NOT NULL,     -- signup, login, lockout, refresh, logout, password_change,
+                                          -- password_set, unlock, deactivation, sessions_revoked
+    outcome     text        NOT NULL,     -- success, bad_password, unknown_user, locked, disabled, policy,
+                                          -- email_taken, reuse_detected, ...
+    user_id     uuid        NULL,         -- NULL when no user exists (unknown email)
+    family_id   uuid        NULL,
+    request_id  text        NULL,
+    ip          inet        NULL,
+    user_agent  text        NULL,         -- truncated to 256 (CHECK)
+    CONSTRAINT ck_auth_events_user_agent_len CHECK (user_agent IS NULL OR char_length(user_agent) <= 256)
+);
+CREATE INDEX ix_auth_events_user_at ON auth_events (user_id, at DESC);
+CREATE INDEX ix_auth_events_at      ON auth_events (at);
+```
+
+There is **no email, password, token or cookie column**, and nothing derived from them is stored. An event is
+written in the same transaction as the change it records; failures that have no transaction of their own use a short
+one. `lockout` is written once per flip. Purged after `AUTH_EVENTS_RETENTION_DAYS` (365) by the cleanup job.
+
 ### 15.5 Retention
 
 The cleanup job (§20.8) deletes rows where `expires_at < now() - interval '7 days'` (or `family_expires_at` passed by 7 days). The 7-day tail keeps recent revoked rows available for reuse detection and incident review. Expired tokens are already unusable, so deleting them changes no behavior.
@@ -694,6 +725,23 @@ docker exec <pg> psql -U <su> -d auth_db_test -c "CREATE EXTENSION IF NOT EXISTS
 ```
 
 This touches nothing that already exists in the container. Existing databases and roles are unchanged.
+
+### 16.3b Least-privilege roles (supersedes the single `auth_svc` role in 16.3)
+
+| Role | Used by | Rights |
+|---|---|---|
+| `auth_migrator` | Alembic, `make migrate`, test cleanup | owns the database, the `public` schema and every table |
+| `auth_app` | the running service (`AUTH_DATABASE_URL`) | `CONNECT`; `USAGE` on `public`; `SELECT, INSERT, UPDATE, DELETE` on tables. Cannot create, alter, drop or truncate |
+
+`setup/init-auth-db.sh` creates both roles and the database, is idempotent, **moves ownership from the legacy
+`auth_svc` role** (database and tables) if it finds it, and sets
+`ALTER DEFAULT PRIVILEGES FOR ROLE auth_migrator ... GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO auth_app`
+so tables created by a future migration need no extra grant. It refuses to touch a database owned by anyone else.
+`auth_svc` is left in place; retire it with `ALTER ROLE auth_svc NOLOGIN` once every environment has switched.
+
+URLs: `AUTH_DATABASE_URL` (runtime, `auth_app`) and `AUTH_MIGRATION_DATABASE_URL` (`auth_migrator`; falls back to
+the runtime URL for single-role setups). Migrations no longer run in the entrypoint unless
+`RUN_MIGRATIONS_ON_START=true`.
 
 ### 16.4 Networking: how auth-svc reaches the container
 
@@ -899,6 +947,22 @@ If the cookie maps to a token, every active token in its family is revoked with 
 Header: `Authorization: Bearer <access token>`.
 Response `200`: `UserOut`.
 Errors: `401 UNAUTHENTICATED` (missing or invalid token), `401 TOKEN_EXPIRED`, `403 ACCOUNT_DISABLED`, `404 NOT_FOUND` (user row gone; should never happen because users are not deleted).
+
+### 17.7b `POST /auth/password`
+
+Header: `Authorization: Bearer <access token>`; `Origin` check as for `/auth/refresh`. Body:
+`{"current_password": "...", "new_password": "..."}`. Rate-limited like login.
+
+1. The new password goes through the signup policy; it must also differ from the current one (`SAME_AS_CURRENT`).
+   Failures are `422` with `details[].field = "new_password"`.
+2. The current password is verified through the same attempt reservation as login, so wrong guesses count toward
+   lockout (`401 INVALID_CREDENTIALS`, message "Current password is incorrect."; `429 ACCOUNT_LOCKED` once locked).
+3. In one transaction: store the new hash, reset the lock counters, revoke **every other** refresh-token family
+   (reason `password_changed`), and **rotate this session's refresh token** (the caller's `nephro_rt` cookie).
+4. `204` with `Cache-Control: no-store` and a new `Set-Cookie` for the rotated token. If the request carried no valid
+   cookie of this user, all sessions are revoked and no cookie is set.
+
+An `auth_events` row `password_change` is written in the same transaction.
 
 ### 17.8 `GET /.well-known/jwks.json`
 
@@ -1663,6 +1727,15 @@ All settings come from environment variables (12-factor, HLD-v2 §12). Defaults 
 | `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Max wait for a hash slot before `503 SERVICE_BUSY` |
 | `ENVIRONMENT` | `development` | `development` / `test` / `production`; production enables the startup guard (R12) |
 | `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION` | `false` | Explicit opt-in needed to run with `ENABLE_PUBLIC_SIGNUP=true` in production |
+| `AUTH_MIGRATION_DATABASE_URL` | unset | Schema-owner login used by Alembic / the migrate job; unset falls back to `AUTH_DATABASE_URL` |
+| `RUN_MIGRATIONS_ON_START` | `false` | Run `alembic upgrade head` in the entrypoint (local convenience only) |
+| `AUTH_DB_SSLMODE` | `disable` | `disable` / `require` / `verify-full`; production refuses `disable` |
+| `AUTH_DB_SSLROOTCERT` | unset | CA certificate; with `require` it verifies the chain, with `verify-full` also the host name |
+| `DB_STATEMENT_TIMEOUT_MS` | `5000` | Server-side `statement_timeout` |
+| `DB_LOCK_TIMEOUT_MS` | `2000` | Server-side `lock_timeout` (a held row lock gives `503 SERVICE_BUSY` after ~2 s) |
+| `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `10000` | Server-side `idle_in_transaction_session_timeout` |
+| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged by the cleanup job |
+| `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only; never expose it publicly) |
 | `ARGON2_TIME_COST` | `3` | |
 | `ARGON2_MEMORY_KIB` | `65536` | 64 MiB |
 | `ARGON2_PARALLELISM` | `4` | |
@@ -1879,6 +1952,8 @@ Never logged: email addresses, passwords, cookie values, access or refresh token
 | `auth_argon2_inflight` | gauge | |
 | `auth_argon2_rejected_total` | counter | hash requests rejected because the queue wait timed out |
 | `auth_rate_limited_total` | counter | `route` |
+| `auth_db_pool_size` | gauge | connections in the pool |
+| `auth_db_pool_checked_out` | gauge | connections in use |
 | `http_request_duration_seconds` | histogram | `route`, `method`, `status` (from libs/common) |
 
 Alert suggestions: any `auth_refresh_reuse_detected_total` increase; login failure rate spike; p95 `auth_argon2_seconds` above 0.5 s.
@@ -1908,6 +1983,11 @@ Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATA
 | Refresh | rotates (old row `rotated`, `replaced_by_id` set, new cookie differs); missing cookie `401 REFRESH_MISSING`; unknown `401 REFRESH_INVALID` and cookie cleared; expired idle; expired absolute (`family_expires_at`); reuse of a `rotated` token outside grace revokes all family rows and returns `401 REFRESH_REUSED`; **login, logout, then refresh with the old cookie returns `401 REFRESH_INVALID`, clears the cookie, logs `auth.refresh.failure reason=invalid`, logs no `reuse_detected` and leaves the family untouched**; replaying a `reuse_detected` token also returns `REFRESH_INVALID`; reuse inside grace returns `409` and does **not** revoke; **revocation persists** after the error response (regression test for §19.3 note); inactive user revokes family; bad `Origin` → `403` |
 | Lockout concurrency | 20 parallel wrong guesses reach argon2 at most 5 times and the account ends locked; a correct password slowed while 9 others lock the account answers `429` and starts no session; randomised bursts never succeed after the lock; failures decay after the window (4 failures, +16 min, 1 failure: not locked); `SERVICE_BUSY` gives the attempt back |
 | Rate limit and hash queue | the 6th login in a burst from one IP is `429` with `Retry-After`; another IP is unaffected; tokens refill with the fake clock; the bucket map is bounded with LRU eviction; a saturated hash pool answers `503 SERVICE_BUSY` in about the wait timeout and recovers |
+| Password change and audit | `/auth/password`: other sessions revoked, this one survives, wrong current password counts toward lockout, policy and same-as-current are `422`, other user's cookie is not kept; every audit event type has the right fields, no PII columns or values, atomic with its change, retention purges |
+| Operator CLI | each command refuses to run without `--email`, prints what changed, writes its audit event; unknown user changes nothing |
+| Roles and TLS | as `auth_app`: `DROP`, `CREATE`, `ALTER`, `TRUNCATE` are denied and DML works; tables made later by the migrator are usable; `auth_migrator` can do DDL; the whole service runs as `auth_app` over TLS |
+| Timeouts | a held row lock gives `503 SERVICE_BUSY` in about 2 s and consumes nothing; statement timeout gives `503`; other database errors are a `500` envelope with no SQL |
+| Key rotation | tokens signed by k1 verify while both keys are published, new tokens carry k2's `kid`, retiring k1 rejects its tokens; refresh tokens are unaffected |
 | Production guard | each forbidden setting fails startup (and the process exits non-zero); a valid production config starts; `/docs`, `/redoc` and `/openapi.json` return `404` in production; `seed_users` refuses |
 | Concurrency | two parallel refreshes with the same cookie → exactly one `200`, one `409`, family still active |
 | Logout | `204` with and without cookie; family revoked; subsequent refresh `401` |
@@ -1954,32 +2034,60 @@ Expect `200`, a JSON body with `access_token`, and a `Set-Cookie: nephro_rt=...`
 ### 26.3 Unlock an account
 
 ```bash
-docker exec <pg> psql -U <su> -d auth_db -c \
-  "UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE email = 'dr.rao@nephrocare.demo';"
+python -m app.cli.unlock_user --email dr.rao@nephrocare.demo
 ```
+
+Clears `failed_login_count`, `locked_until` and `last_failed_at`, writes an `unlock` audit event, and prints
+whether the account was actually locked.
 
 ### 26.4 Sign a user out everywhere
 
-```sql
-UPDATE refresh_tokens SET revoked_at = now(), revoked_reason = 'logout'
-WHERE user_id = :user_id AND revoked_at IS NULL;
+```bash
+python -m app.cli.revoke_sessions --email dr.rao@nephrocare.demo
 ```
 
+Revokes every active refresh-token family (reason `logout`) and writes a `sessions_revoked` audit event.
 Access tokens already issued expire within 15 minutes.
 
 ### 26.5 Deactivate a user
 
-```sql
-UPDATE users SET is_active = false, updated_at = now() WHERE email = :email;
+```bash
+python -m app.cli.deactivate_user --email dr.rao@nephrocare.demo
 ```
 
-Their next refresh revokes the family (`user_inactive`) and `/auth/me` returns `403`.
+Sets `is_active = false`, revokes every session (reason `user_inactive`) and writes a `deactivation` audit
+event. Idempotent. `/auth/me` returns `403 ACCOUNT_DISABLED`; sign-in with the correct password returns `403`.
 
 ### 26.6 Suspected token theft (`reuse_detected` alert)
 
-1. Find the family in logs (`family_id`, `user_id`). It is already revoked.
-2. Check other active families for the user: `SELECT family_id, user_agent, created_at FROM refresh_tokens WHERE user_id = :u AND revoked_at IS NULL;`
-3. If in doubt, run §26.4 and reset the user's password. A `set_password.py` script (same policy and hasher as `create_user.py`) is the simplest way; add it when the first reset is needed.
+1. Find the family in the logs (`family_id`, `user_id`) or in `auth_events` (`event='refresh', outcome='reuse_detected'`). It is already revoked.
+2. Look at the user's recent history: `SELECT at, event, outcome, ip, user_agent FROM auth_events WHERE user_id = :u ORDER BY at DESC LIMIT 50;`
+3. If in doubt, sign the user out everywhere and reset the password:
+
+```bash
+python -m app.cli.set_password --email dr.rao@nephrocare.demo     # prompts twice, applies the policy, revokes all sessions
+```
+
+### 26.7 Run migrations
+
+Migrations use the schema-owner role and are a separate job; the service's runtime role cannot run DDL.
+
+```bash
+make migrate                      # docker compose run --rm migrate   (AUTH_MIGRATION_DATABASE_URL)
+```
+
+Set `RUN_MIGRATIONS_ON_START=true` only for local convenience. `/ready` reports `503` until the database is at head.
+
+### 26.8 Back up and restore this database only
+
+```bash
+./setup/backup-auth-db.sh <container> postgres            # pg_dump -Fc, verified readable; prints the file path
+AUTH_DB_NAME=nephro_auth_db_test ./setup/restore-auth-db.sh <container> backups/<file>.dump postgres   # rehearse on the test DB first
+```
+
+Restore is destructive for the one database it targets and asks you to type its name. The auth database shares
+a Postgres instance with other systems: a restore, a runaway query elsewhere or a full disk affects every
+database on it. Production should use a dedicated instance or managed Postgres with point-in-time recovery.
 
 ---
 
@@ -2016,3 +2124,13 @@ Their next refresh revokes the family (`user_inactive`) and `/auth/me` returns `
 | Bounded hashing | At most `ARGON2_MAX_CONCURRENCY` hashes run at once; others wait up to `ARGON2_QUEUE_TIMEOUT_S`, then get `503 SERVICE_BUSY` (`auth_argon2_rejected_total`) |
 | Reproducible builds | `requirements.lock`, `requirements-dev.lock` and `requirements-build.lock` carry hashes (generated inside the pinned Linux image with `pip-compile --generate-hashes`). The Dockerfile installs with `--require-hashes`, from a base image pinned by digest (one digest, both stages) |
 | CI | `.github/workflows/auth-svc.yml`: ruff, mypy, pytest against Postgres 16, `pip-audit` on the locks, image build and Trivy (fail on fixable HIGH/CRITICAL) |
+| Database least privilege | `auth_app` (DML only) at runtime, `auth_migrator` owns the schema (section 16.3b). Migrations are a separate job |
+| Database TLS | `AUTH_DB_SSLMODE` / `AUTH_DB_SSLROOTCERT` apply to the app, the CLI and Alembic; production refuses `disable` |
+| Database timeouts | `statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout` set on every connection; lock/statement/deadlock errors answer `503 SERVICE_BUSY` |
+| Audit trail | `auth_events` (section 15.4b): durable, PII-free, transactional, 365-day retention |
+| Password lifecycle | `POST /auth/password` (section 17.7b); operator CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions` (section 26) |
+| Logs | Unhandled exceptions log the type, the cause chain, the call stack (file, line, function) and the stack of the original cause. Exception messages and frame locals are never logged. The request id is stamped on the record when it is created |
+| Passwords | Breached-password list of 142,487 entries from SecLists (MIT) loaded once into a `frozenset` |
+| Keys | `generate-keys.sh --prod` (0600, uid 10001), `rotate-keys.sh` (LLD 26.2 steps 1-2), rotation proven by a test |
+| Shutdown | `uvicorn --timeout-graceful-shutdown 20`, compose `stop_grace_period: 25s`, cleanup task cancelled and awaited |
+| Subject | A token whose `sub` is not a UUID is `401 UNAUTHENTICATED` |

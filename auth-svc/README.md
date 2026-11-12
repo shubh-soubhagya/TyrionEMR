@@ -64,7 +64,7 @@ off: `python -m app.cli.create_user --email dr.x@clinic.example --name "Dr. X"`.
 ## Tests
 
 ```bash
-make test         # everything (105 tests)
+make test         # everything (225 tests)
 make test-unit    # pure, no database
 make test-api     # real Postgres (nephro_auth_db_test), fake clock, cheap argon2
 make lint         # ruff + mypy
@@ -109,6 +109,16 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D11 | In-process per-IP rate limit on `/auth/login` and `/auth/signup` (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth until the gateway exists. Limits are **per process** (2 workers = up to 2x). LLD §28 |
 | D12 | `ENVIRONMENT=production` startup guard; docs/schema off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe config must not reach production. LLD §28 |
 | D13 | Dependencies hash-locked (`requirements*.lock`), base image pinned by digest, CI workflow, runtime image no longer copies `app/` | Reproducible, verifiable builds. `/ready` now finds `alembic.ini` via the working directory |
+| D14 | DB statement / lock / idle-in-transaction timeouts on every connection; those errors answer `503 SERVICE_BUSY` | A stuck query or held lock must not hang requests. LLD §28 |
+| D15 | `AUTH_DB_SSLMODE` / `AUTH_DB_SSLROOTCERT` for the app, CLI and Alembic; production refuses `disable` | Encrypt database traffic. LLD §16 |
+| D16 | Unhandled exceptions log type, cause chain and stack (file, line, function), never messages or locals | Debuggable without leaking request data. LLD §28 |
+| D17 | Breached-password list: 142,487 entries (SecLists, MIT) instead of 88 | Real protection against common passwords |
+| D18 | `METRICS_ENABLED`; `/metrics` documented as internal-only | Reduce exposed surface |
+| D19 | `generate-keys.sh --prod`, `rotate-keys.sh`, rotation covered by a test | Key management. LLD §26.2 |
+| D20 | `POST /auth/password`; CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions`; `password_changed` revoke reason (migration 0003) | Password lifecycle without raw SQL. LLD §17.7b, §26 |
+| D21 | `auth_events` audit table (migration 0004), 365-day retention | Durable, PII-free audit trail. LLD §15.4b |
+| D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
+| D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
 
 ## Configuration added for production readiness
 
@@ -121,13 +131,24 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | `RATE_LIMIT_LOGIN_PER_MIN` | `10` | Sustained refill per IP, **per worker process** |
 | `RATE_LIMIT_LOGIN_BURST` | `5` | Requests allowed back-to-back from a cold start |
 | `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Max wait for a hash slot before `503 SERVICE_BUSY` |
+| `AUTH_MIGRATION_DATABASE_URL` | unset | Schema-owner login for Alembic / `make migrate` (falls back to `AUTH_DATABASE_URL`) |
+| `RUN_MIGRATIONS_ON_START` | `false` | Run migrations in the entrypoint (local convenience) |
+| `AUTH_DB_SSLMODE` | `disable` | `disable` / `require` / `verify-full`; production needs `require` or stricter |
+| `AUTH_DB_SSLROOTCERT` | unset | CA certificate for `require` (chain) / `verify-full` (chain + host name) |
+| `DB_STATEMENT_TIMEOUT_MS` | `5000` | Server-side statement timeout |
+| `DB_LOCK_TIMEOUT_MS` | `2000` | Server-side lock timeout |
+| `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `10000` | Server-side idle-in-transaction timeout |
+| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged |
+| `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only) |
 
 ### New error codes
 
 | HTTP | Code | When |
 |---|---|---|
 | 429 | `RATE_LIMITED` | Per-IP bucket empty on login or signup. `Retry-After` set |
-| 503 | `SERVICE_BUSY` | Hash queue full for `ARGON2_QUEUE_TIMEOUT_S`. `Retry-After: 1` |
+| 503 | `SERVICE_BUSY` | Hash queue full for `ARGON2_QUEUE_TIMEOUT_S`, or a database lock/statement timeout. `Retry-After: 1` |
+
+Password-rule `details[].code` gained `SAME_AS_CURRENT` (change password only).
 
 ### Running in production
 
@@ -152,9 +173,58 @@ make lock    # rewrites requirements.lock, requirements-dev.lock and requirement
 
 ## Operations
 
-Unlock an account, sign a user out everywhere, deactivate a user, rotate keys: see LLD §26.
-Key files: `setup/keys/jwt_private.pem` (readable by uid 10001 in dev only; use a secret manager in
-production). Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
+Run these inside the container (`docker compose exec auth-svc ...`) or on the host with `.env` loaded.
+Each prints what it changed and writes an audit event.
+
+| Task | Command |
+|---|---|
+| Unlock an account | `python -m app.cli.unlock_user --email dr.rao@nephrocare.demo` |
+| Sign a user out everywhere | `python -m app.cli.revoke_sessions --email ...` |
+| Deactivate a user (and sign out) | `python -m app.cli.deactivate_user --email ...` |
+| Reset a password (prompted twice, policy applied, signs out everywhere) | `python -m app.cli.set_password --email ...` |
+| Create a clinician when signup is off | `python -m app.cli.create_user --email ... --name "Dr. X"` |
+| Migrate the schema (schema-owner role) | `make migrate` |
+| Rotate the signing key (steps 1-2 of LLD §26.2) | `./setup/rotate-keys.sh [--prod]` |
+| Production signing key (0600, uid 10001) | `./setup/generate-keys.sh --prod` |
+
+Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
+
+### Least-privilege database roles
+
+`setup/init-auth-db.sh` creates `auth_migrator` (owns the schema, runs Alembic) and `auth_app` (runtime, DML only),
+is idempotent, and **moves ownership from the legacy `auth_svc`** role. It changes roles and grants, so on a shared
+Postgres read it first:
+
+```bash
+export AUTH_MIGRATOR_DB_PW=... AUTH_APP_DB_PW=...
+make init-db init-test-db                  # then set AUTH_DATABASE_URL to auth_app and AUTH_MIGRATION_DATABASE_URL to auth_migrator
+make migrate
+```
+
+Tests that prove the split (`tests/api/test_db_roles.py`) run when `AUTH_TEST_DATABASE_URL` (auth_app) and
+`AUTH_TEST_MIGRATION_DATABASE_URL` (auth_migrator) differ; otherwise they are skipped.
+
+### Backups, and the risk of sharing a Postgres
+
+```bash
+./setup/backup-auth-db.sh graphgpt-postgres postgres                    # this database only, verified readable
+AUTH_DB_NAME=nephro_auth_db_test ./setup/restore-auth-db.sh graphgpt-postgres backups/<file>.dump postgres   # rehearse on the test DB
+```
+
+`auth_db` shares `graphgpt-postgres` with other systems: a restore, a heavy query or a full disk elsewhere affects
+sign-in for everyone. Use a dedicated instance (or managed Postgres with point-in-time recovery) in production.
+
+### Common-password list
+
+`app/domain/data/common_passwords.txt` is SecLists' `Pwdb_top-1000000.txt` (MIT, Daniel Miessler) filtered to
+10+ characters, lowercased and de-duplicated (142,487 entries); the header records the source. To regenerate,
+download the file into an empty directory, then run a filter that keeps lines of 10+ characters, lowercases and
+de-duplicates them.
+
+### CI
+
+`.github/workflows/auth-svc.yml` (ruff, mypy, pytest on Postgres 16 with both roles, `pip-audit`, image build and
+Trivy). It has not run on GitHub yet: nothing is pushed.
 
 ## Status and open items
 
