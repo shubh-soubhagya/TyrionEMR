@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from sqlalchemy import text
 
@@ -35,7 +37,8 @@ async def test_ready_is_503_when_migrations_are_not_at_head(client, app):
 
 async def test_ready_is_503_when_the_database_is_unreachable(migrated_db, rsa_key, clock):
     from app.services.keystore import KeyStore, SigningKey, thumbprint_kid
-    bad = migrated_db.replace("@localhost:5433/", "@localhost:1/")
+    bad = re.sub(r"@localhost:\d+/", "@localhost:1/", migrated_db)      # whatever port the test DB uses
+    assert bad != migrated_db
     s = make_settings(auth_database_url=bad)
     app = create_app(s, clock)
     pub = rsa_key.public_key()

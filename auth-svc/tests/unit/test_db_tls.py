@@ -25,8 +25,8 @@ def ca_file(tmp_path, rsa_key):
     return str(path)
 
 
-def test_disable_means_no_ssl_argument():
-    assert build_ssl("disable", None) is None
+def test_disable_is_explicit_so_asyncpg_does_not_fall_back_to_prefer():
+    assert build_ssl("disable", None) == "disable"
 
 
 def test_require_without_a_root_cert_encrypts_without_verifying():
@@ -61,8 +61,8 @@ def test_engine_passes_ssl_and_timeouts_to_asyncpg(monkeypatch, ca_file):
     assert args["server_settings"]["idle_in_transaction_session_timeout"] == "10000"
 
 
-def test_engine_has_no_ssl_argument_when_disabled(monkeypatch):
+def test_engine_says_disable_explicitly(monkeypatch):
     captured = {}
     monkeypatch.setattr(db_session, "create_async_engine", lambda url, **kw: captured.update(kw))
-    create_engine(make_settings())
-    assert "ssl" not in captured["connect_args"]
+    create_engine(make_settings(auth_db_sslmode="disable"))
+    assert captured["connect_args"]["ssl"] == "disable"
