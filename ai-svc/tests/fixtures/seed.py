@@ -210,15 +210,23 @@ def build(spec: Spec, *, b20_fields: bool = True) -> dict:
     categories = {"egfr_category": cat, "uacr_category": "A2" if has_labs else None}
     latest_doc = {"patient_id": str(pid), **lab} | {
         k: ({"code": v, "label": EGFR_LABELS.get(v)} if v else None) for k, v in categories.items()}
+    def point(code: str, at: datetime, v: float) -> dict:
+        return {"result_id": str(uid(spec.mrn, code, at.isoformat())), "collected_at": at.isoformat(), "value": v,
+                "flag": flag_for(code, v), "ref_low": None, "ref_high": None}
+
     trends = {"patient_id": str(pid), "series": [
-        {"test_code": c, "unit": UNITS[c], "points": [], "stats": stats(c, series.get(c, []))}
-        for c in ("CREAT", "EGFR")]}
+        {"test_code": c, "unit": UNITS[c], "points": [point(c, at, v) for at, v in series.get(c, [])],
+         "stats": stats(c, series.get(c, []))} for c in ("CREAT", "EGFR")]}
+    results = {c: [{"id": point(c, at, v)["result_id"], "report_id": str(uid(spec.mrn, "report", at.isoformat())),
+                    "test_code": c, "test_name": c, "collected_at": at.isoformat(), "value": v, "unit": UNITS[c],
+                    "ref_low": None, "ref_high": None, "flag": flag_for(c, v), "superseded": False}
+                   for at, v in pts] for c, pts in series.items()}
     status = None
     if has_labs:
         status = {"patient_id": str(pid), **lab, **categories, "egfr_stats": egfr_stats, "creat_stats": creat_stats,
                   "result_count": len(reports) * 3, "rules_version": "lab-rules-2"}
     return {"mrn": spec.mrn, "id": pid, "chart": chart, "bulk": bulk, "latest": latest_doc, "trends": trends,
-            "status": status}
+            "status": status, "results": results}
 
 
 def all_patients(*, b20_fields: bool = True) -> list[dict]:

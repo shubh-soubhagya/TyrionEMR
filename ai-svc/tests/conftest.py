@@ -97,6 +97,9 @@ class Upstreams:
         r.get(url__regex=rf"{PATIENT_URL}/internal/patients/charts").mock(side_effect=self._charts)
         r.get(url__regex=rf"{PATIENT_URL}/internal/patients/[0-9a-f-]{{36}}/(?:basic|chart)").mock(
             side_effect=self._patient)
+        r.get(url__regex=rf"{PATIENT_URL}/internal/patients/[0-9a-f-]{{36}}/(?:conditions|medications-allergies|encounters)"
+              ).mock(side_effect=self._tool)
+        r.get(url__regex=rf"{LAB_URL}/internal/labs/patients/[0-9a-f-]{{36}}/results").mock(side_effect=self._results)
         r.get(url__regex=rf"{LAB_URL}/internal/labs/status").mock(side_effect=self._status)
         r.get(url__regex=rf"{LAB_URL}/internal/labs/patients/[0-9a-f-]{{36}}/(?:latest|trends)").mock(
             side_effect=self._lab)
@@ -115,7 +118,7 @@ class Upstreams:
         if self.delay_s:
             await asyncio.sleep(self.delay_s)
         for prefix, status in self.fail.items():
-            if request.url.path.startswith(prefix):
+            if prefix in request.url.path:
                 return httpx.Response(status, json={"error": {"code": "X"}})
         return None
 
@@ -137,6 +140,30 @@ class Upstreams:
             c = p["chart"]["patient"]
             return httpx.Response(200, json={"id": pid, "sex": c["sex"], "date_of_birth": c["date_of_birth"]})
         return httpx.Response(200, json=p["chart"])
+
+    async def _tool(self, request: httpx.Request) -> httpx.Response:
+        if (failed := await self._record(request)) is not None:
+            return failed
+        parts = request.url.path.split("/")
+        p = self.by_id.get(parts[-2])
+        if p is None:
+            return httpx.Response(404, json={"error": {"code": "PATIENT_NOT_FOUND"}})
+        c = p["chart"]
+        body = {"conditions": {"items": c["conditions"], "truncated": False},
+                "medications-allergies": {"medications": c["medications"], "allergies": c["allergies"],
+                                          "truncated": False},
+                "encounters": {"items": c["recent_encounters"], "truncated": False}}[parts[-1]]
+        return httpx.Response(200, json=body)
+
+    async def _results(self, request: httpx.Request) -> httpx.Response:
+        if (failed := await self._record(request)) is not None:
+            return failed
+        parts = request.url.path.split("/")
+        p = self.by_id.get(parts[-2])
+        if p is None:
+            return httpx.Response(404, json={"error": {"code": "NOT_FOUND"}})
+        items = p["results"].get(request.url.params.get("test", ""), [])
+        return httpx.Response(200, json={"items": items, "page": 1, "size": 50, "total": len(items)})
 
     async def _lab(self, request: httpx.Request) -> httpx.Response:
         if (failed := await self._record(request)) is not None:

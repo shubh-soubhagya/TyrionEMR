@@ -81,6 +81,8 @@ class JobContext:
     tokens_out: int = 0
     tokens_estimated: bool = False
     force_final: bool = False
+    refs: RefBuilder | None = None          # shared with the packet so tool results reuse the same refs
+    gaps: dict[str, Any] | None = None      # for get_gap_report (no I/O)
 
     @property
     def call(self) -> CallContext:
@@ -243,6 +245,7 @@ class SummaryOrchestrator:
         st.hash_inputs = HashInputs(PACKET_VERSION, self.prompts.version, SCHEMA_VERSION, RULES_VERSION,
                                     self.llm.name, self.llm.model, self.tools_enabled)
         st.context_hash = context_hash(job.patient_id, st.packet, st.hash_inputs)
+        job.refs, job.gaps = st.builder, st.gaps
         if not job.force:
             async with self._sm() as s:
                 source = await repo.find_cache_source(s, job.patient_id, st.context_hash)

@@ -1,7 +1,6 @@
 """Builds the provider from settings (LLD B7.2). Groq is the real provider for now; the others are not built."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from app.core.config import Settings
@@ -17,7 +16,7 @@ def read_api_key(s: Settings) -> str | None:
         key = path.read_text(encoding="utf-8").strip()
         if key:
             return key
-    return s.llm_api_key or os.environ.get("LLM_API_KEY") or None
+    return s.llm_api_key or None                      # pydantic already reads LLM_API_KEY from the environment
 
 
 def build_provider(s: Settings) -> LLMProvider:

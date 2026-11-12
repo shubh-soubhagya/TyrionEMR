@@ -189,9 +189,20 @@ class Latest(LabSummary):
     patient_id: UUID
 
 
+class TrendPointIn(Up):
+    result_id: UUID | None = None
+    collected_at: datetime
+    value: float
+    flag: str = "normal"
+    ref_low: float | None = None
+    ref_high: float | None = None
+
+
 class TrendSeries(Up):
     test_code: str
+    unit: str = ""
     stats: TrendStatsIn | None = None
+    points: list[TrendPointIn] = []
 
 
 class Trends(Up):

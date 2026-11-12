@@ -31,6 +31,8 @@ from app.llm.factory import build_llm
 from app.orchestrator.orchestrator import SummaryOrchestrator
 from app.prompts.loader import load_prompts
 from app.services.summary import SummaryService
+from app.tools.definitions import Deps
+from app.tools.registry import ToolRegistry
 
 
 def build_state(app: FastAPI, settings: Settings, clock: Clock, jwks: JwksCache | None = None,
@@ -47,6 +49,7 @@ def build_state(app: FastAPI, settings: Settings, clock: Clock, jwks: JwksCache 
     app.state.insights = InsightsService(settings, clock, app.state.patients, app.state.labs)
     app.state.prompts = load_prompts(settings.prompt_version)      # a missing prompt file fails at startup
     app.state.llm = build_llm(settings, provider)
+    registry = registry or ToolRegistry(settings, app.state.sessionmaker, Deps(app.state.patients, app.state.labs))
     orchestrator = SummaryOrchestrator(settings, app.state.sessionmaker, app.state.patients, app.state.labs,
                                        app.state.llm, app.state.prompts, clock, registry)
     app.state.runner = JobRunner(orchestrator, settings.llm_job_deadline_s)
@@ -82,6 +85,9 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
             with contextlib.suppress(asyncio.CancelledError):
                 await reaper_task
             await app.state.runner.shutdown()          # running jobs write failed JOB_ABORTED (5 s grace)
+            closer = getattr(app.state.llm.provider, "aclose", None)
+            if closer is not None:
+                await closer()
             if refresher:
                 refresher.cancel()
                 with contextlib.suppress(asyncio.CancelledError):

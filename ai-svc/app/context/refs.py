@@ -48,6 +48,15 @@ class RefIndex:
         self._entries.setdefault(ref, entry)
         return ref
 
+    def ref_for_target(self, kind: str, target_id: str) -> str | None:
+        for ref, e in self._entries.items():
+            if e.type == kind and e.target_id == target_id:
+                return ref
+        return None
+
+    def next_ordinal(self, prefix: str) -> int:
+        return 1 + sum(1 for r in self._entries if r.startswith(prefix + ":"))
+
     def get(self, ref: str) -> RefEntry | None:
         return self._entries.get(ref)
 

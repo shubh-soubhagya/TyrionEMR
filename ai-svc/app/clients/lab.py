@@ -8,6 +8,7 @@ import httpx
 from app.clients.base import CallContext, parse
 from app.clients.models import Latest, StatusPage, Trends
 from app.core.config import Settings
+from app.core.errors import UpstreamUnavailable
 from app.core.http import ResilientClient, UpstreamNotFound
 
 UPSTREAM = "lab-svc"
@@ -31,6 +32,22 @@ class LabClient:
         except UpstreamNotFound:
             return Latest(patient_id=patient_id)
         return parse(Latest, body, UPSTREAM)
+
+    async def results(self, patient_id: uuid.UUID, ctx: CallContext, *, test: str, date_from: str | None,
+                      date_to: str | None, size: int) -> dict:
+        params: dict = {"test": test, "size": size}
+        if date_from:
+            params["from"] = date_from
+        if date_to:
+            params["to"] = date_to
+        try:
+            body = await self._http.get_json(f"/internal/labs/patients/{patient_id}/results",
+                                             authorization=ctx.authorization, request_id=ctx.request_id, params=params)
+        except UpstreamNotFound:
+            return {"items": [], "total": 0}
+        if not isinstance(body, dict):
+            raise UpstreamUnavailable(UPSTREAM)
+        return body
 
     async def trends(self, patient_id: uuid.UUID, ctx: CallContext,
                      tests: tuple[str, ...] = ("CREAT", "EGFR")) -> Trends:

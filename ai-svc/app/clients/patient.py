@@ -8,7 +8,7 @@ import httpx
 from app.clients.base import CallContext, parse
 from app.clients.models import Chart, ChartsPage, PatientBasic
 from app.core.config import Settings
-from app.core.errors import PatientNotFound
+from app.core.errors import PatientNotFound, UpstreamUnavailable
 from app.core.http import ResilientClient, UpstreamNotFound
 
 UPSTREAM = "patient-svc"
@@ -31,6 +31,14 @@ class PatientClient:
         body = await self._get(f"/internal/patients/{patient_id}/chart", patient_id, ctx,
                                params={"encounters": encounters})
         return parse(Chart, body, UPSTREAM)
+
+    async def tool(self, patient_id: uuid.UUID, what: str, ctx: CallContext, params: dict | None = None) -> dict:
+        """The tool endpoints: /conditions, /medications-allergies, /encounters. Returned as plain JSON; the tool
+        layer whitelists and shapes it."""
+        body = await self._get(f"/internal/patients/{patient_id}/{what}", patient_id, ctx, params=params)
+        if not isinstance(body, dict):
+            raise UpstreamUnavailable(UPSTREAM)
+        return body
 
     async def charts_page(self, cursor: uuid.UUID | None, limit: int, ctx: CallContext) -> ChartsPage:
         params: dict = {"limit": limit}
