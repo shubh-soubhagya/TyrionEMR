@@ -81,6 +81,21 @@ jobs:
               GRANT USAGE ON SCHEMA public TO auth_app;
               ALTER DEFAULT PRIVILEGES FOR ROLE auth_migrator IN SCHEMA public
                 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO auth_app;"
+            # same append-only block as setup/init-auth-db.sh (guarded: the table does not exist before migrations)
+            psql -h localhost -U postgres -v ON_ERROR_STOP=1 -d "$db" <<'SQL'
+          DO $$
+          BEGIN
+            IF to_regclass('public.auth_events') IS NOT NULL THEN
+              REVOKE UPDATE, DELETE, TRUNCATE ON public.auth_events FROM auth_app;
+              GRANT SELECT, INSERT ON public.auth_events TO auth_app;
+            END IF;
+            IF to_regprocedure('public.purge_auth_events(integer)') IS NOT NULL THEN
+              REVOKE ALL ON FUNCTION public.purge_auth_events(integer) FROM PUBLIC;
+              GRANT EXECUTE ON FUNCTION public.purge_auth_events(integer) TO auth_app;
+            END IF;
+          END
+          $$;
+          SQL
           done
 
       - name: Throwaway signing key

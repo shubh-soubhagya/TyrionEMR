@@ -2,37 +2,10 @@
 (AUTH_TEST_DATABASE_URL = auth_app, AUTH_TEST_MIGRATION_DATABASE_URL = auth_migrator)."""
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.conftest import TEST_DB_URL, TEST_MIGRATION_URL, client_for
+from tests.conftest import client_for, must_be_denied, needs_split_roles
 
 pytestmark = pytest.mark.api
-split = TEST_DB_URL and TEST_MIGRATION_URL and TEST_DB_URL != TEST_MIGRATION_URL
-needs_split_roles = pytest.mark.skipif(not split, reason="needs separate auth_app and auth_migrator URLs")
-
-
-@pytest.fixture
-async def as_app(migrated_db):
-    engine = create_async_engine(TEST_DB_URL)
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture
-async def as_owner(migrated_db):
-    engine = create_async_engine(TEST_MIGRATION_URL)
-    yield engine
-    await engine.dispose()
-
-
-async def must_be_denied(engine, statement):
-    with pytest.raises(DBAPIError) as exc:
-        async with engine.begin() as conn:
-            await conn.execute(text(statement))
-    message = str(exc.value.orig).lower()
-    assert "permission denied" in message or "must be owner" in message, message
-
 
 @needs_split_roles
 @pytest.mark.parametrize("statement", [

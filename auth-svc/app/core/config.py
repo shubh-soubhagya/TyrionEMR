@@ -7,6 +7,8 @@ from typing import Annotated, Literal
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+MIN_AUDIT_RETENTION_DAYS = 30
+
 
 def _split(value: object) -> object:
     if isinstance(value, str):
@@ -78,6 +80,17 @@ class Settings(BaseSettings):
 
     seed_demo_users: bool = False
     uvicorn_workers: int = 2
+
+    @field_validator("auth_events_retention_days")
+    @classmethod
+    def _retention_floor(cls, v: int) -> int:
+        # The database function purge_auth_events refuses anything below 30 days, so a lower value would
+        # make every cleanup run fail. Refuse to start instead, with a message that says why.
+        if v < MIN_AUDIT_RETENTION_DAYS:
+            raise ValueError(
+                f"AUTH_EVENTS_RETENTION_DAYS must be at least {MIN_AUDIT_RETENTION_DAYS} "
+                "(the database refuses to purge audit events newer than that)")
+        return v
 
     @field_validator("jwt_additional_public_key_paths", "cors_allowed_origins", mode="before")
     @classmethod

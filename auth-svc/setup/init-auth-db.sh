@@ -74,6 +74,23 @@ GRANT  SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO auth_app
 -- tables the migrator creates later grant DML to auth_app automatically
 ALTER DEFAULT PRIVILEGES FOR ROLE auth_migrator IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO auth_app;
+
+-- The audit trail is APPEND-ONLY for the runtime role: SELECT and INSERT, never UPDATE/DELETE/TRUNCATE.
+-- Retention runs through purge_auth_events(), the only way auth_app can delete audit rows. Migration 0005 sets
+-- the same grants; this block makes a fresh setup (or a re-run after the blanket GRANT above) end identical.
+-- Guarded: before the migrations have run, the table and function do not exist yet.
+DO $$
+BEGIN
+  IF to_regclass('public.auth_events') IS NOT NULL THEN
+    REVOKE UPDATE, DELETE, TRUNCATE ON public.auth_events FROM auth_app;
+    GRANT SELECT, INSERT ON public.auth_events TO auth_app;
+  END IF;
+  IF to_regprocedure('public.purge_auth_events(integer)') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.purge_auth_events(integer) FROM PUBLIC;
+    GRANT EXECUTE ON FUNCTION public.purge_auth_events(integer) TO auth_app;
+  END IF;
+END
+$$;
 SQL
 
 echo "$DB ready on $PG_CONTAINER: auth_migrator owns it, auth_app has DML only."

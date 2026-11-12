@@ -26,8 +26,8 @@ async def run_cleanup_once(sm: async_sessionmaker[AsyncSession], s: Settings, cl
             return None
         n = await RefreshTokenRepository().delete_expired(
             session, before=clock() - timedelta(days=s.refresh_retention_days))
-        events = await AuthEventRepository().delete_older_than(
-            session, before=clock() - timedelta(days=s.auth_events_retention_days))
+        # through the guarded database function: auth_app cannot DELETE audit rows directly
+        events = await AuthEventRepository().purge_older_than(session, s.auth_events_retention_days)
     log.info("auth.cleanup.done", extra={"deleted": n, "events_deleted": events})
     return n
 

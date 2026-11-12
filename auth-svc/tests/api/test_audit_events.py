@@ -1,8 +1,8 @@
 """Item 13: durable auth audit trail."""
 import asyncio
-from datetime import timedelta
 
 import pytest
+from sqlalchemy import text
 
 from app.jobs.cleanup import run_cleanup_once
 from tests.conftest import GOOD_PASSWORD, rt_cookie, sql, with_cookie
@@ -140,13 +140,13 @@ async def test_there_are_no_pii_columns_and_no_pii_values(client, make_user, app
         assert needle not in dump, f"audit row contains {needle}"
 
 
-async def test_retention_purges_old_events_only(client, make_user, app, clock):
+async def test_retention_purges_old_events_only(client, make_user, app, as_owner):
     await make_user()
-    await client.post("/auth/login", json={"email": EMAIL, "password": GOOD_PASSWORD})
-    clock.advance(days=366)
-    await client.post("/auth/login", json={"email": EMAIL, "password": "WrongPassword99"})   # a recent event
+    await client.post("/auth/login", json={"email": EMAIL, "password": GOOD_PASSWORD})      # a recent event
+    async with as_owner.begin() as conn:                                                    # a 400-day-old one
+        await conn.execute(text("INSERT INTO auth_events (at, event, outcome) "
+                                "VALUES (now() - make_interval(days => 400), 'login', 'old')"))
     assert len(await events(app)) == 2
     await run_cleanup_once(app.state.sessionmaker, app.state.settings, app.state.clock)
     evs = await events(app)
-    assert len(evs) == 1 and evs[0]["outcome"] == "bad_password"
-    assert evs[0]["at"] > app.state.clock() - timedelta(days=1)
+    assert [e["outcome"] for e in evs] == ["success"]

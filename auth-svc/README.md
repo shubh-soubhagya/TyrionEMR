@@ -117,6 +117,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D19 | `generate-keys.sh --prod`, `rotate-keys.sh`, rotation covered by a test | Key management. LLD §26.2 |
 | D20 | `POST /auth/password`; CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions`; `password_changed` revoke reason (migration 0003) | Password lifecycle without raw SQL. LLD §17.7b, §26 |
 | D21 | `auth_events` audit table (migration 0004), 365-day retention | Durable, PII-free audit trail. LLD §15.4b |
+| D24 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through `purge_auth_events(days)` (migration 0005, `SECURITY DEFINER`, 30-day floor, database clock); `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The runtime role could rewrite or erase login history. LLD §15.4b |
 | D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
 | D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
 
@@ -138,7 +139,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | `DB_STATEMENT_TIMEOUT_MS` | `5000` | Server-side statement timeout |
 | `DB_LOCK_TIMEOUT_MS` | `2000` | Server-side lock timeout |
 | `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `10000` | Server-side idle-in-transaction timeout |
-| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged |
+| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged through `purge_auth_events()`. Minimum 30; startup fails below |
 | `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only) |
 
 ### New error codes

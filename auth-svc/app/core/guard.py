@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 
-from app.core.config import Settings
+from app.core.config import MIN_AUDIT_RETENTION_DAYS, Settings
 
 
 class ConfigurationError(RuntimeError):
@@ -36,6 +36,8 @@ def production_problems(s: Settings, file_mode: Callable[[str], int | None] | No
         problems.append(f"JWT private key must not be group/world readable (mode is {mode:04o}, expected 0600)")
     if s.auth_db_sslmode == "disable":
         problems.append("AUTH_DB_SSLMODE must be require or verify-full (database traffic must be encrypted)")
+    if s.auth_events_retention_days < MIN_AUDIT_RETENTION_DAYS:
+        problems.append(f"AUTH_EVENTS_RETENTION_DAYS must be at least {MIN_AUDIT_RETENTION_DAYS}")
     if s.enable_public_signup and not s.allow_public_signup_in_production:
         problems.append("ENABLE_PUBLIC_SIGNUP=true needs ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true")
     return problems

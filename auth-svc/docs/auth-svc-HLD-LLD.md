@@ -310,6 +310,7 @@ These are additions made at LLD level. None changes the HLD contract seen by oth
 | R10 | Login reserves an attempt atomically before verifying; `users.last_failed_at` and `LOGIN_FAILURE_WINDOW_MINUTES` decay old failures | Parallel guesses bypassed the lockout (N tried, not 5) and a correct guess could succeed after the lock | §15, §19.2 |
 | R11 | In-process per-IP token bucket on login and signup; hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S`, then `503 SERVICE_BUSY` | Defense in depth until the gateway exists; overload must shed load, not queue forever | §8, §10, §18, §21 |
 | R12 | `ENVIRONMENT=production` startup guard; docs and schema disabled in production | Unsafe settings (seed users, insecure cookies, localhost CORS, readable key, open signup) must not reach production | §21, §28 |
+| R14 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through the `SECURITY DEFINER` function `purge_auth_events(retention_days)` (migration 0005), which refuses anything under 30 days and uses the database clock; `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The default privileges gave the runtime role UPDATE and DELETE on the audit trail, so the service, or anyone with its credentials, could rewrite or erase login history | §15.4b, §21, §28 |
 | R13 | Hash-locked dependencies, base image pinned by digest, CI with audit and image scan | Reproducible, verifiable builds | §23, §28 |
 
 ---
@@ -623,6 +624,32 @@ CREATE TABLE auth_events (
 CREATE INDEX ix_auth_events_user_at ON auth_events (user_id, at DESC);
 CREATE INDEX ix_auth_events_at      ON auth_events (at);
 ```
+
+**Append-only for the runtime role (migration `0005`).** `auth_app` holds exactly `SELECT` and `INSERT` on
+`auth_events`; `UPDATE`, `DELETE` and `TRUNCATE` are revoked, so the running service (or anyone with its
+credentials) cannot rewrite or erase history. Retention goes through a function owned by `auth_migrator`:
+
+```sql
+CREATE FUNCTION purge_auth_events(retention_days integer) RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+DECLARE n integer;
+BEGIN
+  IF retention_days IS NULL OR retention_days < 30 THEN
+    RAISE EXCEPTION 'retention_days must be at least 30';
+  END IF;
+  DELETE FROM public.auth_events WHERE at < now() - make_interval(days => retention_days);
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
+END $$;
+REVOKE ALL ON FUNCTION purge_auth_events(integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION purge_auth_events(integer) TO auth_app;
+```
+
+The 30-day floor is deliberate: even with the app's credentials nobody can delete recent events. The function
+uses the database's `now()` so a caller cannot fake the clock. Every statement that names `auth_app` is guarded
+by `IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'auth_app')`, so the migration also runs on a database
+without that role. `downgrade()` drops the function and restores the previous grants. `setup/init-auth-db.sh`
+(and the CI database step) apply the same grants idempotently, so a fresh setup ends identical to a migrated one.
 
 There is **no email, password, token or cookie column**, and nothing derived from them is stored. An event is
 written in the same transaction as the change it records; failures that have no transaction of their own use a short
@@ -1734,7 +1761,7 @@ All settings come from environment variables (12-factor, HLD-v2 §12). Defaults 
 | `DB_STATEMENT_TIMEOUT_MS` | `5000` | Server-side `statement_timeout` |
 | `DB_LOCK_TIMEOUT_MS` | `2000` | Server-side `lock_timeout` (a held row lock gives `503 SERVICE_BUSY` after ~2 s) |
 | `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `10000` | Server-side `idle_in_transaction_session_timeout` |
-| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged by the cleanup job |
+| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged by the cleanup job via `purge_auth_events()`. **Minimum 30**: startup fails below that (and the production guard reports it) |
 | `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only; never expose it publicly) |
 | `ARGON2_TIME_COST` | `3` | |
 | `ARGON2_MEMORY_KIB` | `65536` | 64 MiB |
@@ -1988,6 +2015,7 @@ Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATA
 | Roles and TLS | as `auth_app`: `DROP`, `CREATE`, `ALTER`, `TRUNCATE` are denied and DML works; tables made later by the migrator are usable; `auth_migrator` can do DDL; the whole service runs as `auth_app` over TLS |
 | Timeouts | a held row lock gives `503 SERVICE_BUSY` in about 2 s and consumes nothing; statement timeout gives `503`; other database errors are a `500` envelope with no SQL |
 | Key rotation | tokens signed by k1 verify while both keys are published, new tokens carry k2's `kid`, retiring k1 rejects its tokens; refresh tokens are unaffected |
+| Audit integrity | as `auth_app`: `UPDATE`, `DELETE`, `TRUNCATE` on `auth_events` are denied and `INSERT`/`SELECT` work; the grants are exactly `{INSERT, SELECT}`; `purge_auth_events(365)` deletes only rows older than 365 days, `purge_auth_events(7)` (or NULL, 0, 29) raises and deletes nothing, 30 is the exact floor; the cleanup job purges through the function; a faked application clock cannot widen the purge; downgrade restores the old grants and upgrade locks them again; startup fails with `AUTH_EVENTS_RETENTION_DAYS=10` |
 | Production guard | each forbidden setting fails startup (and the process exits non-zero); a valid production config starts; `/docs`, `/redoc` and `/openapi.json` return `404` in production; `seed_users` refuses |
 | Concurrency | two parallel refreshes with the same cookie → exactly one `200`, one `409`, family still active |
 | Logout | `204` with and without cookie; family revoked; subsequent refresh `401` |
@@ -2127,7 +2155,7 @@ database on it. Production should use a dedicated instance or managed Postgres w
 | Database least privilege | `auth_app` (DML only) at runtime, `auth_migrator` owns the schema (section 16.3b). Migrations are a separate job |
 | Database TLS | `AUTH_DB_SSLMODE` / `AUTH_DB_SSLROOTCERT` apply to the app, the CLI and Alembic; production refuses `disable` |
 | Database timeouts | `statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout` set on every connection; lock/statement/deadlock errors answer `503 SERVICE_BUSY` |
-| Audit trail | `auth_events` (section 15.4b): durable, PII-free, transactional, 365-day retention |
+| Audit trail | `auth_events` (section 15.4b): durable, PII-free, transactional, 365-day retention, **append-only for the runtime role** (retention only via `purge_auth_events()`, minimum 30 days) |
 | Password lifecycle | `POST /auth/password` (section 17.7b); operator CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions` (section 26) |
 | Logs | Unhandled exceptions log the type, the cause chain, the call stack (file, line, function) and the stack of the original cause. Exception messages and frame locals are never logged. The request id is stamped on the record when it is created |
 | Passwords | Breached-password list of 142,487 entries from SecLists (MIT) loaded once into a `frozenset` |

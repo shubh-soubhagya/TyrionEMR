@@ -152,3 +152,35 @@ def with_cookie(raw: str) -> dict[str, str]:
 async def sql(app, query: str, **params):
     async with app.state.sessionmaker() as s:
         return (await s.execute(text(query), params)).all()
+
+
+# =============================================================================================
+# Two-role fixtures (auth_app = runtime, auth_migrator = schema owner). In a single-role setup both are the
+# same login, and the tests that need the split are skipped via ``needs_split_roles``.
+# =============================================================================================
+from sqlalchemy.exc import DBAPIError  # noqa: E402
+
+split = bool(TEST_DB_URL and TEST_MIGRATION_URL and TEST_DB_URL != TEST_MIGRATION_URL)
+needs_split_roles = pytest.mark.skipif(not split, reason="needs separate auth_app and auth_migrator URLs")
+
+
+@pytest.fixture
+async def as_app(migrated_db):
+    engine = create_async_engine(TEST_DB_URL)
+    yield engine
+    await engine.dispose()
+
+
+@pytest.fixture
+async def as_owner(migrated_db):
+    engine = create_async_engine(TEST_MIGRATION_URL)
+    yield engine
+    await engine.dispose()
+
+
+async def must_be_denied(engine, statement):
+    with pytest.raises(DBAPIError) as exc:
+        async with engine.begin() as conn:
+            await conn.execute(text(statement))
+    message = str(exc.value.orig).lower()
+    assert "permission denied" in message or "must be owner" in message, message

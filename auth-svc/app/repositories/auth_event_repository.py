@@ -5,10 +5,8 @@ from __future__ import annotations
 import ipaddress
 import uuid
 from datetime import datetime
-from typing import cast
 
-from sqlalchemy import delete
-from sqlalchemy.engine import CursorResult
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AuthEvent
@@ -42,6 +40,7 @@ class AuthEventRepository:
             request_id=request_id if request_id and request_id != "-" else None, ip=parse_ip(ip),
             user_agent=user_agent[:256] if user_agent else None))
 
-    async def delete_older_than(self, s: AsyncSession, before: datetime) -> int:
-        result = cast(CursorResult, await s.execute(delete(AuthEvent).where(AuthEvent.at < before)))
-        return result.rowcount or 0
+    async def purge_older_than(self, s: AsyncSession, retention_days: int) -> int:
+        """Retention. The runtime role has no DELETE on auth_events: the only way to remove audit rows is
+        this function, which refuses anything newer than 30 days and uses the DATABASE clock."""
+        return int((await s.execute(text("SELECT purge_auth_events(:days)"), {"days": retention_days})).scalar_one())
