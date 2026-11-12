@@ -19,6 +19,12 @@ RUN pip install --no-build-isolation --no-deps .
 FROM ${PYTHON_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/opt/venv/bin:$PATH
 RUN useradd --uid 10001 --system --no-create-home --shell /usr/sbin/nologin app
+# Security patch for the pinned base image (Trivy: zlib1g CVE-2026-76844 / CVE-2026-85091, fixed in
+# 1.3.1-1+deb13u1 but not yet in the published digest). Upgrades ONLY this package. This is the one step
+# that is not reproducible from the digest alone; delete it once a newer python:3.12-slim digest is pinned.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /opt/venv /opt/venv
 # app/ is NOT copied again: it is installed in the venv from the wheel. Only what is not part of the
