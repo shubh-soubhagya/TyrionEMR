@@ -1,14 +1,14 @@
-"""Public lab routes (HLD 11.3) and their internal twins for ai-svc (same handlers, /internal prefix)."""
+"""Public lab routes (LLD B7) and their internal twins for ai-svc (same handlers, /internal prefix)."""
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query, Request, Response
 
 from app.api.deps import AuthHeader, ReadSvc, ReportSvc
-from app.core.errors import ValidationFailed
+from app.core.errors import Rejected, problem
 from app.core.security import Clinician
 from app.schemas.reads import LatestOut, ResultsPage, StatusPage, SummaryOut, TrendsOut
 from app.schemas.reports import Correction, CorrectionIn, CreatedReport, ReportIn
@@ -33,10 +33,10 @@ async def correct_result(result_id: uuid.UUID, body: CorrectionIn, svc: ReportSv
 
 
 # ---- reads (registered on both routers) -------------------------------------------------------------
-def _split(value: str, name: str) -> list[str]:
+def _split(value: str, field: str) -> list[str]:
     parts = [p.strip() for p in value.split(",") if p.strip()]
     if not parts:
-        raise ValidationFailed([(name, "At least one value is required.")])
+        raise Rejected([problem("VALIDATION_ERROR", field, "At least one value is required.")])
     return parts
 
 
@@ -46,39 +46,46 @@ for r in (router, internal):
     async def results(
         patient_id: uuid.UUID, svc: ReadSvc, user: Clinician,
         test: Annotated[str | None, Query(max_length=16)] = None,
-        date_from: Annotated[datetime | None, Query(alias="from")] = None,
-        date_to: Annotated[datetime | None, Query(alias="to")] = None,
-        flag: Annotated[str | None, Query(description="abnormal | normal | low | high | critical_low | ...")] = None,
+        date_from: Annotated[datetime | None, Query(alias="from", description="inclusive")] = None,
+        date_to: Annotated[datetime | None, Query(alias="to", description="exclusive")] = None,
+        flag: Annotated[str | None, Query(description="abnormal | critical | unknown | normal")] = None,
+        report_id: uuid.UUID | None = None,
         include_superseded: bool = False,
         page: Annotated[int, Query(ge=1)] = 1,
-        size: Annotated[int, Query(ge=1, le=200)] = 50,
+        size: Annotated[int, Query(ge=1)] = 10,
     ) -> ResultsPage:
         return await svc.results(patient_id, user, test=test, date_from=date_from, date_to=date_to, flag=flag,
-                                 include_superseded=include_superseded, page=page, size=size)
+                                 report_id=report_id, include_superseded=include_superseded, page=page, size=size)
 
-    @r.get("/patients/{patient_id}/trends", response_model=TrendsOut)
+    @r.get("/patients/{patient_id}/trends", response_model=TrendsOut, response_model_by_alias=True)
     async def trends(
         patient_id: uuid.UUID, svc: ReadSvc, user: Clinician,
-        tests: Annotated[str, Query(description="Comma separated, e.g. CREAT,EGFR")] = "CREAT,EGFR",
+        tests: Annotated[str, Query(description="Comma separated codes, e.g. CREAT,EGFR")] = "CREAT,EGFR",
         date_from: Annotated[datetime | None, Query(alias="from")] = None,
         date_to: Annotated[datetime | None, Query(alias="to")] = None,
     ) -> TrendsOut:
         return await svc.trends(patient_id, user, _split(tests, "tests"), date_from, date_to)
 
     @r.get("/patients/{patient_id}/latest", response_model=LatestOut)
-    async def latest(patient_id: uuid.UUID, svc: ReadSvc, user: Clinician) -> LatestOut:
-        return await svc.latest(patient_id, user)
+    async def latest(patient_id: uuid.UUID, svc: ReadSvc, user: Clinician, request: Request, response: Response):
+        """Latest result per test plus the CKD block. ``ETag: W/"status-<version>"`` makes a re-poll cheap."""
+        out = await svc.latest(patient_id, user)
+        etag = f'W/"status-{out.status_version}"'
+        if etag in request.headers.get("if-none-match", ""):
+            return Response(status_code=304, headers={"ETag": etag})
+        response.headers["ETag"] = etag
+        return out
 
 
 @router.get("/summary", response_model=SummaryOut)
 async def summary(svc: ReadSvc, user: Clinician,
-                  patient_ids: Annotated[str, Query(description="Comma separated ids, at most 50")]) -> SummaryOut:
-    """Batch for list rows: latest eGFR, category, sparkline, attention flags. Every requested id is returned;
-    one with no results has ``has_data: false``."""
+                  patient_ids: Annotated[str, Query(description="Comma separated ids, 1 to 50")]) -> SummaryOut:
+    """Batch for list rows: latest eGFR, category, sparkline and attention flags. One entry per requested id, in
+    request order; an id with no results has ``has_results: false``."""
     try:
         ids = list(dict.fromkeys(uuid.UUID(p) for p in _split(patient_ids, "patient_ids")))
     except ValueError:
-        raise ValidationFailed([("patient_ids", "Every id must be a valid UUID.")]) from None
+        raise Rejected([problem("VALIDATION_ERROR", "patient_ids", "Every id must be a valid UUID.")]) from None
     return await svc.summary(ids, user)
 
 

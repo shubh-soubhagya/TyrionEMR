@@ -14,10 +14,11 @@
         "additionalProperties": false,
         "required": [
           "patient_id",
-          "has_data",
+          "has_results",
           "latest_egfr",
           "egfr_category",
-          "egfr_spark",
+          "egfr_direction",
+          "spark",
           "has_critical",
           "rapid_decline",
           "last_result_at"
@@ -27,13 +28,42 @@
             "type": "string",
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
           },
-          "has_data": {
+          "has_results": {
             "type": "boolean"
           },
           "latest_egfr": {
-            "type": [
-              "object",
-              "null"
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "flag",
+                  "collected_at"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  },
+                  "flag": {
+                    "enum": [
+                      "normal",
+                      "low",
+                      "high",
+                      "critical_low",
+                      "critical_high",
+                      "unknown"
+                    ]
+                  },
+                  "collected_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "egfr_category": {
@@ -42,9 +72,31 @@
               "null"
             ]
           },
-          "egfr_spark": {
+          "egfr_direction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spark": {
             "type": "array",
-            "maxItems": 12
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "t",
+                "v"
+              ],
+              "properties": {
+                "t": {
+                  "type": "string"
+                },
+                "v": {
+                  "type": "number"
+                }
+              }
+            }
           },
           "has_critical": {
             "type": "boolean"

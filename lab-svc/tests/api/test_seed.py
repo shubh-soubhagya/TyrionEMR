@@ -22,7 +22,16 @@ async def seeded(db_engine, clock) -> dict:
 
 
 async def status(api: httpx.AsyncClient, mrn: str) -> dict:
-    return (await api.get(f"/internal/labs/patients/{patient_id(mrn)}/latest")).json()
+    """The /latest response flattened to what these scenario checks read."""
+    body = (await api.get(f"/internal/labs/patients/{patient_id(mrn)}/latest")).json()
+    ckd = body["ckd"]
+    return {
+        "latest": {t["test_code"]: t["result"] for t in body["tests"] if t["result"]},
+        "egfr_category": {"code": ckd["egfr_category"]} if ckd["egfr_category"] else None,
+        "uacr_category": {"code": ckd["uacr_category"]} if ckd["uacr_category"] else None,
+        "has_critical": body["has_critical"], "rapid_decline": body["rapid_decline"],
+        "last_result_at": body["last_result_at"],
+    }
 
 
 async def test_seed_is_idempotent(api, seeded, clock) -> None:

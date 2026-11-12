@@ -6,20 +6,23 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select, text
+from sqlalchemy import MetaData, Row, Table, exists, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
 from app.domain.flagging import ABNORMAL_FLAGS
 from app.domain.status import ResultPoint
-from app.models import LabReport, LabResult, PatientLabStatus
+from app.models import LabReport, LabResult, LabTest, PatientLabStatus
 
-
-def _effective():
-    """Condition: the result has not been superseded by a correction."""
-    newer = aliased(LabResult)
-    return ~select(newer.id).where(newer.supersedes_id == LabResult.id).exists()
+BASE: Table = LabResult.__table__  # type: ignore[assignment]                                            # every row, including superseded ones
+# the current-results view (LLD B3.5): same columns as the base table, superseded rows excluded
+CURRENT = BASE.to_metadata(MetaData(), name="lab_results_current")
+FLAG_GROUPS = {
+    "abnormal": ABNORMAL_FLAGS,                 # unknown is shown, but not counted as abnormal
+    "critical": frozenset({"critical_low", "critical_high"}),
+    "unknown": frozenset({"unknown"}),
+    "normal": frozenset({"normal"}),
+}
 
 
 class LabRepository:
@@ -74,36 +77,42 @@ class LabRepository:
 
     # ---- reads ---------------------------------------------------------------------------------------
     async def list_results(self, patient_id: uuid.UUID, *, test: str | None, date_from: datetime | None,
-                           date_to: datetime | None, flag: str | None, include_superseded: bool,
-                           offset: int, limit: int) -> tuple[list[LabResult], int]:
-        cond = [LabResult.patient_id == patient_id]
-        if not include_superseded:
-            cond.append(_effective())
+                           date_to: datetime | None, flag: str | None, report_id: uuid.UUID | None,
+                           include_superseded: bool, offset: int, limit: int) -> tuple[list[Row[Any]], int]:
+        """History page. Reads the current-results view; ``include_superseded`` reads the base table instead.
+        ``[from, to)`` is half-open so adjacent windows never share a result."""
+        src = BASE if include_superseded else CURRENT
+        newer = BASE.alias("newer")
+        superseded = exists().where(newer.c.supersedes_id == src.c.id).label("superseded")
+        cond = [src.c.patient_id == patient_id]
         if test:
-            cond.append(LabResult.test_code == test)
+            cond.append(src.c.test_code == test)
         if date_from:
-            cond.append(LabResult.collected_at >= date_from)
+            cond.append(src.c.collected_at >= date_from)
         if date_to:
-            cond.append(LabResult.collected_at <= date_to)
-        if flag == "abnormal":
-            cond.append(LabResult.flag.in_(sorted(ABNORMAL_FLAGS)))
-        elif flag:
-            cond.append(LabResult.flag == flag)
-        total = await self._s.scalar(select(func.count()).select_from(LabResult).where(*cond)) or 0
-        q = (select(LabResult).where(*cond)
-             .order_by(LabResult.collected_at.desc(), LabResult.created_at.desc(), LabResult.id)
+            cond.append(src.c.collected_at < date_to)
+        if report_id:
+            cond.append(src.c.report_id == report_id)
+        if flag in FLAG_GROUPS:
+            cond.append(src.c.flag.in_(sorted(FLAG_GROUPS[flag])))
+        total = await self._s.scalar(select(func.count()).select_from(src).where(*cond)) or 0
+        q = (select(src, LabReport.lab_name, LabTest.name.label("test_name"), superseded)
+             .join(LabReport, LabReport.id == src.c.report_id)
+             .join(LabTest, LabTest.code == src.c.test_code)
+             .where(*cond)
+             .order_by(src.c.collected_at.desc(), src.c.created_at.desc(), src.c.id)
              .offset(offset).limit(limit))
-        return list((await self._s.scalars(q)).all()), total
+        return list((await self._s.execute(q)).all()), total
 
     async def series(self, patient_id: uuid.UUID, tests: Sequence[str], date_from: datetime | None,
-                     date_to: datetime | None) -> list[LabResult]:
-        cond = [LabResult.patient_id == patient_id, LabResult.test_code.in_(list(tests)), _effective()]
+                     date_to: datetime | None) -> list[Row[Any]]:
+        cond = [CURRENT.c.patient_id == patient_id, CURRENT.c.test_code.in_(list(tests))]
         if date_from:
-            cond.append(LabResult.collected_at >= date_from)
+            cond.append(CURRENT.c.collected_at >= date_from)
         if date_to:
-            cond.append(LabResult.collected_at <= date_to)
-        q = select(LabResult).where(*cond).order_by(LabResult.collected_at, LabResult.created_at)
-        return list((await self._s.scalars(q)).all())
+            cond.append(CURRENT.c.collected_at < date_to)
+        q = select(CURRENT).where(*cond).order_by(CURRENT.c.collected_at, CURRENT.c.created_at, CURRENT.c.id)
+        return list((await self._s.execute(q)).all())
 
     async def status(self, patient_id: uuid.UUID) -> PatientLabStatus | None:
         return await self._s.get(PatientLabStatus, patient_id)

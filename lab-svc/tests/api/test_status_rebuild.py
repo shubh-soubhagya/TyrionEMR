@@ -69,13 +69,15 @@ async def test_back_dated_report_does_not_replace_the_latest(api, patients) -> N
     await add(api, pid, 100, K=4.0)
     await add(api, pid, 10, K=6.9)                                           # entered later, collected earlier
     latest = (await api.get(f"/labs/patients/{pid}/latest")).json()
-    assert latest["latest"]["K"]["value"] == 4.0 and latest["has_critical"] is False
+    k = next(t for t in latest["tests"] if t["test_code"] == "K")["result"]
+    assert k["value"] == 4.0 and latest["has_critical"] is False
 
 
 async def test_latest_snapshot_carries_the_reference_limits(api, patients) -> None:
     pid = patients.add("M")
     await add(api, pid, 0, CREAT=1.8)
-    entry = (await api.get(f"/labs/patients/{pid}/latest")).json()["latest"]["CREAT"]
+    tiles = (await api.get(f"/labs/patients/{pid}/latest")).json()["tests"]
+    entry = next(t for t in tiles if t["test_code"] == "CREAT")["result"]
     assert (entry["ref_low"], entry["ref_high"], entry["flag"]) == (0.7, 1.3, "high")
 
 

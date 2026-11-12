@@ -5,9 +5,9 @@
   "additionalProperties": false,
   "required": [
     "items",
-    "total",
     "page",
-    "size"
+    "size",
+    "total"
   ],
   "properties": {
     "items": {
@@ -18,8 +18,8 @@
         "required": [
           "id",
           "report_id",
-          "patient_id",
           "test_code",
+          "test_name",
           "collected_at",
           "value",
           "unit",
@@ -28,10 +28,9 @@
           "ref_low",
           "ref_high",
           "flag",
-          "supersedes_id",
-          "crit_low",
-          "crit_high",
-          "correction_reason"
+          "lab_name",
+          "is_correction",
+          "superseded"
         ],
         "properties": {
           "id": {
@@ -42,11 +41,10 @@
             "type": "string",
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
           },
-          "patient_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-          },
           "test_code": {
+            "type": "string"
+          },
+          "test_name": {
             "type": "string"
           },
           "collected_at": {
@@ -87,45 +85,25 @@
               "unknown"
             ]
           },
-          "supersedes_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "lab_name": {
+            "type": "string"
           },
-          "crit_low": {
-            "type": [
-              "number",
-              "null"
-            ]
+          "is_correction": {
+            "type": "boolean"
           },
-          "crit_high": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "correction_reason": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "superseded": {
+            "type": "boolean"
           }
         }
       }
-    },
-    "total": {
-      "type": "integer"
     },
     "page": {
       "type": "integer"
     },
     "size": {
+      "type": "integer"
+    },
+    "total": {
       "type": "integer"
     }
   }

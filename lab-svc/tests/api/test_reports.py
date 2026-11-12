@@ -306,7 +306,8 @@ async def test_correction_recomputes_the_read_model(patients, post_report, api) 
     assert (await api.get(f"/labs/patients/{pid}/latest")).json()["has_critical"] is True
     await correct(api, orig["id"], 4.2)
     latest = (await api.get(f"/labs/patients/{pid}/latest")).json()
-    assert latest["has_critical"] is False and latest["latest"]["K"]["value"] == 4.2
+    k = next(t for t in latest["tests"] if t["test_code"] == "K")["result"]
+    assert latest["has_critical"] is False and k["value"] == 4.2
 
 
 async def test_correcting_the_old_id_again_is_409_with_the_current_id(patients, post_report, api) -> None:

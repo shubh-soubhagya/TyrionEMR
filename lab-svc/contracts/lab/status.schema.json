@@ -22,6 +22,7 @@
           "creat_stats",
           "has_critical",
           "rapid_decline",
+          "result_count",
           "last_result_at"
         ],
         "properties": {
@@ -45,15 +46,47 @@
             ]
           },
           "egfr_stats": {
-            "type": [
-              "object",
-              "null"
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "n",
+                  "direction"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer"
+                  },
+                  "direction": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "creat_stats": {
-            "type": [
-              "object",
-              "null"
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "n",
+                  "direction"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer"
+                  },
+                  "direction": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "has_critical": {
@@ -61,6 +94,10 @@
           },
           "rapid_decline": {
             "type": "boolean"
+          },
+          "result_count": {
+            "type": "integer",
+            "minimum": 0
           },
           "last_result_at": {
             "type": [

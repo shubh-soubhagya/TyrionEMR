@@ -5,7 +5,7 @@ Applied to the CANONICAL stored value (one extra decimal), so 59.95 entered as e
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Final
+from typing import Any, Final
 
 # (category, inclusive lower bound, description), descending; G5 has no bound
 EGFR_CATEGORIES: Final[tuple[tuple[str, Decimal | None, str], ...]] = (
@@ -20,7 +20,8 @@ EGFR_LABELS: Final = {code: label for code, _, label in EGFR_CATEGORIES}
 UACR_LABELS: Final = {"A1": "Normal to mildly increased", "A2": "Moderately increased", "A3": "Severely increased"}
 
 # for the eGFR chart: the client draws the bands from this and never hard-codes them
-STAGE_BANDS: Final = [{"code": code, "lower": int(lower or 0)} for code, lower, _ in EGFR_CATEGORIES]
+STAGE_BANDS: Final[list[dict[str, Any]]] = [
+    {"code": code, "lower": int(lower or 0)} for code, lower, _ in EGFR_CATEGORIES]
 
 UACR_A2_FROM: Final = Decimal(30)
 UACR_A3_ABOVE: Final = Decimal(300)          # mg/g: A1 < 30, A2 30-300 inclusive, A3 > 300

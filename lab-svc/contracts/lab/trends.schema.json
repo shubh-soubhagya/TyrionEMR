@@ -5,6 +5,8 @@
   "additionalProperties": false,
   "required": [
     "patient_id",
+    "from",
+    "to",
     "series"
   ],
   "properties": {
@@ -12,16 +14,28 @@
       "type": "string",
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
     },
+    "from": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "to": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "series": {
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
         "required": [
           "test_code",
           "unit",
           "points",
-          "stats"
+          "stats",
+          "reference"
         ],
         "properties": {
           "test_code": {
@@ -30,19 +44,37 @@
           "unit": {
             "type": "string"
           },
+          "stats": {
+            "type": "object",
+            "required": [
+              "n",
+              "direction"
+            ],
+            "properties": {
+              "n": {
+                "type": "integer"
+              },
+              "direction": {
+                "type": "string"
+              }
+            }
+          },
           "points": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "result_id",
                 "collected_at",
                 "value",
-                "flag",
-                "ref_low",
-                "ref_high"
+                "flag"
               ],
               "properties": {
+                "result_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
                 "collected_at": {
                   "type": "string",
                   "format": "date-time"
@@ -51,37 +83,65 @@
                   "type": "number"
                 },
                 "flag": {
-                  "type": "string"
-                },
-                "ref_low": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "ref_high": {
-                  "type": [
-                    "number",
-                    "null"
+                  "enum": [
+                    "normal",
+                    "low",
+                    "high",
+                    "critical_low",
+                    "critical_high",
+                    "unknown"
                   ]
                 }
               }
             }
           },
-          "stats": {
+          "reference": {
             "anyOf": [
               {
                 "type": "object",
+                "additionalProperties": false,
                 "required": [
-                  "n",
-                  "direction"
+                  "low",
+                  "high"
                 ],
                 "properties": {
-                  "n": {
-                    "type": "integer"
+                  "low": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
-                  "direction": {
-                    "type": "string"
+                  "high": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage_bands": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "lower"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "lower": {
+                      "type": "integer"
+                    }
                   }
                 }
               },
