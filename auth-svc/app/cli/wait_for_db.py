@@ -6,6 +6,7 @@ import asyncio
 import sys
 
 from sqlalchemy import text
+
 from app.core.config import get_settings
 from app.db.session import create_engine
 
