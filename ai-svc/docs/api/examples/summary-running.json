@@ -1,0 +1,69 @@
+{
+  "summary_id": "7e54b1c1-0320-41aa-9db8-9912d381213e",
+  "patient_id": "340076d9-1e60-5324-94ac-fccdf2365df2",
+  "status": "running",
+  "cached": false,
+  "cached_from": null,
+  "as_of": null,
+  "generated_at": null,
+  "progress": [
+    {
+      "key": "open_chart",
+      "label": "Opening the chart",
+      "state": "done",
+      "ms": 0,
+      "note": "Ready"
+    },
+    {
+      "key": "gather",
+      "label": "Reading the chart and lab results",
+      "state": "running",
+      "ms": null,
+      "note": null
+    },
+    {
+      "key": "rules",
+      "label": "Calculating trends and checking for gaps",
+      "state": "pending",
+      "ms": null,
+      "note": null
+    },
+    {
+      "key": "prepare",
+      "label": "Preparing what the AI will see",
+      "state": "pending",
+      "ms": null,
+      "note": null
+    },
+    {
+      "key": "write",
+      "label": "Writing the summary",
+      "state": "pending",
+      "ms": null,
+      "note": null
+    },
+    {
+      "key": "check",
+      "label": "Checking the summary",
+      "state": "pending",
+      "ms": null,
+      "note": null
+    },
+    {
+      "key": "save",
+      "label": "Saving",
+      "state": "pending",
+      "ms": null,
+      "note": null
+    }
+  ],
+  "facts": null,
+  "gaps": null,
+  "ai": null,
+  "sources": null,
+  "validation": null,
+  "error_code": null,
+  "error_message": null,
+  "disclaimer": "AI-generated summary for clinician review only. It may be incomplete or inaccurate. It is not a diagnosis or treatment recommendation. Verify against the patient record.",
+  "context": null
+}

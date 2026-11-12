@@ -183,7 +183,8 @@ async def test_two_patients_never_share_a_cached_summary(api):
 async def test_invalid_then_valid_is_repaired_once(api):
     d = await run(api, scenario="invalid_then_valid")
     assert d["status"] == "completed" and d["validation"]["repaired"] is True
-    assert d["validation"]["repair_reasons"] == ["PARSE"] and d["validation"]["attempts"] == 2
+    # with tools on, a non-JSON reply on a tool turn first forces a final turn (no tools), then the repair turn
+    assert d["validation"]["repair_reasons"] == ["PARSE"] and d["validation"]["attempts"] == 3
 
 
 async def test_invalid_twice_is_degraded_with_facts_and_rule_findings(api):

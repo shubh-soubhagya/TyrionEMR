@@ -13,11 +13,11 @@ Each phase is finished, tested and committed before the next starts. Tests run a
 | 3 | Pure rule engine (16 rules, attention, CKD-EPI) | B4, B17.1 | 4 | ✅ |
 | 4 | Downstream clients, adapters and parity test | B14, B4.1, B17.5, B20.1 | 5 | ✅ |
 | 5 | Insights endpoints and snapshot cache | B11, B12.6–B12.8, B17.6 | 6 | ✅ |
-| 6 | Context builder, refs, minimizer, hashing, prompts | B5, B6 | 7 | ☐ |
-| 7 | MockProvider, orchestrator, job runner, summary API | B7, B10, B12.3–B12.5 | 8 | ☐ |
-| 8 | Validation pipeline, safety lint, hydration | B9, B17.1 | 9 | ☐ |
-| 9 | Tool calling and a real provider adapter | B8, B7.2–B7.4, B17.4 | 10, 11 | ☐ |
-| 10 | Image, observability, contracts and handover | B16, B17, B18.4–B18.11, B19 | 12, 14 | ☐ |
+| 6 | Context builder, refs, minimizer, hashing, prompts | B5, B6 | 7 | ✅ |
+| 7 | MockProvider, orchestrator, job runner, summary API | B7, B10, B12.3–B12.5 | 8 | ✅ |
+| 8 | Validation pipeline, safety lint, hydration | B9, B17.1 | 9 | ✅ |
+| 9 | Tool calling and a real provider adapter | B8, B7.2–B7.4, B17.4 | 10, 11 | ✅ |
+| 10 | Image, observability, contracts and handover | B16, B17, B18.4–B18.11, B19 | 12, 14 | ✅ |
 
 Out of scope here (B21 step 13): the gateway routes (`/api/ai/**`, `/api/insights/**`, polling bucket) and the Angular dashboard, list filter, Overview alert and AI tab.
 
@@ -111,6 +111,29 @@ Cross-service prerequisites (B20.1) that block phases 4–5: lab-svc must expose
 - Metrics and logs per B16 (IDs, counts, codes and latencies only; no prompt, packet, output, names or notes); log-redaction test.
 - `cli/export_openapi.py` → `docs/api/openapi.json`; contract tests (B17.7) against patient-svc and lab-svc shapes and the schema of the summary response.
 - Close the B17 test plan; seed walk-through; screenshots or recorded responses of the normal, progress, degraded and failed states.
-- Update this file and open items (B20.3) with what was decided.
+- Update this file and open items (B20.3) with what was decided (below).
 
 **Done when:** `make up` reaches `/ready` on `nephro-net`; full suite is green on the real Postgres test database; `openapi.json` committed; with the LLM provider stopped, insights still work and summaries degrade; with ai-svc stopped, patient-svc and lab-svc are unaffected.
+
+
+---
+
+## Built and verified (phases 6-10)
+
+| Phase | What exists | Verified by |
+|---|---|---|
+| 6 | `context/` (refs, packet, minimizer, hashing), `prompts/v1/*.md` + `output_schema.json`, `orchestrator/facts.py` | `tests/unit/test_context.py` |
+| 7 | `llm/` (types, resilience, mock, factory), orchestrator, progress, job runner, reaper, `SummaryService`, `/ai/**` | `tests/unit/test_resilience.py`, `tests/api/test_summary_api.py` (every B7.5 scenario, cache, quota, single-flight, reaper, shutdown, deadlines) |
+| 8 | `validation/` (parse, citations, schema, grounding, safety, hydration) wired into step 6 | `tests/unit/test_validation.py` |
+| 9 | `tools/` (six tools + registry), `llm/groq.py` | `tests/api/test_tools.py`, `tests/unit/test_groq.py`, live smoke test `tests/live` (real Groq, PT-000101: completed, 11 refs resolved, 0 stripped, no repair) |
+| 10 | Dockerfile (hash-locked, non-root, read-only rootfs), entrypoint, compose, `make` targets, B16 logs and metrics, OpenAPI export, recorded examples, contract tests | image built and `/ready` reached from `nephro-net`; `tests/api/test_logs_and_metrics.py`, `tests/contract` |
+
+### Decisions and deviations
+- **Groq only** (B20.3 #1, #2): `json_with_tools=false`, `openai/gpt-oss-20b`, `reasoning_effort=low`, `LLM_MAX_OUTPUT_TOKENS=2048`. Gemini and Ollama adapters are not built; the provider CHECK in the database still allows them.
+- **Disclaimer text** is the one in the frontend's CLAUDE.md (section 7), so the UI can show the server text verbatim. B12.4's example wording is shorter.
+- **Numeric grounding**: 0-10 are always allowed (small counts), so B9.4's example "2.0 for 1.898" would not warn; the test uses values outside that range.
+- **S1 safety rule** matches base and -ing verbs only, not past tense, so "Losartan 50 mg was started in 2023" in a history passes.
+- **Quota** is checked at POST, before the cache lookup (the cache hash needs the chart, which only the job reads). A cache hit does not consume quota; it can still be refused when the day's quota is already used up.
+- **Contract mismatch found and fixed**: lab-svc's real `/latest` is eight tiles plus a `ckd` block, not the `latest` map assumed from the LLD. `Latest` normalizes both shapes; the seed now follows the contract and the contract tests would have caught it.
+- **Still open** (B20.3): #3 thresholds (12 and 180 as in the HLD), #4 degraded-after-a-call jobs count toward quota (yes), #5 retention (kept indefinitely, synthetic data), #6 Kavita seed fix is lab-svc's.
+- Not done: gateway routes and the Angular wiring (B21 step 13); fixtures are hand-built from the contracts rather than captured from running services (`make capture-fixtures` is not written).

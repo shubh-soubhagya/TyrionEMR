@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict, model_validator
 
 
 class Up(BaseModel):
@@ -188,6 +188,20 @@ class LabSummary(Up):
 class Latest(LabSummary):
     patient_id: UUID
 
+    @model_validator(mode="before")
+    @classmethod
+    def _from_tiles(cls, data: Any) -> Any:
+        """lab-svc's /latest sends eight tiles (``tests``, each with a ``result`` or null) and a ``ckd`` block. They
+        are folded into the same ``latest`` mapping the bulk status uses, so one adapter serves both."""
+        if not isinstance(data, dict) or "tests" not in data:
+            return data
+        latest = {t["test_code"]: {**t["result"], "unit": t.get("canonical_unit", "")}
+                  for t in data["tests"] if t.get("result")}
+        ckd = data.get("ckd") or {}
+        keep = ("patient_id", "has_critical", "rapid_decline", "last_result_at", "first_result_at", "egfr_lt60_run")
+        return {**{k: data[k] for k in keep if k in data}, "latest": latest,
+                "egfr_category": ckd.get("egfr_category"), "uacr_category": ckd.get("uacr_category")}
+
 
 class TrendPointIn(Up):
     result_id: UUID | None = None
@@ -198,9 +212,15 @@ class TrendPointIn(Up):
     ref_high: float | None = None
 
 
+class Reference(Up):
+    low: float | None = None
+    high: float | None = None
+
+
 class TrendSeries(Up):
     test_code: str
     unit: str = ""
+    reference: Reference | None = None
     stats: TrendStatsIn | None = None
     points: list[TrendPointIn] = []
 

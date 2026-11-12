@@ -1,0 +1,1145 @@
+{
+  "components": {
+    "schemas": {
+      "AbnormalResultOut": {
+        "properties": {
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "mrn": {
+            "title": "Mrn",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "result_id": {
+            "format": "uuid",
+            "title": "Result Id",
+            "type": "string"
+          },
+          "test": {
+            "title": "Test",
+            "type": "string"
+          },
+          "test_name": {
+            "title": "Test Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "patient_id",
+          "name",
+          "mrn",
+          "test",
+          "test_name",
+          "value",
+          "unit",
+          "flag",
+          "collected_at",
+          "result_id"
+        ],
+        "title": "AbnormalResultOut",
+        "type": "object"
+      },
+      "AttentionOut": {
+        "properties": {
+          "needs_attention": {
+            "title": "Needs Attention",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonOut"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "needs_attention",
+          "reasons"
+        ],
+        "title": "AttentionOut",
+        "type": "object"
+      },
+      "AttentionRowOut": {
+        "properties": {
+          "age": {
+            "title": "Age",
+            "type": "integer"
+          },
+          "mrn": {
+            "title": "Mrn",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonOut"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "patient_id",
+          "mrn",
+          "name",
+          "age",
+          "reasons"
+        ],
+        "title": "AttentionRowOut",
+        "type": "object"
+      },
+      "DashboardOut": {
+        "properties": {
+          "abnormal_results": {
+            "items": {
+              "$ref": "#/components/schemas/AbnormalResultOut"
+            },
+            "title": "Abnormal Results",
+            "type": "array"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "attention": {
+            "items": {
+              "$ref": "#/components/schemas/AttentionRowOut"
+            },
+            "title": "Attention",
+            "type": "array"
+          },
+          "egfr_distribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Egfr Distribution",
+            "type": "object"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/KpisOut"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "generated_at",
+          "rules_version",
+          "kpis",
+          "attention",
+          "egfr_distribution",
+          "abnormal_results"
+        ],
+        "title": "DashboardOut",
+        "type": "object"
+      },
+      "EvidenceOut": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "tab": {
+            "title": "Tab",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "type",
+          "label",
+          "tab"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
+      },
+      "FindingOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "missing",
+              "inconsistent"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "kind",
+          "message",
+          "evidence"
+        ],
+        "title": "FindingOut",
+        "type": "object"
+      },
+      "GapsOut": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "attention": {
+            "$ref": "#/components/schemas/AttentionOut"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "provenance": {
+            "const": "rule_engine",
+            "default": "rule_engine",
+            "title": "Provenance",
+            "type": "string"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "patient_id",
+          "as_of",
+          "rules_version",
+          "counts",
+          "findings",
+          "attention"
+        ],
+        "title": "GapsOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HistoryOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total"
+        ],
+        "title": "HistoryOut",
+        "type": "object"
+      },
+      "KpisOut": {
+        "properties": {
+          "critical_results": {
+            "title": "Critical Results",
+            "type": "integer"
+          },
+          "need_attention": {
+            "title": "Need Attention",
+            "type": "integer"
+          },
+          "patients": {
+            "title": "Patients",
+            "type": "integer"
+          },
+          "rapid_decline": {
+            "title": "Rapid Decline",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "patients",
+          "need_attention",
+          "critical_results",
+          "rapid_decline"
+        ],
+        "title": "KpisOut",
+        "type": "object"
+      },
+      "ReasonOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "danger",
+              "warn"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "severity",
+          "code",
+          "text"
+        ],
+        "title": "ReasonOut",
+        "type": "object"
+      },
+      "StartOut": {
+        "properties": {
+          "deduplicated": {
+            "title": "Deduplicated",
+            "type": "boolean"
+          },
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "poll_after_ms": {
+            "default": 1000,
+            "title": "Poll After Ms",
+            "type": "integer"
+          },
+          "progress": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Progress",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary_id": {
+            "format": "uuid",
+            "title": "Summary Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary_id",
+          "patient_id",
+          "status",
+          "deduplicated",
+          "progress"
+        ],
+        "title": "StartOut",
+        "type": "object"
+      },
+      "StepOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ms"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "state"
+        ],
+        "title": "StepOut",
+        "type": "object"
+      },
+      "SummaryOut": {
+        "properties": {
+          "ai": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "cached_from": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached From"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "disclaimer": {
+            "default": "AI-generated summary for clinician review only. It may be incomplete or inaccurate. It is not a diagnosis or treatment recommendation. Verify against the patient record.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facts"
+          },
+          "gaps": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gaps"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/StepOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary_id": {
+            "format": "uuid",
+            "title": "Summary Id",
+            "type": "string"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation"
+          }
+        },
+        "required": [
+          "summary_id",
+          "patient_id",
+          "status",
+          "cached",
+          "cached_from",
+          "as_of",
+          "generated_at",
+          "facts",
+          "gaps",
+          "ai",
+          "sources",
+          "validation",
+          "error_code",
+          "error_message"
+        ],
+        "title": "SummaryOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WorklistItemOut": {
+        "properties": {
+          "patient_id": {
+            "format": "uuid",
+            "title": "Patient Id",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonOut"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "patient_id",
+          "rank",
+          "reasons"
+        ],
+        "title": "WorklistItemOut",
+        "type": "object"
+      },
+      "WorklistOut": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorklistItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "generated_at",
+          "items",
+          "total"
+        ],
+        "title": "WorklistOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "ai-svc",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/ai/patients/{patient_id}/summaries": {
+      "get": {
+        "operationId": "history_ai_patients__patient_id__summaries_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "patient_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Patient Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/ai/patients/{patient_id}/summary": {
+      "post": {
+        "operationId": "start_summary_ai_patients__patient_id__summary_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "patient_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Patient Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Force",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-mock-scenario",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Mock-Scenario"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Summary",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/ai/summaries/{summary_id}": {
+      "get": {
+        "operationId": "get_summary_ai_summaries__summary_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "context",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Summary",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/insights/dashboard": {
+      "get": {
+        "operationId": "dashboard_insights_dashboard_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Dashboard",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/insights/patients/{patient_id}/gaps": {
+      "get": {
+        "operationId": "gaps_insights_patients__patient_id__gaps_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "patient_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Patient Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GapsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Gaps",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/insights/worklist": {
+      "get": {
+        "operationId": "worklist_insights_worklist_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "attention",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Attention",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorklistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Worklist",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "DB answers, migrations at head, JWKS loaded. Upstreams and the LLM are NOT checks (B12.9):\ninsights must stay up without the LLM.",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Ready Ready Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}

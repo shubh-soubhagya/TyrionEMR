@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "patient/tools.schema.json",
+  "title": "ai-svc tool endpoints under /internal/patients/{id}",
+  "description": "Responses of /conditions, /medications-allergies and /encounters. Every response carries a top-level 'truncated' flag.",
+  "$defs": {
+    "conditions": {
+      "type": "object", "additionalProperties": false, "required": ["items", "truncated"],
+      "properties": {
+        "truncated": {"type": "boolean"},
+        "items": {"type": "array", "maxItems": 50, "items": {"type": "object",
+          "required": ["id", "icd10_code", "description", "category", "is_primary", "status", "onset_date", "resolved_date"]}}
+      }
+    },
+    "medications_allergies": {
+      "type": "object", "additionalProperties": false, "required": ["medications", "allergies", "truncated"],
+      "properties": {
+        "truncated": {"type": "boolean"},
+        "medications": {"type": "array", "maxItems": 50, "items": {"type": "object",
+          "required": ["id", "name", "dose", "route", "frequency", "start_date", "end_date", "status"]}},
+        "allergies": {"type": "array", "maxItems": 50, "items": {"type": "object",
+          "required": ["id", "allergen", "reaction", "severity"]}}
+      }
+    },
+    "encounters": {
+      "type": "object", "additionalProperties": false, "required": ["items", "truncated"],
+      "properties": {
+        "truncated": {"type": "boolean"},
+        "items": {"type": "array", "maxItems": 5, "items": {"type": "object",
+          "required": ["id", "encounter_date", "encounter_type", "status", "chief_complaint", "symptoms",
+                       "follow_up_date", "vitals", "diagnoses"]}}
+      }
+    }
+  }
+}

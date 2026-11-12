@@ -1,0 +1,22 @@
+{
+  "patient_id": "340076d9-1e60-5324-94ac-fccdf2365df2",
+  "as_of": "2026-11-13",
+  "rules_version": "ai-rules-1",
+  "provenance": "rule_engine",
+  "counts": {
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "findings": [],
+  "attention": {
+    "needs_attention": true,
+    "reasons": [
+      {
+        "severity": "danger",
+        "code": "rapid_decline",
+        "text": "eGFR falling 8.6 per year"
+      }
+    ]
+  }
+}

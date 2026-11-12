@@ -1,0 +1,143 @@
+{
+  "summary_id": "4e0400ae-9543-4d40-a5d7-27e299d70563",
+  "patient_id": "340076d9-1e60-5324-94ac-fccdf2365df2",
+  "status": "degraded",
+  "cached": false,
+  "cached_from": null,
+  "as_of": "2026-11-13",
+  "generated_at": "2026-11-12T20:53:31.294668Z",
+  "progress": [
+    {
+      "key": "open_chart",
+      "label": "Opening the chart",
+      "state": "done",
+      "ms": 0,
+      "note": "Ready"
+    },
+    {
+      "key": "gather",
+      "label": "Reading the chart and lab results",
+      "state": "done",
+      "ms": 32,
+      "note": "Done"
+    },
+    {
+      "key": "rules",
+      "label": "Calculating trends and checking for gaps",
+      "state": "done",
+      "ms": 31,
+      "note": "0 rule findings, 3 abnormal results"
+    },
+    {
+      "key": "prepare",
+      "label": "Preparing what the AI will see",
+      "state": "done",
+      "ms": 32,
+      "note": "New or changed data"
+    },
+    {
+      "key": "write",
+      "label": "Writing the summary",
+      "state": "done",
+      "ms": 47,
+      "note": "Done"
+    },
+    {
+      "key": "check",
+      "label": "Checking the summary",
+      "state": "failed",
+      "ms": null,
+      "note": "AI response could not be verified"
+    },
+    {
+      "key": "save",
+      "label": "Saving",
+      "state": "skipped",
+      "ms": null,
+      "note": "Skipped"
+    }
+  ],
+  "facts": {
+    "ckd": {
+      "ref": "ckd:latest",
+      "mismatch": false,
+      "egfr_value": 38,
+      "established": "G3b",
+      "egfr_category": "G3b",
+      "uacr_category": "A2",
+      "egfr_collected_at": "2026-11-02T06:00:00+00:00"
+    },
+    "trends": {
+      "EGFR": {
+        "n": 8,
+        "ref": "trend:EGFR",
+        "last": 38,
+        "first": 54,
+        "direction": "worsening",
+        "span_days": 690,
+        "abs_change": -16,
+        "pct_change": -29.6,
+        "rapid_decline": true,
+        "slope_per_year": -8.55
+      },
+      "CREAT": {
+        "n": 8,
+        "ref": "trend:CREAT",
+        "last": 1.97,
+        "first": 1.48,
+        "direction": "worsening",
+        "span_days": 690,
+        "abs_change": 0.49,
+        "pct_change": 33.1,
+        "rapid_decline": false,
+        "slope_per_year": 0.26
+      }
+    },
+    "provenance": "system_computed_from_patient_records",
+    "abnormal_results": [
+      {
+        "ref": "lab:CREAT:2026-11-02",
+        "flag": "high",
+        "name": "Serum creatinine",
+        "test": "CREAT",
+        "unit": "mg/dL",
+        "value": 1.97,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      },
+      {
+        "ref": "lab:EGFR:2026-11-02",
+        "flag": "low",
+        "name": "eGFR",
+        "test": "EGFR",
+        "unit": "mL/min/1.73 m²",
+        "value": 38,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      },
+      {
+        "ref": "lab:UACR:2026-11-02",
+        "flag": "high",
+        "name": "Urine albumin-creatinine ratio",
+        "test": "UACR",
+        "unit": "mg/g",
+        "value": 40,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      }
+    ]
+  },
+  "gaps": {
+    "findings": [],
+    "provenance": "rule_engine",
+    "rules_version": "ai-rules-1"
+  },
+  "ai": {
+    "provenance": "ai_generated",
+    "content": null,
+    "unavailable": true
+  },
+  "sources": null,
+  "validation": null,
+  "error_code": "LLM_INVALID_OUTPUT",
+  "error_message": "The AI response could not be verified, so it is not shown. Calculated facts and rule findings are shown.",
+  "disclaimer": "AI-generated summary for clinician review only. It may be incomplete or inaccurate. It is not a diagnosis or treatment recommendation. Verify against the patient record.",
+  "context": null
+}

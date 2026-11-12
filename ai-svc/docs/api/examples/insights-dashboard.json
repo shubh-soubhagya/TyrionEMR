@@ -1,0 +1,208 @@
+{
+  "as_of": "2026-11-13",
+  "generated_at": "2026-11-12T20:53:27.825325Z",
+  "rules_version": "ai-rules-1",
+  "kpis": {
+    "patients": 10,
+    "need_attention": 6,
+    "critical_results": 1,
+    "rapid_decline": 4
+  },
+  "attention": [
+    {
+      "patient_id": "2ff7170e-2b14-5f55-b076-9e166aae3efe",
+      "mrn": "PT-000109",
+      "name": "Aditya Singh",
+      "age": 61,
+      "reasons": [
+        {
+          "severity": "danger",
+          "code": "critical_result",
+          "text": "Critical serum creatinine 5.62 mg/dL"
+        },
+        {
+          "severity": "danger",
+          "code": "critical_result",
+          "text": "Critical potassium 6.2 mmol/L"
+        },
+        {
+          "severity": "danger",
+          "code": "rapid_decline",
+          "text": "eGFR falling 9.0 per year"
+        }
+      ]
+    },
+    {
+      "patient_id": "340076d9-1e60-5324-94ac-fccdf2365df2",
+      "mrn": "PT-000101",
+      "name": "Ramesh Kulkarni",
+      "age": 61,
+      "reasons": [
+        {
+          "severity": "danger",
+          "code": "rapid_decline",
+          "text": "eGFR falling 8.6 per year"
+        }
+      ]
+    },
+    {
+      "patient_id": "7c86bf81-dd41-51ac-936d-591b499dbb4b",
+      "mrn": "PT-000104",
+      "name": "Fatima Sheikh",
+      "age": 64,
+      "reasons": [
+        {
+          "severity": "danger",
+          "code": "rapid_decline",
+          "text": "eGFR falling 7.5 per year"
+        }
+      ]
+    },
+    {
+      "patient_id": "3744518a-6f12-52c7-9c25-6e5c7d185f04",
+      "mrn": "PT-000110",
+      "name": "Kavita Joshi",
+      "age": 62,
+      "reasons": [
+        {
+          "severity": "danger",
+          "code": "rapid_decline",
+          "text": "eGFR falling 7.4 per year"
+        }
+      ]
+    },
+    {
+      "patient_id": "fb76c214-7722-5427-b7d4-cd5c71dcfca6",
+      "mrn": "PT-000106",
+      "name": "Lakshmi Iyer",
+      "age": 68,
+      "reasons": [
+        {
+          "severity": "warn",
+          "code": "CKD_STAGE_MISMATCH",
+          "text": "Established CKD stage G3a does not match the eGFR category of the latest result (G3b, eGFR 35)"
+        }
+      ]
+    },
+    {
+      "patient_id": "ed358c21-ded2-5223-a370-48356d929222",
+      "mrn": "PT-000108",
+      "name": "Priya Nair",
+      "age": 36,
+      "reasons": [
+        {
+          "severity": "warn",
+          "code": "NO_LABS_RECORDED",
+          "text": "No laboratory results are on record for this patient"
+        }
+      ]
+    }
+  ],
+  "egfr_distribution": {
+    "G1": 0,
+    "G2": 3,
+    "G3a": 2,
+    "G3b": 2,
+    "G4": 1,
+    "G5": 1,
+    "none": 1
+  },
+  "abnormal_results": [
+    {
+      "patient_id": "2ff7170e-2b14-5f55-b076-9e166aae3efe",
+      "name": "Aditya Singh",
+      "mrn": "PT-000109",
+      "test": "CREAT",
+      "test_name": "Serum creatinine",
+      "value": 5.62,
+      "unit": "mg/dL",
+      "flag": "critical_high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "c86846a4-441c-58fb-9378-d958e3aeedf6"
+    },
+    {
+      "patient_id": "2ff7170e-2b14-5f55-b076-9e166aae3efe",
+      "name": "Aditya Singh",
+      "mrn": "PT-000109",
+      "test": "K",
+      "test_name": "Potassium",
+      "value": 6.2,
+      "unit": "mmol/L",
+      "flag": "critical_high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "dfd65b11-18f9-5a5c-aed1-b58a36fb88bc"
+    },
+    {
+      "patient_id": "29dca16b-a5d8-5570-965e-28b594294739",
+      "name": "Arjun Mehta",
+      "mrn": "PT-000103",
+      "test": "UACR",
+      "test_name": "Urine albumin-creatinine ratio",
+      "value": 40.0,
+      "unit": "mg/g",
+      "flag": "high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "73f5a2cd-ed04-51a1-a3f9-bc994601bcfd"
+    },
+    {
+      "patient_id": "7c86bf81-dd41-51ac-936d-591b499dbb4b",
+      "name": "Fatima Sheikh",
+      "mrn": "PT-000104",
+      "test": "CREAT",
+      "test_name": "Serum creatinine",
+      "value": 2.4,
+      "unit": "mg/dL",
+      "flag": "high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "1375bf31-64be-5605-a247-4fd01a0b08d1"
+    },
+    {
+      "patient_id": "7c86bf81-dd41-51ac-936d-591b499dbb4b",
+      "name": "Fatima Sheikh",
+      "mrn": "PT-000104",
+      "test": "EGFR",
+      "test_name": "eGFR",
+      "value": 22.0,
+      "unit": "mL/min/1.73 m²",
+      "flag": "low",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "65b9fccf-ccea-50fb-adca-2aa4bbd6908c"
+    },
+    {
+      "patient_id": "3744518a-6f12-52c7-9c25-6e5c7d185f04",
+      "name": "Kavita Joshi",
+      "mrn": "PT-000110",
+      "test": "EGFR",
+      "test_name": "eGFR",
+      "value": 49.0,
+      "unit": "mL/min/1.73 m²",
+      "flag": "low",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "c08602cb-ed45-5655-bdca-3339da0fe8fb"
+    },
+    {
+      "patient_id": "3744518a-6f12-52c7-9c25-6e5c7d185f04",
+      "name": "Kavita Joshi",
+      "mrn": "PT-000110",
+      "test": "UACR",
+      "test_name": "Urine albumin-creatinine ratio",
+      "value": 40.0,
+      "unit": "mg/g",
+      "flag": "high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "a3a2d1e9-caa4-59ef-9191-ecfd1e540f69"
+    },
+    {
+      "patient_id": "fb76c214-7722-5427-b7d4-cd5c71dcfca6",
+      "name": "Lakshmi Iyer",
+      "mrn": "PT-000106",
+      "test": "CREAT",
+      "test_name": "Serum creatinine",
+      "value": 1.6,
+      "unit": "mg/dL",
+      "flag": "high",
+      "collected_at": "2026-11-02T06:00:00Z",
+      "result_id": "c8fbd845-61e1-592d-8447-9255b52e884e"
+    }
+  ]
+}

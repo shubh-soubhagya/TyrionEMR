@@ -12,7 +12,13 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from app.core.metrics import LLM_BREAKER_OPEN, LLM_REQUESTS, LLM_SLOT_WAIT, LLM_SLOTS_IN_USE
+from app.core.metrics import (
+    LLM_BREAKER_OPEN,
+    LLM_REQUEST_DURATION,
+    LLM_REQUESTS,
+    LLM_SLOT_WAIT,
+    LLM_SLOTS_IN_USE,
+)
 from app.llm.base import (
     LLMAuthError,
     LLMBusy,
@@ -143,9 +149,11 @@ class ResilientLLM:
             timeout = min(self.cfg.http_timeout_s, deadline_left() - 2)
             if timeout <= 0:
                 raise LLMTimeout("job deadline reached")
+            call_started = self._mono()
             try:
                 resp = await self.provider.generate(_with_timeout(req, timeout))
             except LLMRateLimited as exc:
+                self._log_call("rate_limited", call_started)
                 self.breaker.failure()
                 LLM_REQUESTS.labels(self.name, "rate_limited").inc()
                 wait = exc.retry_after
@@ -156,6 +164,7 @@ class ResilientLLM:
                     continue
                 raise
             except (LLMTimeout, LLMUnavailable) as exc:
+                self._log_call("timeout" if isinstance(exc, LLMTimeout) else "unavailable", call_started)
                 self.breaker.failure()
                 LLM_REQUESTS.labels(self.name, "timeout" if isinstance(exc, LLMTimeout) else "unavailable").inc()
                 backoff = random.uniform(0.5, 1.5)                   # noqa: S311 (jitter only)
@@ -165,12 +174,21 @@ class ResilientLLM:
                     continue
                 raise
             except LLMAuthError:
+                self._log_call("auth_error", call_started)
                 LLM_REQUESTS.labels(self.name, "auth_error").inc()
                 log.error("llm.auth_error", extra={"provider": self.name})
                 raise
             self.breaker.success()
             LLM_REQUESTS.labels(self.name, "ok").inc()
+            self._log_call("ok", call_started)
             return resp
+
+    def _log_call(self, outcome: str, started: float) -> None:
+        """B16 `llm.call`: provider, model, outcome and latency only. Never a prompt, a reply or a key."""
+        elapsed = self._mono() - started
+        LLM_REQUEST_DURATION.labels(self.name).observe(elapsed)
+        log.info("llm.call", extra={"provider": self.name, "model": self.model, "outcome": outcome,
+                                    "latency_ms": round(elapsed * 1000)})
 
 
 def _with_timeout(req: LLMRequest, timeout_s: float) -> LLMRequest:

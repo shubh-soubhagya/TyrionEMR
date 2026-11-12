@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "patient/charts.schema.json",
+  "title": "GET /internal/patients/charts",
+  "description": "Keyset-paginated bulk export for ai-svc insights. Contains names and MRN (dashboard rows); never put into an LLM context.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "next_cursor"],
+  "properties": {
+    "next_cursor": {"type": ["string", "null"]},
+    "items": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "mrn", "first_name", "last_name", "date_of_birth", "age", "sex", "allergy_status",
+                     "established_ckd_stage", "has_active_primary", "medication_count", "active_meds_past_end",
+                     "final_encounters"],
+        "properties": {
+          "id": {"type": "string"},
+          "mrn": {"type": "string", "pattern": "^PT-[0-9]{6,}$"},
+          "first_name": {"type": "string"},
+          "last_name": {"type": "string"},
+          "date_of_birth": {"type": "string"},
+          "age": {"type": "integer"},
+          "sex": {"enum": ["M", "F", "O"]},
+          "allergy_status": {"enum": ["unknown", "nka", "has_allergies"]},
+          "established_ckd_stage": {"enum": ["G1", "G2", "G3a", "G3b", "G4", "G5", null]},
+          "has_active_primary": {"type": "boolean"},
+          "medication_count": {"type": "integer", "minimum": 0},
+          "active_meds_past_end": {
+            "type": "array",
+            "items": {"type": "object", "required": ["id", "name", "end_date"]}
+          },
+          "final_encounters": {
+            "type": "array",
+            "items": {"type": "object",
+                      "required": ["id", "encounter_date", "has_vitals", "has_assessment_and_plan"]}
+          }
+        }
+      }
+    }
+  }
+}

@@ -68,6 +68,9 @@ def configure_logging(service: str, level: str = "INFO") -> None:
     root.handlers[:] = [handler]
     root.setLevel(level.upper())
     # uvicorn's own access log would duplicate ours (and can leak query strings).
+    # httpx logs every request URL at INFO; our own events already cover upstream and provider calls
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").disabled = True
     logging.getLogger("uvicorn.error").handlers[:] = []
     logging.getLogger("uvicorn.error").propagate = True

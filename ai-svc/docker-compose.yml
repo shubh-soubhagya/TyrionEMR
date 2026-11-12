@@ -1,0 +1,22 @@
+# Runs ai-svc ALONE against the existing Postgres container (graphgpt-postgres), for development.
+# The container is external: it must already be attached to nephro-net with the alias "postgres"
+# (same setup as auth-svc and lab-svc). Compose does not start a database.
+services:
+  ai-svc:
+    build:
+      context: .
+    image: nephro/ai-svc
+    env_file: .env
+    environment:
+      AI_DATABASE_URL: postgresql+asyncpg://ai_svc:${AI_DB_PW}@postgres:5432/${AI_DB_NAME:-nephro_ai_db}
+      UVICORN_WORKERS: "1"
+    networks: [nephro-net]
+    mem_limit: 512m
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    # No "ports": ai-svc is never published. Only the gateway publishes a port.
+
+networks:
+  nephro-net:
+    external: true

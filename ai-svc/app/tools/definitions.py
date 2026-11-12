@@ -204,8 +204,10 @@ def shape_lab_trend(raw: Any, job: Any, args: LabTrendArgs, max_bytes: int) -> d
              "first": num(st.first), "last": num(st.last), "abs_change": num(st.abs_change),
              "pct_change": num(st.pct_change), "slope_per_year": num(st.slope_per_year), "direction": st.direction,
              "rapid_decline": st.rapid_decline, "span_days": st.span_days}
+    ref = series.reference
     points = [_lab_row(job.refs, args.test_code, str(p.result_id) if p.result_id else None, p.collected_at, p.value,
-                       series.unit, p.flag, p.ref_low, p.ref_high) for p in series.points]
+                       series.unit, p.flag, ref.low if ref else None, ref.high if ref else None)
+              for p in series.points]
     return cap_rows({"test": args.test_code, "trend": trend, "points": [p for p in points if p["ref"]],
                      "truncated": False}, "points", max_bytes)
 

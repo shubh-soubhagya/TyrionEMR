@@ -20,7 +20,12 @@ EGFR_LABELS = {"G1": "Normal or high", "G2": "Mildly decreased", "G3a": "Mild to
 # (low, high, critical_low, critical_high): approximate adult ranges, enough to flag the fixtures
 RANGES = {"CREAT": (0.6, 1.3, None, 5.0), "EGFR": (60, None, None, None), "BUN": (7, 20, None, None),
           "K": (3.5, 5.1, 2.5, 6.0), "UACR": (None, 30, None, None)}
-UNITS = {"CREAT": "mg/dL", "EGFR": "mL/min/1.73 m²", "BUN": "mg/dL", "K": "mmol/L", "UACR": "mg/g"}
+TILE_ORDER = ("CREAT", "EGFR", "BUN", "K", "HB", "CA", "PHOS", "UACR")
+UNITS_PER_REPORT = ("CREAT", "EGFR", "UACR")
+NAMES = {"CREAT": "Serum creatinine", "EGFR": "eGFR", "BUN": "Blood urea nitrogen", "K": "Potassium",
+         "HB": "Hemoglobin", "CA": "Calcium", "PHOS": "Phosphorus", "UACR": "Urine albumin-creatinine ratio"}
+UNITS = {"CREAT": "mg/dL", "EGFR": "mL/min/1.73 m²", "BUN": "mg/dL", "K": "mmol/L", "UACR": "mg/g", "HB": "g/dL",
+         "CA": "mg/dL", "PHOS": "mg/dL"}
 
 
 def uid(*parts: str) -> UUID:
@@ -185,7 +190,8 @@ def build(spec: Spec, *, b20_fields: bool = True) -> dict:
                      "start_date": "2025-01-01", "end_date": "2026-06-30", "status": "active"})
         past_end = [{"id": mid, "name": spec.past_end_med, "end_date": "2026-06-30"}]
     conditions = [{"id": str(uid(spec.mrn, "cond")), "icd10_code": "N18.3", "description": "Chronic kidney disease",
-                   "category": "nephrology", "is_primary": spec.primary, "status": "active", "onset_date": None}]
+                   "category": "nephrology", "is_primary": spec.primary, "status": "active", "onset_date": None,
+                   "resolved_date": None}]
     vitals = None if spec.final_without_vitals else {"systolic_bp": 128, "diastolic_bp": 82, "heart_rate": 74,
                                                       "temperature_c": 36.8, "weight_kg": 70.0}
     chart = {
@@ -208,23 +214,46 @@ def build(spec: Spec, *, b20_fields: bool = True) -> dict:
                              for e in encounters],
     }
     categories = {"egfr_category": cat, "uacr_category": "A2" if has_labs else None}
-    latest_doc = {"patient_id": str(pid), **lab} | {
-        k: ({"code": v, "label": EGFR_LABELS.get(v)} if v else None) for k, v in categories.items()}
+
     def point(code: str, at: datetime, v: float) -> dict:
         return {"result_id": str(uid(spec.mrn, code, at.isoformat())), "collected_at": at.isoformat(), "value": v,
-                "flag": flag_for(code, v), "ref_low": None, "ref_high": None}
+                "flag": flag_for(code, v)}
 
-    trends = {"patient_id": str(pid), "series": [
+    # lab-svc's current /latest contract: eight tiles in display order plus a ckd block (contracts/lab/latest)
+    tiles = []
+    for code in TILE_ORDER:
+        entry = latest.get(code)
+        result = None
+        if entry:
+            result = {k: entry[k] for k in ("result_id", "report_id", "value", "flag", "collected_at", "ref_low",
+                                            "ref_high")}
+        tiles.append({"test_code": code, "name": NAMES[code], "canonical_unit": UNITS.get(code, ""), "result": result})
+    egfr_e, uacr_e = latest.get("EGFR"), latest.get("UACR")
+    ckd = {"egfr_category": cat, "egfr_label": EGFR_LABELS.get(cat) if cat else None,
+           "egfr_value": egfr_e["value"] if egfr_e else None, "egfr_collected_at": egfr_e["collected_at"] if egfr_e else None,
+           "uacr_category": categories["uacr_category"], "uacr_label": "Moderately increased" if uacr_e else None,
+           "uacr_value": uacr_e["value"] if uacr_e else None,
+           "uacr_collected_at": uacr_e["collected_at"] if uacr_e else None}
+    latest_doc = {"patient_id": str(pid), "tests": tiles, "ckd": ckd, "has_critical": lab["has_critical"],
+                  "rapid_decline": lab["rapid_decline"], "last_result_at": lab["last_result_at"],
+                  "status_version": len(reports)}
+    latest_doc |= {k: lab[k] for k in ("first_result_at", "egfr_lt60_run") if k in lab}
+
+    def empty(c: str) -> dict:
+        return stats(c, series.get(c, [])) or {"n": 0, "direction": "no_data"}
+
+    trends = {"patient_id": str(pid), "from": None, "to": None, "series": [
         {"test_code": c, "unit": UNITS[c], "points": [point(c, at, v) for at, v in series.get(c, [])],
-         "stats": stats(c, series.get(c, []))} for c in ("CREAT", "EGFR")]}
+         "stats": empty(c), "reference": None} for c in ("CREAT", "EGFR")]}
     results = {c: [{"id": point(c, at, v)["result_id"], "report_id": str(uid(spec.mrn, "report", at.isoformat())),
                     "test_code": c, "test_name": c, "collected_at": at.isoformat(), "value": v, "unit": UNITS[c],
-                    "ref_low": None, "ref_high": None, "flag": flag_for(c, v), "superseded": False}
+                    "value_original": v, "unit_original": UNITS[c], "ref_low": None, "ref_high": None,
+                    "flag": flag_for(c, v), "lab_name": "Synthetic Lab", "is_correction": False, "superseded": False}
                    for at, v in pts] for c, pts in series.items()}
     status = None
     if has_labs:
         status = {"patient_id": str(pid), **lab, **categories, "egfr_stats": egfr_stats, "creat_stats": creat_stats,
-                  "result_count": len(reports) * 3, "rules_version": "lab-rules-2"}
+                  "result_count": len(reports) * len(UNITS_PER_REPORT)}
     return {"mrn": spec.mrn, "id": pid, "chart": chart, "bulk": bulk, "latest": latest_doc, "trends": trends,
             "status": status, "results": results}
 

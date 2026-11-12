@@ -24,3 +24,25 @@ test:
 	$(PY) -m pytest -q
 lint:
 	$(PY) -m ruff check app tests migrations
+
+openapi:
+	$(PY) -m app.cli.export_openapi
+check-openapi:
+	$(PY) -m app.cli.export_openapi --check
+reap:
+	$(PY) -m app.cli.reap_once
+test-unit:
+	$(PY) -m pytest -q tests/unit
+test-api:
+	$(PY) -m pytest -q tests/api tests/db
+live-llm:
+	RUN_LIVE_LLM=1 $(PY) -m pytest -q -s tests/live
+
+build:
+	docker build -t nephro/ai-svc .
+up:
+	docker compose up --build -d
+down:
+	docker compose down
+logs:
+	docker compose logs -f ai-svc

@@ -6,6 +6,7 @@ The snapshot holds names and MRNs in memory only; it is never persisted or logge
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -29,6 +30,8 @@ from app.insights.rules.constants import RULES_VERSION
 from app.insights.rules.dashboard import Dashboard, PatientRow, attention_rows, build_dashboard
 from app.insights.rules.facts import Attention, Finding, PatientFacts, RuleConfig
 from app.insights.rules.gaps import evaluate
+
+log = logging.getLogger("ai.insights")
 
 
 async def gather_all[T](*coros: Awaitable[T]) -> list[T]:
@@ -120,7 +123,11 @@ class InsightsService:
             findings = self._findings(facts)
             rows.append(PatientRow(facts, item.mrn, f"{item.first_name} {item.last_name}", item.age, findings,
                                    attention(facts, findings)))
-        INSIGHTS_REFRESH.observe(time.perf_counter() - started)
+        elapsed = time.perf_counter() - started
+        INSIGHTS_REFRESH.observe(elapsed)
+        log.info("insights.snapshot", extra={
+            "patients": len(rows), "pages": -(-len(charts) // limit) or 1, "latency_ms": round(elapsed * 1000),
+            "need_attention": sum(1 for r in rows if r.attention is not None)})
         return Snapshot(self.today(), self._clock(), tuple(rows))
 
     def dashboard(self, snap: Snapshot) -> Dashboard:

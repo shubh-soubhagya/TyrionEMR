@@ -1,0 +1,247 @@
+{
+  "summary_id": "6fbbc791-c42f-4322-aea0-d005d6a36cf8",
+  "patient_id": "340076d9-1e60-5324-94ac-fccdf2365df2",
+  "status": "completed",
+  "cached": true,
+  "cached_from": "7e54b1c1-0320-41aa-9db8-9912d381213e",
+  "as_of": "2026-11-13",
+  "generated_at": "2026-11-12T20:53:30.445319Z",
+  "progress": [
+    {
+      "key": "open_chart",
+      "label": "Opening the chart",
+      "state": "done",
+      "ms": 0,
+      "note": "Ready"
+    },
+    {
+      "key": "gather",
+      "label": "Reading the chart and lab results",
+      "state": "done",
+      "ms": 47,
+      "note": "Done"
+    },
+    {
+      "key": "rules",
+      "label": "Calculating trends and checking for gaps",
+      "state": "done",
+      "ms": 31,
+      "note": "0 rule findings, 3 abnormal results"
+    },
+    {
+      "key": "prepare",
+      "label": "Preparing what the AI will see",
+      "state": "done",
+      "ms": 47,
+      "note": "Same data as an earlier summary"
+    },
+    {
+      "key": "write",
+      "label": "Writing the summary",
+      "state": "skipped",
+      "ms": null,
+      "note": "Not needed, reusing the saved summary"
+    },
+    {
+      "key": "check",
+      "label": "Checking the summary",
+      "state": "skipped",
+      "ms": null,
+      "note": "Not needed, reusing the saved summary"
+    },
+    {
+      "key": "save",
+      "label": "Saving",
+      "state": "skipped",
+      "ms": null,
+      "note": "Not needed, reusing the saved summary"
+    }
+  ],
+  "facts": {
+    "ckd": {
+      "ref": "ckd:latest",
+      "mismatch": false,
+      "egfr_value": 38,
+      "established": "G3b",
+      "egfr_category": "G3b",
+      "uacr_category": "A2",
+      "egfr_collected_at": "2026-11-02T06:00:00+00:00"
+    },
+    "trends": {
+      "EGFR": {
+        "n": 8,
+        "ref": "trend:EGFR",
+        "last": 38,
+        "first": 54,
+        "direction": "worsening",
+        "span_days": 690,
+        "abs_change": -16,
+        "pct_change": -29.6,
+        "rapid_decline": true,
+        "slope_per_year": -8.55
+      },
+      "CREAT": {
+        "n": 8,
+        "ref": "trend:CREAT",
+        "last": 1.97,
+        "first": 1.48,
+        "direction": "worsening",
+        "span_days": 690,
+        "abs_change": 0.49,
+        "pct_change": 33.1,
+        "rapid_decline": false,
+        "slope_per_year": 0.26
+      }
+    },
+    "provenance": "system_computed_from_patient_records",
+    "abnormal_results": [
+      {
+        "ref": "lab:CREAT:2026-11-02",
+        "flag": "high",
+        "name": "Serum creatinine",
+        "test": "CREAT",
+        "unit": "mg/dL",
+        "value": 1.97,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      },
+      {
+        "ref": "lab:EGFR:2026-11-02",
+        "flag": "low",
+        "name": "eGFR",
+        "test": "EGFR",
+        "unit": "mL/min/1.73 m²",
+        "value": 38,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      },
+      {
+        "ref": "lab:UACR:2026-11-02",
+        "flag": "high",
+        "name": "Urine albumin-creatinine ratio",
+        "test": "UACR",
+        "unit": "mg/g",
+        "value": 40,
+        "collected_at": "2026-11-02T06:00:00+00:00"
+      }
+    ]
+  },
+  "gaps": {
+    "findings": [],
+    "provenance": "rule_engine",
+    "rules_version": "ai-rules-1"
+  },
+  "ai": {
+    "provenance": "ai_generated",
+    "provider": "mock",
+    "model": "mock-1",
+    "prompt_version": "v1",
+    "content": {
+      "not_documented": [],
+      "history_summary": {
+        "text": "Past history and recent encounters are recorded in the cited items.",
+        "source_refs": [
+          "enc:1"
+        ]
+      },
+      "trend_commentary": {
+        "text": "Trends are as calculated by the system from the recorded results.",
+        "source_refs": [
+          "trend:EGFR",
+          "trend:CREAT"
+        ]
+      },
+      "abnormal_commentary": {
+        "text": "Abnormal results are as flagged by the laboratory rules.",
+        "source_refs": [
+          "lab:CREAT:2026-11-02",
+          "lab:EGFR:2026-11-02",
+          "lab:UACR:2026-11-02"
+        ]
+      },
+      "comorbidity_summary": {
+        "text": "Conditions are recorded as listed in the cited items.",
+        "source_refs": [
+          "cond:1"
+        ]
+      },
+      "follow_up_considerations": [
+        {
+          "rationale": "The system flagged a rapid decline in eGFR.",
+          "source_refs": [
+            "trend:EGFR"
+          ],
+          "consideration": "Consider reviewing the rate of eGFR decline at the next visit."
+        }
+      ]
+    },
+    "grounding_warnings": []
+  },
+  "sources": {
+    "enc:1": {
+      "tab": "encounters",
+      "type": "encounter",
+      "label": "Encounter, 23 Oct 2026",
+      "target_id": "b646b990-e183-5e89-a09d-2f0518b3e780"
+    },
+    "cond:1": {
+      "tab": "conditions",
+      "type": "condition",
+      "label": "Chronic kidney disease",
+      "target_id": "faf52503-a604-516e-84b9-25c056a827f7"
+    },
+    "ckd:latest": {
+      "tab": "labs",
+      "type": "ckd",
+      "label": "CKD classification",
+      "target_id": null
+    },
+    "trend:EGFR": {
+      "tab": "labs",
+      "type": "trend",
+      "label": "eGFR trend",
+      "target_id": null
+    },
+    "trend:CREAT": {
+      "tab": "labs",
+      "type": "trend",
+      "label": "Serum creatinine trend",
+      "target_id": null
+    },
+    "lab:EGFR:2026-11-02": {
+      "tab": "labs",
+      "type": "lab",
+      "label": "eGFR, 2 Nov 2026",
+      "target_id": "f17fc4f4-0e16-5292-85a2-b4ac42f5f04e"
+    },
+    "lab:UACR:2026-11-02": {
+      "tab": "labs",
+      "type": "lab",
+      "label": "Urine albumin-creatinine ratio, 2 Nov 2026",
+      "target_id": "7ff6a8f8-a8c7-5bc9-b9ea-51d941c65628"
+    },
+    "lab:CREAT:2026-11-02": {
+      "tab": "labs",
+      "type": "lab",
+      "label": "Serum creatinine, 2 Nov 2026",
+      "target_id": "ee720b6d-001a-58fd-9efe-20388228c4a3"
+    }
+  },
+  "validation": {
+    "attempts": 1,
+    "repaired": false,
+    "refs_total": 7,
+    "tool_calls": 0,
+    "safety_flags": 0,
+    "schema_valid": true,
+    "refs_resolved": 7,
+    "refs_stripped": 0,
+    "repair_reasons": [],
+    "safety_warnings": 0,
+    "tokens_estimated": false,
+    "safety_redactions": [],
+    "grounding_warnings": []
+  },
+  "error_code": null,
+  "error_message": null,
+  "disclaimer": "AI-generated summary for clinician review only. It may be incomplete or inaccurate. It is not a diagnosis or treatment recommendation. Verify against the patient record.",
+  "context": null
+}
