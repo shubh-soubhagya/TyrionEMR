@@ -12,6 +12,7 @@ from sqlalchemy.exc import DBAPIError
 
 from app.api import health as routes_health
 from app.api import insights as routes_insights
+from app.api import summary as routes_summary
 from app.clients.lab import LabClient
 from app.clients.patient import PatientClient
 from app.core.clock import Clock, utcnow
@@ -23,10 +24,18 @@ from app.core.logging import configure_logging
 from app.core.metrics import mount_metrics
 from app.db.session import create_engine, create_sessionmaker
 from app.insights.service import InsightsService
+from app.jobs import reaper
+from app.jobs.runner import JobRunner
+from app.llm.base import LLMProvider
+from app.llm.factory import build_llm
+from app.orchestrator.orchestrator import SummaryOrchestrator
+from app.prompts.loader import load_prompts
+from app.services.summary import SummaryService
 
 
 def build_state(app: FastAPI, settings: Settings, clock: Clock, jwks: JwksCache | None = None,
-                patients: PatientClient | None = None, labs: LabClient | None = None) -> None:
+                patients: PatientClient | None = None, labs: LabClient | None = None,
+                provider: LLMProvider | None = None, registry=None) -> None:
     """Creates everything the app needs. Separate from the lifespan so tests can call it directly."""
     app.state.settings = settings
     app.state.clock = clock
@@ -36,6 +45,13 @@ def build_state(app: FastAPI, settings: Settings, clock: Clock, jwks: JwksCache 
     app.state.engine = create_engine(settings)
     app.state.sessionmaker = create_sessionmaker(app.state.engine)
     app.state.insights = InsightsService(settings, clock, app.state.patients, app.state.labs)
+    app.state.prompts = load_prompts(settings.prompt_version)      # a missing prompt file fails at startup
+    app.state.llm = build_llm(settings, provider)
+    orchestrator = SummaryOrchestrator(settings, app.state.sessionmaker, app.state.patients, app.state.labs,
+                                       app.state.llm, app.state.prompts, clock, registry)
+    app.state.runner = JobRunner(orchestrator, settings.llm_job_deadline_s)
+    app.state.summaries = SummaryService(settings, app.state.sessionmaker, app.state.patients, app.state.runner,
+                                         app.state.llm, app.state.prompts, clock, orchestrator.tools_enabled)
 
 
 def _is_production(settings: Settings | None) -> bool:
@@ -48,17 +64,24 @@ def _is_production(settings: Settings | None) -> bool:
 
 
 def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: JwksCache | None = None,
-               patients: PatientClient | None = None, labs: LabClient | None = None) -> FastAPI:
+               patients: PatientClient | None = None, labs: LabClient | None = None,
+               provider: LLMProvider | None = None, registry=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         s = settings or get_settings()
         configure_logging(s.service_name, s.log_level)
-        build_state(app, s, clock, jwks, patients, labs)
+        build_state(app, s, clock, jwks, patients, labs, provider, registry)
         # Keep the key set fresh. A stub JWKS passed in by tests has no background refresh.
         refresher = asyncio.create_task(app.state.jwks.run_forever()) if jwks is None else None
+        reaper_task = asyncio.create_task(
+            reaper.run_forever(app.state.sessionmaker, s.llm_job_ttl_s, s.reaper_interval_s), name="reaper")
         try:
             yield
         finally:
+            reaper_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reaper_task
+            await app.state.runner.shutdown()          # running jobs write failed JOB_ABORTED (5 s grace)
             if refresher:
                 refresher.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
@@ -78,6 +101,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
     app.add_exception_handler(DBAPIError, db_error_handler)  # type: ignore[arg-type]
     app.include_router(routes_health.router)
     app.include_router(routes_insights.router)
+    app.include_router(routes_summary.router)
     mount_metrics(app)
     logging.getLogger("ai").debug("app.created")
     return app

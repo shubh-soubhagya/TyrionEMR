@@ -41,3 +41,7 @@ def test_context_and_validation_are_pure_when_they_exist():
 
 def test_routers_call_services_only():
     assert_none("api", ("app.repositories", "app.clients", "app.llm"))
+
+
+def test_llm_adapters_know_nothing_about_patients():
+    assert_none("llm", ("app.clients", "app.repositories", "app.orchestrator", "app.insights"))

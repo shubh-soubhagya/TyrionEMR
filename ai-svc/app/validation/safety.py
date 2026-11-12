@@ -19,7 +19,8 @@ _MED_TERMS = (r"(?:mg|mcg|µg|units?|dose|doses|dosing|tablets?|therapy|medicati
               r"|diuretics?|statins?|insulin|ESA)")
 
 S1 = re.compile(rf"\b{_VERBS}\b[^.;\n]{{0,40}}?\b{_MED_TERMS}\b", _I)
-S2 = re.compile(r"\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|ug|g|units?|IU|mL)\b(?!\s?/)", _I)       # 'mg/dL' is a lab unit, not a dose
+_DOSE = r"\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|ug|g|units?|IU|mL)\b(?!\s?/)"
+S2 = re.compile(_DOSE, _I)                                  # 'mg/dL' and 'g/dL' are lab units, not doses
 S3 = re.compile(r"\bnew diagnosis\b|\bdiagnosed (?:with|as)\b|\bconfirms? (?:the |a )?diagnosis\b"
                 r"|\bthis (?:indicates|represents) (?:a )?diagnosis of\b|\byou have\b", _I)
 S4 = re.compile(r"\badmit\b|\bhospitali[sz]e\b|\b(?:start|initiate)\s+dialysis\b|\bgo to the emergency\b", _I)

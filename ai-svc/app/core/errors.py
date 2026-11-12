@@ -163,6 +163,15 @@ class ValidationFailed(AppError):
         super().__init__(details=[{"field": f, "issue": m} for f, m in issues])
 
 
+class AiQuotaExceeded(AppError):
+    status_code, code = 429, "AI_QUOTA_EXCEEDED"
+    message = "You have reached today's limit for AI summaries."
+
+    def __init__(self, limit: int, resets_at: str, retry_after_s: int) -> None:
+        super().__init__(details=[{"limit": limit, "resets_at": resets_at}],
+                         headers={"Retry-After": str(max(1, retry_after_s))})
+
+
 class InsightsTooLarge(AppError):
     status_code, code = 503, "INSIGHTS_TOO_LARGE"
     message = "Too many patients for the live dashboard."

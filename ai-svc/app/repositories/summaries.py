@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import Integer, cast, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -114,6 +114,7 @@ async def reap_stale(session: AsyncSession, ttl_s: float) -> list[uuid.UUID]:
     number of replicas: only one UPDATE can match a given row (B10.7)."""
     stmt = (update(t)
             .where(t.c.status == "running", t.c.heartbeat_at < func.now() - timedelta(seconds=ttl_s))
-            .values(status="failed", error_code="JOB_TIMEOUT", finished_at=func.now())
+            .values(status="failed", error_code="JOB_TIMEOUT", finished_at=func.now(),
+                    latency_ms=cast(func.extract("epoch", func.now() - t.c.started_at) * 1000, Integer))
             .returning(t.c.id))
     return [r[0] for r in (await session.execute(stmt)).all()]

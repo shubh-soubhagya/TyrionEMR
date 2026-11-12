@@ -45,6 +45,21 @@ class MetricsMiddleware:
 UPSTREAM_CALLS = Counter("ai_upstream_calls_total", "Calls to other services", ["upstream", "outcome"])
 INSIGHTS_REFRESH = Histogram("ai_insights_refresh_seconds", "Time to recompute the insights snapshot")
 INSIGHTS_CACHE = Counter("ai_insights_cache_total", "Insights snapshot lookups", ["result"])
+AI_SUMMARIES = Counter("ai_summaries_total", "Finished summary jobs", ["status", "error_code", "cached"])
+AI_SUMMARY_DURATION = Histogram("ai_summary_duration_seconds", "Summary job duration", ["status"],
+                                buckets=(0.1, 0.5, 1, 2.5, 5, 10, 20, 40, 90, 120))
+AI_STEP_DURATION = Histogram("ai_step_duration_seconds", "Pipeline step duration", ["step"],
+                             buckets=(0.005, 0.025, 0.1, 0.5, 1, 2.5, 5, 10, 30, 90))
+LLM_REQUESTS = Counter("llm_requests_total", "LLM provider requests", ["provider", "outcome"])
+LLM_REQUEST_DURATION = Histogram("llm_request_duration_seconds", "LLM provider request duration", ["provider"])
+LLM_TOKENS = Counter("llm_tokens_total", "LLM tokens", ["provider", "direction"])
+LLM_BREAKER_OPEN = Gauge("llm_breaker_open", "1 while the circuit breaker is open", ["provider"])
+LLM_SLOTS_IN_USE = Gauge("llm_slots_in_use", "LLM concurrency slots in use")
+LLM_SLOT_WAIT = Histogram("llm_slot_wait_seconds", "Time waiting for an LLM slot")
+LLM_TOOL_CALLS = Counter("llm_tool_calls_total", "Tool calls requested by the model", ["tool", "status"])
+AI_VALIDATION = Counter("ai_validation_outcomes_total", "Validation outcomes", ["outcome"])
+AI_REAPED = Counter("ai_reaped_jobs_total", "Jobs failed by the reaper")
+AI_QUOTA_REJECTIONS = Counter("ai_quota_rejections_total", "Requests refused by the daily quota")
 DB_POOL_CHECKED_OUT = Gauge("db_pool_checked_out", "Connections currently checked out of the pool")
 DB_TRIGGER_REJECTIONS = Counter("db_trigger_rejections_total",
                                 "Writes rejected by a database trigger (a service bug: should stay 0)", ["hint"])

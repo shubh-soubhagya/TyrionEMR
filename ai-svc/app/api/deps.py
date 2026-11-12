@@ -7,6 +7,7 @@ from fastapi import Depends, Request
 from app.core.context import CallContext, get_request_id
 from app.core.errors import ValidationFailed
 from app.insights.service import InsightsService
+from app.services.summary import SummaryService
 
 
 def get_insights(request: Request) -> InsightsService:
@@ -29,5 +30,10 @@ def only_params(*allowed: str):
     return check
 
 
+def get_summaries(request: Request) -> SummaryService:
+    return request.app.state.summaries
+
+
+SummarySvc = Annotated[SummaryService, Depends(get_summaries)]
 InsightsSvc = Annotated[InsightsService, Depends(get_insights)]
 Ctx = Annotated[CallContext, Depends(call_context)]
