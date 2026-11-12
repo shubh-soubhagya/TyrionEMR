@@ -7,6 +7,7 @@ lock. A correction does not call patient-svc at all: it reuses the snapshot of t
 """
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -25,7 +26,7 @@ from app.core.errors import (
     ResultNotFound,
     problem,
 )
-from app.core.metrics import CORRECTIONS, REPORTS_CREATED, RESULTS_STORED, STATUS_REFRESH
+from app.core.metrics import CORRECTIONS, RESULTS_CREATED, STATUS_RECOMPUTE
 from app.core.security import User
 from app.domain.clock import Clock
 from app.domain.flagging import ABNORMAL_FLAGS, RangeDef, age_on, flag_for, select_range
@@ -48,8 +49,9 @@ from app.schemas.reports import (
     ResultOut,
 )
 from app.services.catalog import CatalogCache
-from app.services.patient_client import PatientDirectory
+from app.services.patient_client import PatientBasic, PatientDirectory
 
+log = logging.getLogger("lab.reports")
 DEFAULT_LAB_NAME = "Unspecified laboratory"
 
 
@@ -95,7 +97,7 @@ async def refresh_status(repo: LabRepository, patient_id: uuid.UUID, cfg: TrendC
     await repo.flush()
     version = await repo.save_status(patient_id, build_status(await repo.effective_points(patient_id), cfg,
                                                               spark_points))
-    STATUS_REFRESH.observe(time.perf_counter() - start)
+    STATUS_RECOMPUTE.observe(time.perf_counter() - start)
     return version
 
 
@@ -156,6 +158,17 @@ class ReportService:
         cat = await self._catalog.get()                                  # in-process, no database round trip
         prepared = self._validate(body, dict(cat.by_code))               # steps 2-6
         patient = await self._patients.basic(patient_id, authorization, get_request_id())     # step 7, no transaction
+        return await self._persist(patient_id, body, user, patient, prepared, cat)
+
+    async def create_with_basic(self, patient_id: uuid.UUID, body: ReportIn, user: User,
+                                patient: PatientBasic) -> CreatedReport:
+        """The same code path as ``create`` minus the HTTP call: the seed already knows the patient's sex and date
+        of birth, so flags, snapshots and the read model come from production code, not from seed SQL."""
+        cat = await self._catalog.get()
+        return await self._persist(patient_id, body, user, patient, self._validate(body, dict(cat.by_code)), cat)
+
+    async def _persist(self, patient_id: uuid.UUID, body: ReportIn, user: User, patient: PatientBasic,
+                       prepared: list[Prepared], cat) -> CreatedReport:
         collected_on = body.collected_at.date()
         if collected_on < patient.date_of_birth:                         # step 8
             raise CollectedBeforeBirth()
@@ -181,17 +194,20 @@ class ReportService:
             await audit.record(self._session, actor_id=user.id, action="lab.report.create", resource="lab_report",
                                patient_id=patient_id, resource_id=report.id,
                                details={"results": len(rows), "tests": sorted(r.test_code for r in rows)})
-        REPORTS_CREATED.inc()
         for r in rows:
-            RESULTS_STORED.labels(r.flag).inc()
+            RESULTS_CREATED.labels(r.test_code, r.flag).inc()
         flags = [r.flag for r in rows]
+        abnormal = sum(f in ABNORMAL_FLAGS for f in flags)
+        critical = sum(f.startswith("critical") for f in flags)
+        log.info("lab_report_created", extra={            # ids, counts and flags only: no values, names or notes
+            "report_id": str(report.id), "patient_id": str(patient_id), "n": len(rows), "abnormal": abnormal,
+            "critical": critical, "units_converted": sum(r.unit_original != r.unit for r in rows)})
         return CreatedReport(
             report=ReportOut(id=report.id, patient_id=patient_id, collected_at=report.collected_at.astimezone(UTC),
                              lab_name=report.lab_name, notes=report.notes, entered_by=user.id,
                              created_at=report.created_at),
             results=[created_result(r) for r in rows],
-            summary=ReportSummary(n=len(rows), abnormal=sum(f in ABNORMAL_FLAGS for f in flags),
-                                  critical=sum(f.startswith("critical") for f in flags)))
+            summary=ReportSummary(n=len(rows), abnormal=abnormal, critical=critical))
 
     async def correct(self, result_id: uuid.UUID, body: CorrectionIn, user: User) -> Correction:
         cat = await self._catalog.get()
@@ -232,8 +248,10 @@ class ReportService:
             await audit.record(self._session, actor_id=user.id, action="lab.result.correct", resource="lab_result",
                                patient_id=patient_id, resource_id=corrected.id,
                                details={"supersedes": str(target.id), "test": target.test_code})
-        CORRECTIONS.inc()
-        RESULTS_STORED.labels(corrected.flag).inc()
+        CORRECTIONS.labels(corrected.test_code).inc()
+        RESULTS_CREATED.labels(corrected.test_code, corrected.flag).inc()
+        log.info("lab_result_corrected", extra={"result_id": str(corrected.id), "patient_id": str(patient_id),
+                                                "test_code": corrected.test_code})
         return Correction(
             corrected=CorrectedOut(id=target.id, value=float(target.value), flag=target.flag),
             current=CurrentResult(

@@ -18,7 +18,7 @@ import httpx
 
 from app.core.config import Settings
 from app.core.errors import PatientNotFound, UpstreamTimeout, UpstreamUnavailable
-from app.core.metrics import UPSTREAM_CALLS
+from app.core.metrics import PATIENT_CLIENT_REQUESTS
 
 log = logging.getLogger("lab.patients")
 UPSTREAM = "patient-svc"
@@ -57,24 +57,24 @@ class PatientClient:
             except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
                 last = "connect_timeout" if isinstance(exc, httpx.ConnectTimeout) else "connect_error"
             except httpx.TimeoutException:
-                UPSTREAM_CALLS.labels(UPSTREAM, "timeout").inc()      # read or pool timeout: not retried
+                PATIENT_CLIENT_REQUESTS.labels("timeout").inc()      # read or pool timeout: not retried
                 raise UpstreamTimeout(UPSTREAM) from None
             except httpx.HTTPError:
-                UPSTREAM_CALLS.labels(UPSTREAM, "error").inc()
+                PATIENT_CLIENT_REQUESTS.labels("error").inc()
                 raise UpstreamUnavailable(UPSTREAM) from None
             else:
                 if r.status_code == 200:
                     return self._parse(r)
                 if r.status_code == 404:
-                    UPSTREAM_CALLS.labels(UPSTREAM, "not_found").inc()
+                    PATIENT_CLIENT_REQUESTS.labels("not_found").inc()
                     raise PatientNotFound(patient_id)
                 last = str(r.status_code)
                 if r.status_code not in RETRY_STATUS:
                     break
             if attempt < self._s.patient_retries:
-                UPSTREAM_CALLS.labels(UPSTREAM, "retry").inc()
+                PATIENT_CLIENT_REQUESTS.labels("retry").inc()
                 await asyncio.sleep(0.1 * 2**attempt + random.uniform(0, 0.05))  # noqa: S311 (jitter only)
-        UPSTREAM_CALLS.labels(UPSTREAM, "timeout" if last == "connect_timeout" else "error").inc()
+        PATIENT_CLIENT_REQUESTS.labels("timeout" if last == "connect_timeout" else "error").inc()
         log.warning("patient_svc.failed", extra={"last": last})
         if last == "connect_timeout":
             raise UpstreamTimeout(UPSTREAM)
@@ -86,7 +86,7 @@ class PatientClient:
             body = r.json()
             basic = PatientBasic(sex=str(body["sex"]), date_of_birth=date.fromisoformat(body["date_of_birth"]))
         except (ValueError, KeyError, TypeError):
-            UPSTREAM_CALLS.labels(UPSTREAM, "bad_response").inc()
+            PATIENT_CLIENT_REQUESTS.labels("error").inc()
             raise UpstreamUnavailable(UPSTREAM) from None
-        UPSTREAM_CALLS.labels(UPSTREAM, "ok").inc()
+        PATIENT_CLIENT_REQUESTS.labels("ok").inc()
         return basic

@@ -1,31 +1,48 @@
 -- 10000 patients, 200000 results
--- SELECT lab_results.id, lab_results.report_id, lab_results.patient_id, lab_results.collected_at, lab_results.test_code, lab_results.value, lab_results.unit, lab_results.value_original, lab_results.unit_original, lab_results.ref_low, lab_results.ref_high, lab_results.flag, lab_results.supersedes_id, lab_results.created_at 
-FROM lab_results 
-WHERE lab_results.patient_id = $1::UUID AND NOT (EXISTS (SELECT lab_results_1.id 
-FROM lab_results AS lab_results_1 
-WHERE lab_results_1.supersedes_id = lab_results.id)) ORDER BY lab_results.collected_at DESC, lab_results.created_at DESC, lab_results.id 
+-- SELECT lab_results_current.id, lab_results_current.report_id, lab_results_current.patient_id, lab_results_current.collected_at, lab_results_current.test_code, lab_results_current.value, lab_results_current.unit, lab_results_current.value_original, lab_results_current.unit_original, lab_results_current.range_id, lab_results_current.ref_low, lab_results_current.ref_high, lab_results_current.crit_low, lab_results_current.crit_high, lab_results_current.flag, lab_results_current.supersedes_id, lab_results_current.correction_reason, lab_results_current.entered_by, lab_results_current.created_at, lab_reports.lab_name, lab_tests.name AS test_name, EXISTS (SELECT * 
+FROM lab_results AS newer 
+WHERE newer.supersedes_id = lab_results_current.id) AS superseded 
+FROM lab_results_current JOIN lab_reports ON lab_reports.id = lab_results_current.report_id JOIN lab_tests ON lab_tests.code = lab_results_current.test_code 
+WHERE lab_results_current.patient_id = $1::UUID ORDER BY lab_results_current.collected_at DESC, lab_results_current.created_at DESC, lab_results_current.id 
  LIMIT $2::INTEGER OFFSET $3::INTEGER
 
-Limit  (cost=172.00..172.05 rows=20 width=192) (actual time=0.219..0.224 rows=20 loops=1)
-  Buffers: shared hit=63
-  ->  Sort  (cost=172.00..172.05 rows=20 width=192) (actual time=0.218..0.220 rows=20 loops=1)
-        Sort Key: lab_results.collected_at DESC, lab_results.created_at DESC, lab_results.id
-        Sort Method: quicksort  Memory: 30kB
-        Buffers: shared hit=63
-        ->  Nested Loop Anti Join  (cost=4.70..171.57 rows=20 width=192) (actual time=0.112..0.184 rows=20 loops=1)
-              Buffers: shared hit=63
-              ->  Bitmap Heap Scan on lab_results  (cost=4.58..80.50 rows=20 width=192) (actual time=0.075..0.117 rows=20 loops=1)
-                    Recheck Cond: (patient_id = '8c44b2e5-1fef-405b-9cff-30da771b54b4'::uuid)
-                    Heap Blocks: exact=20
-                    Buffers: shared hit=23
-                    ->  Bitmap Index Scan on lab_results_patient_test  (cost=0.00..4.57 rows=20 width=0) (actual time=0.060..0.060 rows=20 loops=1)
-                          Index Cond: (patient_id = '8c44b2e5-1fef-405b-9cff-30da771b54b4'::uuid)
-                          Buffers: shared hit=3
-              ->  Index Only Scan using lab_results_one_correction on lab_results lab_results_1  (cost=0.12..4.34 rows=1 width=16) (actual time=0.002..0.002 rows=0 loops=20)
-                    Index Cond: (supersedes_id = lab_results.id)
-                    Heap Fetches: 0
-                    Buffers: shared hit=40
+Limit  (cost=27.66..511.60 rows=20 width=285) (actual time=0.546..0.577 rows=20 loops=1)
+  Buffers: shared hit=184
+  ->  Result  (cost=27.66..511.60 rows=20 width=285) (actual time=0.543..0.572 rows=20 loops=1)
+        Buffers: shared hit=184
+        ->  Incremental Sort  (cost=27.66..348.55 rows=20 width=284) (actual time=0.488..0.491 rows=20 loops=1)
+              Sort Key: r.collected_at DESC, r.created_at DESC, r.id
+              Presorted Key: r.collected_at
+              Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 30kB  Peak Memory: 30kB
+              Buffers: shared hit=144
+              ->  Nested Loop  (cost=0.96..347.90 rows=20 width=284) (actual time=0.160..0.409 rows=20 loops=1)
+                    Join Filter: (lab_tests.code = r.test_code)
+                    Rows Removed by Join Filter: 20
+                    Buffers: shared hit=144
+                    ->  Nested Loop  (cost=0.96..344.58 rows=20 width=270) (actual time=0.118..0.348 rows=20 loops=1)
+                          Buffers: shared hit=143
+                          ->  Nested Loop Anti Join  (cost=0.54..175.83 rows=20 width=256) (actual time=0.086..0.193 rows=20 loops=1)
+                                Buffers: shared hit=63
+                                ->  Index Scan using ix_results_patient_collected on lab_results r  (cost=0.42..84.77 rows=20 width=256) (actual time=0.043..0.115 rows=20 loops=1)
+                                      Index Cond: (patient_id = 'c4bed7d5-d7cc-4e85-9b2a-4b731f21bcf7'::uuid)
+                                      Buffers: shared hit=23
+                                ->  Index Only Scan using ux_results_supersedes on lab_results s  (cost=0.12..4.34 rows=1 width=16) (actual time=0.003..0.003 rows=0 loops=20)
+                                      Index Cond: (supersedes_id = r.id)
+                                      Heap Fetches: 0
+                                      Buffers: shared hit=40
+                          ->  Index Scan using ux_reports_id_patient_collected on lab_reports  (cost=0.42..8.44 rows=1 width=30) (actual time=0.007..0.007 rows=1 loops=20)
+                                Index Cond: (id = r.report_id)
+                                Buffers: shared hit=80
+                    ->  Materialize  (cost=0.00..1.12 rows=8 width=18) (actual time=0.002..0.002 rows=2 loops=20)
+                          Buffers: shared hit=1
+                          ->  Seq Scan on lab_tests  (cost=0.00..1.08 rows=8 width=18) (actual time=0.015..0.015 rows=2 loops=1)
+                                Buffers: shared hit=1
+        SubPlan 1
+          ->  Index Only Scan using ux_results_supersedes on lab_results newer  (cost=0.12..8.14 rows=1 width=0) (actual time=0.003..0.003 rows=0 loops=20)
+                Index Cond: (supersedes_id = r.id)
+                Heap Fetches: 0
+                Buffers: shared hit=40
 Planning:
-  Buffers: shared hit=2
-Planning Time: 0.481 ms
-Execution Time: 0.473 ms
+  Buffers: shared hit=12
+Planning Time: 2.375 ms
+Execution Time: 0.971 ms

@@ -1,59 +1,95 @@
 {
   "components": {
     "schemas": {
-      "AllowedUnit": {
+      "CatalogItem": {
         "properties": {
-          "factor": {
-            "title": "Factor",
-            "type": "number"
-          },
-          "unit": {
-            "title": "Unit",
+          "canonical_unit": {
+            "title": "Canonical Unit",
             "type": "string"
-          }
-        },
-        "required": [
-          "unit",
-          "factor"
-        ],
-        "title": "AllowedUnit",
-        "type": "object"
-      },
-      "CatalogOut": {
-        "properties": {
-          "sex": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sex"
           },
-          "tests": {
-            "items": {
-              "$ref": "#/components/schemas/LabTestOut"
-            },
-            "title": "Tests",
-            "type": "array"
-          }
-        },
-        "required": [
-          "sex",
-          "tests"
-        ],
-        "title": "CatalogOut",
-        "type": "object"
-      },
-      "CategoryOut": {
-        "properties": {
           "code": {
             "title": "Code",
             "type": "string"
           },
-          "label": {
+          "decimals": {
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plausible_max": {
+            "title": "Plausible Max",
+            "type": "number"
+          },
+          "range": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ranges": {
+            "items": {
+              "$ref": "#/components/schemas/RangeOut"
+            },
+            "title": "Ranges",
+            "type": "array"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitOut"
+            },
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "canonical_unit",
+          "decimals",
+          "plausible_max",
+          "display_order",
+          "units",
+          "range",
+          "ranges"
+        ],
+        "title": "CatalogItem",
+        "type": "object"
+      },
+      "CatalogOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "rules_version": {
+            "title": "Rules Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rules_version",
+          "items"
+        ],
+        "title": "CatalogOut",
+        "type": "object"
+      },
+      "CkdBlock": {
+        "properties": {
+          "egfr_category": {
             "anyOf": [
               {
                 "type": "string"
@@ -62,17 +98,159 @@
                 "type": "null"
               }
             ],
-            "title": "Label"
+            "title": "Egfr Category"
+          },
+          "egfr_collected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Collected At"
+          },
+          "egfr_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Label"
+          },
+          "egfr_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Value"
+          },
+          "uacr_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uacr Category"
+          },
+          "uacr_collected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uacr Collected At"
+          },
+          "uacr_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uacr Label"
+          },
+          "uacr_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uacr Value"
           }
         },
         "required": [
-          "code"
+          "egfr_category",
+          "egfr_label",
+          "egfr_value",
+          "egfr_collected_at",
+          "uacr_category",
+          "uacr_label",
+          "uacr_value",
+          "uacr_collected_at"
         ],
-        "title": "CategoryOut",
+        "title": "CkdBlock",
+        "type": "object"
+      },
+      "CorrectedOut": {
+        "properties": {
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "superseded": {
+            "default": true,
+            "title": "Superseded",
+            "type": "boolean"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "value",
+          "flag"
+        ],
+        "title": "CorrectedOut",
+        "type": "object"
+      },
+      "Correction": {
+        "properties": {
+          "corrected": {
+            "$ref": "#/components/schemas/CorrectedOut"
+          },
+          "current": {
+            "$ref": "#/components/schemas/CurrentResult"
+          },
+          "status_version": {
+            "title": "Status Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "corrected",
+          "current",
+          "status_version"
+        ],
+        "title": "Correction",
         "type": "object"
       },
       "CorrectionIn": {
         "properties": {
+          "reason": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
           "unit": {
             "maxLength": 32,
             "minLength": 1,
@@ -94,9 +272,229 @@
         },
         "required": [
           "value",
-          "unit"
+          "unit",
+          "reason"
         ],
         "title": "CorrectionIn",
+        "type": "object"
+      },
+      "CreatedReport": {
+        "properties": {
+          "report": {
+            "$ref": "#/components/schemas/ReportOut"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CreatedResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ReportSummary"
+          }
+        },
+        "required": [
+          "report",
+          "results",
+          "summary"
+        ],
+        "title": "CreatedReport",
+        "type": "object"
+      },
+      "CreatedResult": {
+        "properties": {
+          "crit_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crit High"
+          },
+          "crit_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crit Low"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ref_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref High"
+          },
+          "ref_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Low"
+          },
+          "test_code": {
+            "title": "Test Code",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_original": {
+            "title": "Unit Original",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "value_original": {
+            "title": "Value Original",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "test_code",
+          "value",
+          "unit",
+          "value_original",
+          "unit_original",
+          "ref_low",
+          "ref_high",
+          "crit_low",
+          "crit_high",
+          "flag"
+        ],
+        "title": "CreatedResult",
+        "type": "object"
+      },
+      "CurrentResult": {
+        "properties": {
+          "correction_reason": {
+            "title": "Correction Reason",
+            "type": "string"
+          },
+          "crit_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crit High"
+          },
+          "crit_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crit Low"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ref_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref High"
+          },
+          "ref_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Low"
+          },
+          "supersedes_id": {
+            "format": "uuid",
+            "title": "Supersedes Id",
+            "type": "string"
+          },
+          "test_code": {
+            "title": "Test Code",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_original": {
+            "title": "Unit Original",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "value_original": {
+            "title": "Value Original",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "supersedes_id",
+          "test_code",
+          "value",
+          "unit",
+          "value_original",
+          "unit_original",
+          "ref_low",
+          "ref_high",
+          "crit_low",
+          "crit_high",
+          "flag",
+          "correction_reason"
+        ],
+        "title": "CurrentResult",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -112,69 +510,171 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
-      "LabTestOut": {
+      "HistoryItem": {
         "properties": {
-          "allowed_units": {
-            "items": {
-              "$ref": "#/components/schemas/AllowedUnit"
-            },
-            "title": "Allowed Units",
-            "type": "array"
-          },
-          "canonical_unit": {
-            "title": "Canonical Unit",
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
             "type": "string"
           },
-          "code": {
-            "title": "Code",
+          "flag": {
+            "title": "Flag",
             "type": "string"
           },
-          "decimals": {
-            "title": "Decimals",
-            "type": "integer"
-          },
-          "max_value": {
-            "title": "Max Value",
-            "type": "number"
-          },
-          "name": {
-            "title": "Name",
+          "id": {
+            "format": "uuid",
+            "title": "Id",
             "type": "string"
           },
-          "reference_range": {
+          "is_correction": {
+            "title": "Is Correction",
+            "type": "boolean"
+          },
+          "lab_name": {
+            "title": "Lab Name",
+            "type": "string"
+          },
+          "ref_high": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ReferenceRangeOut"
+                "type": "number"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Ref High"
+          },
+          "ref_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Low"
+          },
+          "report_id": {
+            "format": "uuid",
+            "title": "Report Id",
+            "type": "string"
+          },
+          "superseded": {
+            "title": "Superseded",
+            "type": "boolean"
+          },
+          "test_code": {
+            "title": "Test Code",
+            "type": "string"
+          },
+          "test_name": {
+            "title": "Test Name",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_original": {
+            "title": "Unit Original",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "value_original": {
+            "title": "Value Original",
+            "type": "number"
           }
         },
         "required": [
-          "code",
-          "name",
-          "canonical_unit",
-          "allowed_units",
-          "decimals",
-          "max_value",
-          "reference_range"
+          "id",
+          "report_id",
+          "test_code",
+          "test_name",
+          "collected_at",
+          "value",
+          "unit",
+          "value_original",
+          "unit_original",
+          "ref_low",
+          "ref_high",
+          "flag",
+          "lab_name",
+          "is_correction",
+          "superseded"
         ],
-        "title": "LabTestOut",
+        "title": "HistoryItem",
+        "type": "object"
+      },
+      "InternalResultsPage": {
+        "description": "The internal mirror (LLD B7.8): capped by ``limit`` instead of paged, and told when the cap cut rows, so an\nAI tool can say the data was truncated instead of presenting a partial list as complete.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total",
+          "truncated"
+        ],
+        "title": "InternalResultsPage",
+        "type": "object"
+      },
+      "LatestEgfr": {
+        "properties": {
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "flag",
+          "collected_at"
+        ],
+        "title": "LatestEgfr",
         "type": "object"
       },
       "LatestOut": {
         "properties": {
-          "egfr_category": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CategoryOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "ckd": {
+            "$ref": "#/components/schemas/CkdBlock"
           },
           "has_critical": {
             "title": "Has Critical",
@@ -192,14 +692,6 @@
             ],
             "title": "Last Result At"
           },
-          "latest": {
-            "additionalProperties": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Latest",
-            "type": "object"
-          },
           "patient_id": {
             "format": "uuid",
             "title": "Patient Id",
@@ -209,31 +701,148 @@
             "title": "Rapid Decline",
             "type": "boolean"
           },
-          "uacr_category": {
+          "status_version": {
+            "title": "Status Version",
+            "type": "integer"
+          },
+          "tests": {
+            "items": {
+              "$ref": "#/components/schemas/LatestTile"
+            },
+            "title": "Tests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "patient_id",
+          "tests",
+          "ckd",
+          "has_critical",
+          "rapid_decline",
+          "last_result_at",
+          "status_version"
+        ],
+        "title": "LatestOut",
+        "type": "object"
+      },
+      "LatestResult": {
+        "properties": {
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "ref_high": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CategoryOut"
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref High"
+          },
+          "ref_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Low"
+          },
+          "report_id": {
+            "format": "uuid",
+            "title": "Report Id",
+            "type": "string"
+          },
+          "result_id": {
+            "format": "uuid",
+            "title": "Result Id",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "result_id",
+          "report_id",
+          "value",
+          "flag",
+          "collected_at",
+          "ref_low",
+          "ref_high"
+        ],
+        "title": "LatestResult",
+        "type": "object"
+      },
+      "LatestTile": {
+        "properties": {
+          "canonical_unit": {
+            "title": "Canonical Unit",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestResult"
               },
               {
                 "type": "null"
               }
             ]
+          },
+          "test_code": {
+            "title": "Test Code",
+            "type": "string"
           }
         },
         "required": [
-          "patient_id",
-          "latest",
-          "egfr_category",
-          "uacr_category",
-          "has_critical",
-          "rapid_decline",
-          "last_result_at"
+          "test_code",
+          "name",
+          "canonical_unit",
+          "result"
         ],
-        "title": "LatestOut",
+        "title": "LatestTile",
         "type": "object"
       },
-      "ReferenceRangeOut": {
+      "RangeOut": {
         "properties": {
+          "age_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Max"
+          },
+          "age_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Min"
+          },
           "critical_high": {
             "anyOf": [
               {
@@ -278,19 +887,75 @@
             ],
             "title": "Low"
           },
+          "range_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Id"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
           "text": {
             "title": "Text",
             "type": "string"
           }
         },
         "required": [
+          "range_id",
           "low",
           "high",
           "critical_low",
           "critical_high",
           "text"
         ],
-        "title": "ReferenceRangeOut",
+        "title": "RangeOut",
+        "type": "object"
+      },
+      "Reference": {
+        "properties": {
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          }
+        },
+        "required": [
+          "low",
+          "high"
+        ],
+        "title": "Reference",
         "type": "object"
       },
       "ReportIn": {
@@ -315,7 +980,7 @@
           "notes": {
             "anyOf": [
               {
-                "maxLength": 2000,
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -353,21 +1018,19 @@
             "title": "Created At",
             "type": "string"
           },
+          "entered_by": {
+            "format": "uuid",
+            "title": "Entered By",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "lab_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lab Name"
+            "title": "Lab Name",
+            "type": "string"
           },
           "notes": {
             "anyOf": [
@@ -384,13 +1047,6 @@
             "format": "uuid",
             "title": "Patient Id",
             "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/ResultOut"
-            },
-            "title": "Results",
-            "type": "array"
           }
         },
         "required": [
@@ -399,10 +1055,33 @@
           "collected_at",
           "lab_name",
           "notes",
-          "created_at",
-          "results"
+          "entered_by",
+          "created_at"
         ],
         "title": "ReportOut",
+        "type": "object"
+      },
+      "ReportSummary": {
+        "properties": {
+          "abnormal": {
+            "title": "Abnormal",
+            "type": "integer"
+          },
+          "critical": {
+            "title": "Critical",
+            "type": "integer"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "n",
+          "abnormal",
+          "critical"
+        ],
+        "title": "ReportSummary",
         "type": "object"
       },
       "ResultIn": {
@@ -440,110 +1119,11 @@
         "title": "ResultIn",
         "type": "object"
       },
-      "ResultOut": {
-        "properties": {
-          "collected_at": {
-            "format": "date-time",
-            "title": "Collected At",
-            "type": "string"
-          },
-          "flag": {
-            "title": "Flag",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "patient_id": {
-            "format": "uuid",
-            "title": "Patient Id",
-            "type": "string"
-          },
-          "ref_high": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ref High"
-          },
-          "ref_low": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ref Low"
-          },
-          "report_id": {
-            "format": "uuid",
-            "title": "Report Id",
-            "type": "string"
-          },
-          "supersedes_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Supersedes Id"
-          },
-          "test_code": {
-            "title": "Test Code",
-            "type": "string"
-          },
-          "unit": {
-            "title": "Unit",
-            "type": "string"
-          },
-          "unit_original": {
-            "title": "Unit Original",
-            "type": "string"
-          },
-          "value": {
-            "title": "Value",
-            "type": "number"
-          },
-          "value_original": {
-            "title": "Value Original",
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "report_id",
-          "patient_id",
-          "test_code",
-          "collected_at",
-          "value",
-          "unit",
-          "value_original",
-          "unit_original",
-          "ref_low",
-          "ref_high",
-          "flag",
-          "supersedes_id"
-        ],
-        "title": "ResultOut",
-        "type": "object"
-      },
       "ResultsPage": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/ResultOut"
+              "$ref": "#/components/schemas/HistoryItem"
             },
             "title": "Items",
             "type": "array"
@@ -563,11 +1143,29 @@
         },
         "required": [
           "items",
-          "total",
           "page",
-          "size"
+          "size",
+          "total"
         ],
         "title": "ResultsPage",
+        "type": "object"
+      },
+      "StageBand": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "lower": {
+            "title": "Lower",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "lower"
+        ],
+        "title": "StageBand",
         "type": "object"
       },
       "StatusItem": {
@@ -640,6 +1238,10 @@
             "title": "Rapid Decline",
             "type": "boolean"
           },
+          "result_count": {
+            "title": "Result Count",
+            "type": "integer"
+          },
           "uacr_category": {
             "anyOf": [
               {
@@ -661,6 +1263,7 @@
           "creat_stats",
           "has_critical",
           "rapid_decline",
+          "result_count",
           "last_result_at"
         ],
         "title": "StatusItem",
@@ -708,20 +1311,23 @@
             ],
             "title": "Egfr Category"
           },
-          "egfr_spark": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Egfr Spark",
-            "type": "array"
+          "egfr_direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Direction"
           },
           "has_critical": {
             "title": "Has Critical",
             "type": "boolean"
           },
-          "has_data": {
-            "title": "Has Data",
+          "has_results": {
+            "title": "Has Results",
             "type": "boolean"
           },
           "last_result_at": {
@@ -739,14 +1345,12 @@
           "latest_egfr": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/LatestEgfr"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Latest Egfr"
+            ]
           },
           "patient_id": {
             "format": "uuid",
@@ -756,14 +1360,23 @@
           "rapid_decline": {
             "title": "Rapid Decline",
             "type": "boolean"
+          },
+          "spark": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Spark",
+            "type": "array"
           }
         },
         "required": [
           "patient_id",
-          "has_data",
+          "has_results",
           "latest_egfr",
           "egfr_category",
-          "egfr_spark",
+          "egfr_direction",
+          "spark",
           "has_critical",
           "rapid_decline",
           "last_result_at"
@@ -798,27 +1411,10 @@
             "title": "Flag",
             "type": "string"
           },
-          "ref_high": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ref High"
-          },
-          "ref_low": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ref Low"
+          "result_id": {
+            "format": "uuid",
+            "title": "Result Id",
+            "type": "string"
           },
           "value": {
             "title": "Value",
@@ -826,11 +1422,10 @@
           }
         },
         "required": [
+          "result_id",
           "collected_at",
           "value",
-          "flag",
-          "ref_low",
-          "ref_high"
+          "flag"
         ],
         "title": "TrendPoint",
         "type": "object"
@@ -844,17 +1439,34 @@
             "title": "Points",
             "type": "array"
           },
-          "stats": {
+          "reference": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage_bands": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/StageBand"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Stats"
+            "title": "Stage Bands"
+          },
+          "stats": {
+            "additionalProperties": true,
+            "title": "Stats",
+            "type": "object"
           },
           "test_code": {
             "title": "Test Code",
@@ -869,13 +1481,26 @@
           "test_code",
           "unit",
           "points",
-          "stats"
+          "stats",
+          "reference"
         ],
         "title": "TrendSeries",
         "type": "object"
       },
       "TrendsOut": {
         "properties": {
+          "from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
           "patient_id": {
             "format": "uuid",
             "title": "Patient Id",
@@ -887,13 +1512,45 @@
             },
             "title": "Series",
             "type": "array"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
           }
         },
         "required": [
           "patient_id",
+          "from",
+          "to",
           "series"
         ],
         "title": "TrendsOut",
+        "type": "object"
+      },
+      "UnitOut": {
+        "properties": {
+          "factor": {
+            "title": "Factor",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit",
+          "factor"
+        ],
+        "title": "UnitOut",
         "type": "object"
       },
       "ValidationError": {
@@ -969,6 +1626,7 @@
     },
     "/internal/labs/patients/{patient_id}/latest": {
       "get": {
+        "description": "Latest result per test plus the CKD block. ``ETag: W/\"status-<version>\"`` makes a re-poll cheap.",
         "operationId": "latest_internal_labs_patients__patient_id__latest_get",
         "parameters": [
           {
@@ -1012,7 +1670,7 @@
     },
     "/internal/labs/patients/{patient_id}/results": {
       "get": {
-        "operationId": "results_internal_labs_patients__patient_id__results_get",
+        "operationId": "internal_results_internal_labs_patients__patient_id__results_get",
         "parameters": [
           {
             "in": "path",
@@ -1076,7 +1734,6 @@
             }
           },
           {
-            "description": "abnormal | normal | low | high | critical_low | ...",
             "in": "query",
             "name": "flag",
             "required": false,
@@ -1089,8 +1746,24 @@
                   "type": "null"
                 }
               ],
-              "description": "abnormal | normal | low | high | critical_low | ...",
               "title": "Flag"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Report Id"
             }
           },
           {
@@ -1104,25 +1777,16 @@
             }
           },
           {
+            "description": "AI tool results are capped (HLD 10.4)",
             "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "title": "Page",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "size",
+            "name": "limit",
             "required": false,
             "schema": {
               "default": 50,
-              "maximum": 200,
+              "description": "AI tool results are capped (HLD 10.4)",
+              "maximum": 50,
               "minimum": 1,
-              "title": "Size",
+              "title": "Limit",
               "type": "integer"
             }
           }
@@ -1132,7 +1796,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResultsPage"
+                  "$ref": "#/components/schemas/InternalResultsPage"
                 }
               }
             },
@@ -1149,7 +1813,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Results",
+        "summary": "Internal Results",
         "tags": [
           "internal"
         ]
@@ -1170,13 +1834,13 @@
             }
           },
           {
-            "description": "Comma separated, e.g. CREAT,EGFR",
+            "description": "Comma separated codes, e.g. CREAT,EGFR",
             "in": "query",
             "name": "tests",
             "required": false,
             "schema": {
               "default": "CREAT,EGFR",
-              "description": "Comma separated, e.g. CREAT,EGFR",
+              "description": "Comma separated codes, e.g. CREAT,EGFR",
               "title": "Tests",
               "type": "string"
             }
@@ -1246,7 +1910,7 @@
     },
     "/internal/labs/status": {
       "get": {
-        "description": "Bulk read of the read model for the worklist and dashboard; cursor = last patient_id of the previous page.",
+        "description": "Bulk read of the read model for the worklist and dashboard. Keyset paging: ``cursor`` is the\n``next_cursor`` of the previous page (the last patient_id).",
         "operationId": "status_internal_labs_status_get",
         "parameters": [
           {
@@ -1256,7 +1920,6 @@
             "schema": {
               "anyOf": [
                 {
-                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -1272,7 +1935,7 @@
             "required": false,
             "schema": {
               "default": 200,
-              "maximum": 1000,
+              "maximum": 200,
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
@@ -1309,6 +1972,7 @@
     },
     "/labs/patients/{patient_id}/latest": {
       "get": {
+        "description": "Latest result per test plus the CKD block. ``ETag: W/\"status-<version>\"`` makes a re-poll cheap.",
         "operationId": "latest_labs_patients__patient_id__latest_get",
         "parameters": [
           {
@@ -1380,7 +2044,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReportOut"
+                  "$ref": "#/components/schemas/CreatedReport"
                 }
               }
             },
@@ -1435,6 +2099,7 @@
             }
           },
           {
+            "description": "inclusive",
             "in": "query",
             "name": "from",
             "required": false,
@@ -1448,10 +2113,12 @@
                   "type": "null"
                 }
               ],
+              "description": "inclusive",
               "title": "From"
             }
           },
           {
+            "description": "exclusive",
             "in": "query",
             "name": "to",
             "required": false,
@@ -1465,11 +2132,12 @@
                   "type": "null"
                 }
               ],
+              "description": "exclusive",
               "title": "To"
             }
           },
           {
-            "description": "abnormal | normal | low | high | critical_low | ...",
+            "description": "abnormal | critical | unknown | normal",
             "in": "query",
             "name": "flag",
             "required": false,
@@ -1482,8 +2150,25 @@
                   "type": "null"
                 }
               ],
-              "description": "abnormal | normal | low | high | critical_low | ...",
+              "description": "abnormal | critical | unknown | normal",
               "title": "Flag"
+            }
+          },
+          {
+            "in": "query",
+            "name": "report_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Report Id"
             }
           },
           {
@@ -1512,8 +2197,7 @@
             "name": "size",
             "required": false,
             "schema": {
-              "default": 50,
-              "maximum": 200,
+              "default": 10,
               "minimum": 1,
               "title": "Size",
               "type": "integer"
@@ -1563,13 +2247,13 @@
             }
           },
           {
-            "description": "Comma separated, e.g. CREAT,EGFR",
+            "description": "Comma separated codes, e.g. CREAT,EGFR",
             "in": "query",
             "name": "tests",
             "required": false,
             "schema": {
               "default": "CREAT,EGFR",
-              "description": "Comma separated, e.g. CREAT,EGFR",
+              "description": "Comma separated codes, e.g. CREAT,EGFR",
               "title": "Tests",
               "type": "string"
             }
@@ -1639,7 +2323,7 @@
     },
     "/labs/results/{result_id}/correct": {
       "post": {
-        "description": "Appends a correction that supersedes the result. The original row is kept.",
+        "description": "Appends a correction that supersedes the result. The original row is kept; no patient-svc call is made.",
         "operationId": "correct_result_labs_results__result_id__correct_post",
         "parameters": [
           {
@@ -1668,7 +2352,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResultOut"
+                  "$ref": "#/components/schemas/Correction"
                 }
               }
             },
@@ -1693,16 +2377,16 @@
     },
     "/labs/summary": {
       "get": {
-        "description": "Batch for list rows: latest eGFR, category, sparkline, attention flags. Every requested id is returned;\none with no results has ``has_data: false``.",
+        "description": "Batch for list rows: latest eGFR, category, sparkline and attention flags. One entry per requested id, in\nrequest order; an id with no results has ``has_results: false``.",
         "operationId": "summary_labs_summary_get",
         "parameters": [
           {
-            "description": "Comma separated ids, at most 50",
+            "description": "Comma separated ids, 1 to 50",
             "in": "query",
             "name": "patient_ids",
             "required": true,
             "schema": {
-              "description": "Comma separated ids, at most 50",
+              "description": "Comma separated ids, 1 to 50",
               "title": "Patient Ids",
               "type": "string"
             }
@@ -1738,11 +2422,11 @@
     },
     "/labs/tests": {
       "get": {
-        "description": "Test catalog: units, factors, plausibility limit and the reference range for ``sex`` (feeds the\nlab form preview). Without ``sex`` only sex-independent ranges are returned.",
+        "description": "Catalog for the lab form preview: units with exact factors, plausibility limit and reference ranges.\nThe server stays authoritative; this only lets the browser show the flag while typing.",
         "operationId": "list_tests_labs_tests_get",
         "parameters": [
           {
-            "description": "Selects sex-specific ranges",
+            "description": "Selects the range that applies",
             "in": "query",
             "name": "sex",
             "required": false,
@@ -1751,7 +2435,8 @@
                 {
                   "enum": [
                     "M",
-                    "F"
+                    "F",
+                    "O"
                   ],
                   "type": "string"
                 },
@@ -1759,8 +2444,26 @@
                   "type": "null"
                 }
               ],
-              "description": "Selects sex-specific ranges",
+              "description": "Selects the range that applies",
               "title": "Sex"
+            }
+          },
+          {
+            "in": "query",
+            "name": "age",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 130,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Age"
             }
           }
         ],

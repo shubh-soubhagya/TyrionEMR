@@ -9,6 +9,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.context import route_template
 
+HTTP_REQUESTS = Counter("http_requests_total", "HTTP requests", ["route", "method", "status"])
 HTTP_DURATION = Histogram(
     "http_request_duration_seconds",
     "HTTP request duration",
@@ -26,7 +27,7 @@ class MetricsMiddleware:
             await self.app(scope, receive, send)
             return
         start = time.perf_counter()
-        
+
         status = 500
 
         async def send_wrapper(message: Message) -> None:
@@ -40,14 +41,18 @@ class MetricsMiddleware:
         finally:
             route = route_template(scope)
             if route != "/metrics":
+                HTTP_REQUESTS.labels(route, scope["method"], str(status)).inc()
                 HTTP_DURATION.labels(route, scope["method"], str(status)).observe(time.perf_counter() - start)
 
 
-REPORTS_CREATED = Counter("lab_reports_created_total", "Lab reports created")
-RESULTS_STORED = Counter("lab_results_stored_total", "Lab results stored", ["flag"])
-CORRECTIONS = Counter("lab_corrections_total", "Result corrections appended")
-UPSTREAM_CALLS = Counter("lab_upstream_calls_total", "Calls to other services", ["upstream", "outcome"])
-STATUS_REFRESH = Histogram("lab_status_refresh_seconds", "Time to recompute patient_lab_status")
+# domain metrics (LLD B12). Labels are codes and flags only, never values.
+RESULTS_CREATED = Counter("lab_results_created_total", "Results stored (originals and corrections)",
+                          ["test_code", "flag"])
+CORRECTIONS = Counter("lab_corrections_total", "Result corrections appended", ["test_code"])
+STATUS_RECOMPUTE = Histogram("lab_status_recompute_seconds", "Time to recompute patient_lab_status")
+PATIENT_CLIENT_REQUESTS = Counter("lab_patient_client_requests_total", "Calls to patient-svc by outcome", ["outcome"])
+ADVISORY_LOCK_WAIT = Histogram("lab_advisory_lock_wait_seconds", "Time waiting for the per-patient advisory lock",
+                               buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2))
 CATALOG_RELOADS = Counter("lab_catalog_reload_total", "Catalog cache reloads", ["result"])
 DB_POOL_CHECKED_OUT = Gauge("db_pool_checked_out", "Connections currently checked out of the pool")
 DB_TRIGGER_REJECTIONS = Counter("db_trigger_rejections_total",

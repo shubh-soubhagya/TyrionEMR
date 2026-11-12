@@ -1,6 +1,7 @@
 """Settings (LLD Â§21). All values come from environment variables; defaults suit local development."""
 from __future__ import annotations
 
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -50,6 +51,9 @@ class Settings(BaseSettings):
     egfr_stable_band: float = 2.0               # mL/min/1.73 m2 per year
     creat_stable_band: float = 0.1              # mg/dL per year
     egfr_rapid_decline: float = -5.0            # slope at or below this is rapid decline
+    # synthetic data (development only)
+    seed_anchor_date: date | None = None        # day the demo data counts back from; default today
+    seed_allow_reset: bool = False              # must be true for `seed_labs --reset`
     # patient-svc: read only, and only when creating a report (HLD section 9)
     patient_svc_url: str = "http://patient-svc:8000"
     patient_connect_timeout_s: float = 1.0

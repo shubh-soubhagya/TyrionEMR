@@ -1,6 +1,7 @@
 """Queries for reports, results and the read model. No business rules here."""
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Sequence
 from datetime import datetime
@@ -10,6 +11,7 @@ from sqlalchemy import MetaData, Row, Table, exists, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.metrics import ADVISORY_LOCK_WAIT
 from app.domain.flagging import ABNORMAL_FLAGS
 from app.domain.status import ResultPoint
 from app.models import LabReport, LabResult, LabTest, PatientLabStatus
@@ -31,8 +33,10 @@ class LabRepository:
 
     async def lock_patient(self, patient_id: uuid.UUID) -> None:
         """Serialises writers of one patient so the read model is recomputed from a consistent set."""
+        start = time.perf_counter()
         await self._s.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:k, 0))"),
                               {"k": f"lab:{patient_id}"})
+        ADVISORY_LOCK_WAIT.observe(time.perf_counter() - start)
 
     def add(self, *rows: LabReport | LabResult) -> None:
         self._s.add_all(rows)

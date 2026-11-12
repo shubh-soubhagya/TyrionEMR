@@ -90,8 +90,8 @@ async def main() -> int:
         s = AsyncSession(bind=conn)
         repo = LabRepository(s)
         cases = [
-            ("results_history_page1", lambda: repo.list_results(pid, flag=None, **PAGE1)),
-            ("results_abnormal_only", lambda: repo.list_results(pid, flag="abnormal", **PAGE1)),
+            ("results_history_page1", lambda: repo.list_results(pid, flag=None, report_id=None, **PAGE1)),
+            ("results_abnormal_only", lambda: repo.list_results(pid, flag="abnormal", report_id=None, **PAGE1)),
             ("trend_series_egfr", lambda: repo.series(pid, ["EGFR"], None, None)),
             ("status_by_primary_key", lambda: repo.status(pid)),
             ("summary_50_ids", lambda: repo.statuses(ids)),

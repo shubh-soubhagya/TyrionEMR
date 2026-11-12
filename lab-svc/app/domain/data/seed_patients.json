@@ -1,0 +1,55 @@
+{
+  "note": "Sex and date of birth of the ten synthetic patients. Must equal patient-svc's seed (a test compares them when both are checked out). All data is invented.",
+  "patients": [
+    {
+      "mrn": "PT-000101",
+      "sex": "M",
+      "date_of_birth": "1959-04-17"
+    },
+    {
+      "mrn": "PT-000102",
+      "sex": "F",
+      "date_of_birth": "1971-01-05"
+    },
+    {
+      "mrn": "PT-000103",
+      "sex": "M",
+      "date_of_birth": "1985-07-30"
+    },
+    {
+      "mrn": "PT-000104",
+      "sex": "F",
+      "date_of_birth": "1948-12-01"
+    },
+    {
+      "mrn": "PT-000105",
+      "sex": "M",
+      "date_of_birth": "1990-03-12"
+    },
+    {
+      "mrn": "PT-000106",
+      "sex": "F",
+      "date_of_birth": "1955-09-23"
+    },
+    {
+      "mrn": "PT-000107",
+      "sex": "M",
+      "date_of_birth": "1962-06-14"
+    },
+    {
+      "mrn": "PT-000108",
+      "sex": "F",
+      "date_of_birth": "1996-11-08"
+    },
+    {
+      "mrn": "PT-000109",
+      "sex": "M",
+      "date_of_birth": "1973-02-19"
+    },
+    {
+      "mrn": "PT-000110",
+      "sex": "F",
+      "date_of_birth": "1992-04-20"
+    }
+  ]
+}

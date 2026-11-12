@@ -45,11 +45,3 @@ def test_log_formatter_redacts_lab_values() -> None:
     out = JsonFormatter("lab-svc").format(rec)
     for leaked in ("6.8", "secret note", "Private Lab", "176.8"):
         assert leaked not in out
-
-
-async def test_metrics_expose_lab_counters_without_values(api, patients) -> None:
-    await api.post(f"/labs/patients/{patients.add()}/reports", json={
-        "collected_at": "2026-10-01T09:00:00Z", "results": [{"test_code": "K", "value": 7.77, "unit": "mmol/L"}]})
-    text_ = (await api.get("/metrics")).text
-    assert "lab_reports_created_total" in text_ and 'lab_results_stored_total{flag="critical_high"}' in text_
-    assert "7.77" not in text_

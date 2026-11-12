@@ -42,9 +42,11 @@ seed:
 	$(PY) -m app.cli.seed_labs
 seed-reset:
 	$(PY) -m app.cli.seed_catalog
-	$(PY) -m app.cli.seed_labs --reset
+	SEED_ALLOW_RESET=true $(PY) -m app.cli.seed_labs --reset
 rebuild-status:
 	$(PY) -m app.cli.rebuild_status
+check-status:
+	$(PY) -m app.cli.rebuild_status --check
 openapi:
 	$(PY) -m app.cli.export_openapi
 explain:
