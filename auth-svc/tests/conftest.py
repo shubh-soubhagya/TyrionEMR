@@ -16,6 +16,8 @@ def make_settings(**overrides) -> Settings:
         jwt_private_key_path="unused",
         argon2_time_cost=1, argon2_memory_kib=1024, argon2_parallelism=1,   # cheap hashing in tests (LLD §25)
         cookie_secure=True,
+        environment="test",
+        rate_limit_enabled=False,      # dedicated tests turn it on; lockout tests send many logins from one IP
         _env_file=None,
     )
     base.update(overrides)

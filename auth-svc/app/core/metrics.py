@@ -58,3 +58,5 @@ AUTH_REUSE = Counter("auth_refresh_reuse_detected_total", "Refresh token reuse d
 ARGON2_SECONDS = Histogram("auth_argon2_seconds", "Argon2 duration", ["op"],
                            buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5))
 ARGON2_INFLIGHT = Gauge("auth_argon2_inflight", "Concurrent argon2 operations")
+ARGON2_REJECTED = Counter("auth_argon2_rejected_total", "Hash requests rejected: queue wait timed out")
+RATE_LIMITED = Counter("auth_rate_limited_total", "Requests rejected by the in-process rate limiter", ["route"])

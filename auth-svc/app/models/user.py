@@ -20,5 +20,6 @@ class User(Base):
     failed_login_count: Mapped[int] = mapped_column(nullable=False, server_default=text("0"))
     locked_until: Mapped[datetime | None]
     last_login_at: Mapped[datetime | None]
+    last_failed_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())

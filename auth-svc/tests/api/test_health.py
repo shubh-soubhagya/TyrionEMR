@@ -52,7 +52,9 @@ async def test_ready_is_503_when_the_database_is_unreachable(migrated_db, rsa_ke
 
 
 async def test_head_revision_matches_the_migration_files():
-    assert head_revision() == "0001"
+    from pathlib import Path
+    newest = max(p.name.split("_")[0] for p in (Path(__file__).parents[2] / "migrations" / "versions").glob("0*.py"))
+    assert head_revision() == newest
 
 
 async def test_metrics_endpoint_exposes_auth_and_http_metrics(client, make_user):

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
 
     service_name: str = "auth-svc"
+    environment: Literal["development", "test", "production"] = "development"
+    allow_public_signup_in_production: bool = False
     log_level: str = "INFO"
 
     auth_database_url: str
@@ -46,11 +48,18 @@ class Settings(BaseSettings):
     login_max_attempts: int = 5
     login_lock_minutes: int = 15
     lockout_reveal: bool = True
+    login_failure_window_minutes: int = 15      # failures older than this no longer count toward lockout
+
+    # In-process per-IP token bucket (per worker process). The gateway is the real limiter.
+    rate_limit_enabled: bool = True
+    rate_limit_login_per_min: int = 10          # sustained refill rate
+    rate_limit_login_burst: int = 5             # bucket size: requests allowed back-to-back
 
     argon2_time_cost: int = 3
     argon2_memory_kib: int = 65536
     argon2_parallelism: int = 4
     argon2_max_concurrency: int = 4
+    argon2_queue_timeout_s: float = 2.0         # max wait for a hash slot before 503 SERVICE_BUSY
 
     seed_demo_users: bool = False
     uvicorn_workers: int = 2

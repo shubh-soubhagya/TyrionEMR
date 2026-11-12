@@ -27,6 +27,7 @@ from app.core.errors import (
     RefreshInvalid,
     RefreshRace,
     RefreshReused,
+    ServiceBusy,
     SignupDisabled,
 )
 from app.domain.clock import Clock
@@ -114,18 +115,23 @@ class AuthService:
         return SessionResult(user, access, ttl, raw, rt_exp)
 
     # ----------------------------------------------------------------- login
+    def _locked_error(self, until: datetime | None, now: datetime) -> Exception:
+        """429 ACCOUNT_LOCKED, or the generic 401 when LOCKOUT_REVEAL=false."""
+        if self._s.lockout_reveal and until is not None:
+            return AccountLocked(retry_after=max(1, math.ceil((until - now).total_seconds())))
+        return InvalidCredentials()
+
+    async def _release(self, user_id: uuid.UUID) -> None:
+        async with self._sm() as session, session.begin():
+            await self._users.release_attempt(session, user_id)
+
     async def login(self, data: LoginIn, user_agent: str | None) -> SessionResult:
+        """Attempt reservation (LLD §19.2). An attempt is reserved atomically BEFORE the password is
+        verified, so N parallel guesses can only ever try ``login_max_attempts`` passwords. A correct
+        password re-checks the lock under a row lock, so it can never succeed after the account locked."""
         now = self._clock()
         async with self._sm() as session:
             user = await self._users.get_by_email(session, data.email)
-
-        # A locked account is rejected BEFORE any hashing: no signal, no CPU cost (LLD §19.2)
-        if user and user.locked_until and user.locked_until > now:
-            metrics.AUTH_LOGIN.labels("locked").inc()
-            log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
-            if self._s.lockout_reveal:
-                raise AccountLocked(retry_after=math.ceil((user.locked_until - now).total_seconds()))
-            raise InvalidCredentials()
 
         if user is None:
             await self._hasher.verify_dummy(data.password)   # equalize timing for unknown emails
@@ -133,30 +139,71 @@ class AuthService:
             log.info("auth.login.failure", extra={"reason": "unknown_user"})
             raise InvalidCredentials()
 
-        if not await self._hasher.verify(user.password_hash, data.password):
-            async with self._sm() as session, session.begin():
-                locked_until = await self._users.register_failure(
-                    session, user.id, self._s.login_max_attempts, self._s.login_lock_minutes, now)
+        # Fast path: a locked account is rejected before any hashing (no signal, no CPU cost)
+        if user.locked_until and user.locked_until > now:
+            metrics.AUTH_LOGIN.labels("locked").inc()
+            log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
+            raise self._locked_error(user.locked_until, now)
+
+        # Reserve an attempt. No row back = locked meanwhile, or all attempts already taken by
+        # in-flight requests: lock the account (idempotent) and answer as for a locked account.
+        locked_until: datetime | None = None
+        async with self._sm() as session, session.begin():
+            count = await self._users.reserve_attempt(
+                session, user.id, self._s.login_max_attempts, self._s.login_failure_window_minutes, now)
+            if count is None:
+                locked_until = await self._users.lock_out(session, user.id, self._s.login_lock_minutes, now)
+        if count is None:
+            metrics.AUTH_LOGIN.labels("locked").inc()
+            log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
+            raise self._locked_error(locked_until, now)
+
+        try:
+            correct = await self._hasher.verify(user.password_hash, data.password)
+        except ServiceBusy:
+            await self._release(user.id)        # overload must not push a user toward lockout
+            metrics.AUTH_LOGIN.labels("busy").inc()
+            raise
+
+        if not correct:
+            if count >= self._s.login_max_attempts:      # this was the last allowed attempt
+                async with self._sm() as session, session.begin():
+                    locked_until = await self._users.lock_out(
+                        session, user.id, self._s.login_lock_minutes, now)
+                log.warning("auth.account.locked", extra={
+                    "user_id": str(user.id), "until": locked_until.isoformat() if locked_until else None})
             metrics.AUTH_LOGIN.labels("bad_password").inc()
             log.info("auth.login.failure", extra={"reason": "bad_password", "user_id": str(user.id)})
-            if locked_until is not None and locked_until > now:
-                log.warning("auth.account.locked", extra={"user_id": str(user.id), "until": locked_until.isoformat()})
-            raise InvalidCredentials()   # the 5th failure still returns 401; the 6th attempt sees 429
+            raise InvalidCredentials()   # the 5th failure still returns 401; the next attempt sees 429
 
         if not user.is_active:
+            await self._release(user.id)         # a correct password is not a failed attempt
             metrics.AUTH_LOGIN.labels("disabled").inc()
             log.info("auth.login.failure", extra={"reason": "disabled", "user_id": str(user.id)})
             raise AccountDisabled()
 
         rehash = self._hasher.needs_rehash(user.password_hash)
-        new_hash = await self._hasher.hash(data.password) if rehash else None
+        try:
+            new_hash = await self._hasher.hash(data.password) if rehash else None
+        except ServiceBusy:
+            await self._release(user.id)
+            raise
 
+        fresh: User | None
+        locked_now: datetime | None = None
         async with self._sm() as session, session.begin():
-            fresh = await self._users.get(session, user.id)
-            if fresh is None:
-                raise InvalidCredentials()
-            await self._users.register_success(session, fresh, new_hash, now)
-            raw, rt_exp = await self._start_session(session, fresh, user_agent, now)
+            fresh = await self._users.get_for_update(session, user.id)
+            if fresh is not None and fresh.locked_until and fresh.locked_until > now:
+                locked_now = fresh.locked_until           # another request locked it while we verified
+            elif fresh is not None:
+                await self._users.register_success(session, fresh, new_hash, now)
+                raw, rt_exp = await self._start_session(session, fresh, user_agent, now)
+        if fresh is None:
+            raise InvalidCredentials()
+        if locked_now is not None:
+            metrics.AUTH_LOGIN.labels("locked").inc()
+            log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
+            raise self._locked_error(locked_now, now)
         access, ttl = self._tokens.issue_access_token(fresh)
         metrics.AUTH_LOGIN.labels("success").inc()
         log.info("auth.login.success", extra={"user_id": str(fresh.id), "rehashed": rehash})

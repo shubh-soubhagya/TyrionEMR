@@ -180,5 +180,22 @@ class NotFound(AuthError):
     status_code, code, message = 404, "NOT_FOUND", "Not found."
 
 
+class ServiceBusy(AuthError):
+    """Hash queue saturated or the database is too busy: shed load instead of piling up."""
+
+    status_code, code = 503, "SERVICE_BUSY"
+    message = "The service is busy. Please retry shortly."
+
+    def __init__(self) -> None:
+        super().__init__(headers={"Retry-After": "1"})
+
+
+class RateLimited(AuthError):
+    status_code, code = 429, "RATE_LIMITED"
+
+    def __init__(self, retry_after: int) -> None:
+        super().__init__("Too many requests. Please slow down.", headers={"Retry-After": str(retry_after)})
+
+
 class NotReady(AuthError):
     status_code, code, message = 503, "NOT_READY", "Service unavailable."

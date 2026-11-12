@@ -11,6 +11,7 @@ EXPECTED_COLUMNS = {
         "full_name": ("text", "NO"), "role": ("text", "NO"), "is_active": ("boolean", "NO"),
         "failed_login_count": ("integer", "NO"), "locked_until": ("timestamp with time zone", "YES"),
         "last_login_at": ("timestamp with time zone", "YES"),
+        "last_failed_at": ("timestamp with time zone", "YES"),
         "created_at": ("timestamp with time zone", "NO"), "updated_at": ("timestamp with time zone", "NO"),
     },
     "refresh_tokens": {
