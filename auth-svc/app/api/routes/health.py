@@ -13,13 +13,23 @@ from app.core.errors import NotReady
 
 router = APIRouter(tags=["health"])
 log = logging.getLogger("auth.health")
-_ROOT = Path(__file__).resolve().parents[3]   # auth-svc root (/app in the container)
+_SOURCE_ROOT = Path(__file__).resolve().parents[3]   # auth-svc/ when running from the source tree
+
+
+def _project_root() -> Path:
+    """Where alembic.ini + migrations live: the working directory in the container (/app, where the app
+    itself is installed into site-packages), the source tree when running from a checkout."""
+    for candidate in (Path.cwd(), _SOURCE_ROOT):
+        if (candidate / "alembic.ini").is_file():
+            return candidate
+    raise RuntimeError("alembic.ini not found (expected in the working directory)")
 
 
 @lru_cache
 def head_revision() -> str:
-    cfg = Config(str(_ROOT / "alembic.ini"))
-    cfg.set_main_option("script_location", str(_ROOT / "migrations"))
+    root = _project_root()
+    cfg = Config(str(root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(root / "migrations"))
     head = ScriptDirectory.from_config(cfg).get_current_head()
     assert head is not None
     return head

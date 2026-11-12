@@ -1,22 +1,31 @@
-# Build context = auth-svc/ (the service is self-contained: no shared library)
-FROM python:3.12-slim AS build
-ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+# Build context = auth-svc/ (self-contained service, no shared library).
+# One digest for both stages. Refresh it deliberately:  docker pull python:3.12-slim  then update the ARG.
+ARG PYTHON_IMAGE=python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+
+FROM ${PYTHON_IMAGE} AS build
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PATH=/opt/venv/bin:$PATH
+RUN python -m venv /opt/venv
 WORKDIR /src
-# The whole package is copied here so `pip wheel` can build it (copying only pyproject.toml would
-# produce an empty wheel).
+# 1. Build tooling and runtime dependencies come ONLY from hash-locked files (--require-hashes rejects
+#    any package whose hash is not in the lock, so a tampered or substituted package fails the build).
+COPY requirements-build.lock requirements.lock ./
+RUN pip install --require-hashes --no-deps -r requirements-build.lock \
+ && pip install --require-hashes --no-deps -r requirements.lock
+# 2. Our own package, built offline against the pinned setuptools, installed into the venv.
 COPY pyproject.toml ./
 COPY app ./app
-RUN pip wheel --wheel-dir /wheels .
+RUN pip install --no-build-isolation --no-deps .
 
-FROM python:3.12-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+FROM ${PYTHON_IMAGE}
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/opt/venv/bin:$PATH
 RUN useradd --uid 10001 --system --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app
-COPY --from=build /wheels /wheels
-RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+COPY --from=build /opt/venv /opt/venv
+# app/ is NOT copied again: it is installed in the venv from the wheel. Only what is not part of the
+# package is needed at runtime: alembic.ini + migrations (alembic and /ready's head-revision check read
+# them from the working directory) and the entrypoint.
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
-COPY app ./app
 COPY scripts/entrypoint.sh ./entrypoint.sh
 RUN chmod 0555 entrypoint.sh
 USER 10001
