@@ -105,6 +105,50 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D7 | OpenAPI export is `docs/api/openapi.json` | Per the requested tree (the original task said `docs/api/auth-svc.json`). |
 | D8 | Route label in logs/metrics is rebuilt from the real path | FastAPI reports router-relative paths (`/login`), which would collide across prefixes. |
 | D9 | JWKS cache/refetch verifier is not included | It is gateway-side. Deferred with the gateway. |
+| D10 | Login reserves an attempt atomically **before** verifying the password; new column `users.last_failed_at` (migration 0002); failures older than `LOGIN_FAILURE_WINDOW_MINUTES` stop counting | Parallel guesses bypassed the lockout (N tried instead of 5) and a correct guess could log in after the account locked. LLD §19.2 |
+| D11 | In-process per-IP rate limit on `/auth/login` and `/auth/signup` (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth until the gateway exists. Limits are **per process** (2 workers = up to 2x). LLD §28 |
+| D12 | `ENVIRONMENT=production` startup guard; docs/schema off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe config must not reach production. LLD §28 |
+| D13 | Dependencies hash-locked (`requirements*.lock`), base image pinned by digest, CI workflow, runtime image no longer copies `app/` | Reproducible, verifiable builds. `/ready` now finds `alembic.ini` via the working directory |
+
+## Configuration added for production readiness
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ENVIRONMENT` | `development` | `development` / `test` / `production`. Production turns on the startup guard and disables `/docs`, `/redoc`, `/openapi.json` |
+| `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION` | `false` | Needed to run production with `ENABLE_PUBLIC_SIGNUP=true` |
+| `LOGIN_FAILURE_WINDOW_MINUTES` | `15` | Failed attempts older than this stop counting toward lockout |
+| `RATE_LIMIT_ENABLED` | `true` | In-process per-IP limiter on login and signup |
+| `RATE_LIMIT_LOGIN_PER_MIN` | `10` | Sustained refill per IP, **per worker process** |
+| `RATE_LIMIT_LOGIN_BURST` | `5` | Requests allowed back-to-back from a cold start |
+| `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Max wait for a hash slot before `503 SERVICE_BUSY` |
+
+### New error codes
+
+| HTTP | Code | When |
+|---|---|---|
+| 429 | `RATE_LIMITED` | Per-IP bucket empty on login or signup. `Retry-After` set |
+| 503 | `SERVICE_BUSY` | Hash queue full for `ARGON2_QUEUE_TIMEOUT_S`. `Retry-After: 1` |
+
+### Running in production
+
+```bash
+PROD_CORS_ALLOWED_ORIGINS=https://emr.example.org \
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+The service refuses to start (and says why) if seeding is on, cookies are not Secure, CORS names
+localhost or `*`, the key file is group/world readable, or public signup is on without
+`ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true`.
+
+### Reproducible builds
+
+Dependencies are locked with hashes, generated inside the pinned Linux image:
+
+```bash
+make lock    # rewrites requirements.lock, requirements-dev.lock and requirements-build.lock
+```
+
+`pip install --require-hashes` is used by the Dockerfile and CI. CI is `.github/workflows/auth-svc.yml`.
 
 ## Operations
 

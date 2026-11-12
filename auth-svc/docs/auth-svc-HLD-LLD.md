@@ -307,6 +307,10 @@ These are additions made at LLD level. None changes the HLD contract seen by oth
 | R7 | Login and signup responses include the `user` object | Saves an immediate `/auth/me` call after sign-in | §11.1 |
 | R8 | `LOCKOUT_REVEAL` flag | Lets production hide lock state if enumeration matters more than UX | §7.1 |
 | R9 | Database is named `nephro_auth_db` (test: `nephro_auth_db_test`), set by `AUTH_DB_NAME` | The shared container already had an unrelated `auth_db`. Everywhere this document says `auth_db`, read `nephro_auth_db`. The role stays `auth_svc` | §7, §15, §16 |
+| R10 | Login reserves an attempt atomically before verifying; `users.last_failed_at` and `LOGIN_FAILURE_WINDOW_MINUTES` decay old failures | Parallel guesses bypassed the lockout (N tried, not 5) and a correct guess could succeed after the lock | §15, §19.2 |
+| R11 | In-process per-IP token bucket on login and signup; hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S`, then `503 SERVICE_BUSY` | Defense in depth until the gateway exists; overload must shed load, not queue forever | §8, §10, §18, §21 |
+| R12 | `ENVIRONMENT=production` startup guard; docs and schema disabled in production | Unsafe settings (seed users, insecure cookies, localhost CORS, readable key, open signup) must not reach production | §21, §28 |
+| R13 | Hash-locked dependencies, base image pinned by digest, CI with audit and image scan | Reproducible, verifiable builds | §23, §28 |
 
 ---
 
@@ -507,6 +511,8 @@ CREATE INDEX ix_rt_user_id      ON refresh_tokens (user_id);
 -- Cleanup job
 CREATE INDEX ix_rt_expires_at   ON refresh_tokens (expires_at);
 ```
+
+Migration `0002` adds `users.last_failed_at timestamptz NULL` (time of the latest counted failed attempt, used to decay the counter).
 
 Notes:
 - `gen_random_uuid()` is built in from PostgreSQL 13. The app also generates UUIDv4 values itself, so the default is a safety net. Check the container version in §16.1.
@@ -860,6 +866,8 @@ Errors:
 | 401 | `INVALID_CREDENTIALS` | Unknown email or wrong password | |
 | 429 | `ACCOUNT_LOCKED` | `locked_until > now()` | `Retry-After: <seconds>`; message "Too many failed attempts. Try again in N minutes." |
 | 403 | `ACCOUNT_DISABLED` | Correct password but `is_active = false` | |
+| 429 | `RATE_LIMITED` | Per-IP bucket empty (also on `/auth/signup`) | `Retry-After: <seconds>` |
+| 503 | `SERVICE_BUSY` | Hash queue full for `ARGON2_QUEUE_TIMEOUT_S` | `Retry-After: 1` |
 | 422 | `VALIDATION_ERROR` | Malformed body | |
 
 ### 17.5 `POST /auth/refresh`
@@ -958,6 +966,8 @@ No name, email or other PII in the token. The display name comes from `/auth/me`
 | 401 | `TOKEN_EXPIRED` | (silent, interceptor refreshes) |
 | 404 | `NOT_FOUND` | Not found. |
 | 503 | `NOT_READY` | Service unavailable. |
+| 429 | `RATE_LIMITED` | Too many requests. Please slow down. |
+| 503 | `SERVICE_BUSY` | The service is busy. Please retry shortly. |
 | 500 | `INTERNAL_ERROR` | Something went wrong. Reference: `request_id` |
 
 Password rule `details[].code` values: `TOO_SHORT`, `TOO_LONG`, `NEEDS_LETTER`, `NEEDS_DIGIT`, `TOO_COMMON`, `CONTAINS_EMAIL`.
@@ -1001,7 +1011,12 @@ sequenceDiagram
 
 Hashing happens **before** the transaction opens, so no DB connection is held during the slow hash.
 
-### 19.2 Login (with lockout)
+### 19.2 Login (attempt reservation and lockout)
+
+The old design read `locked_until`, verified the password, and only then recorded the failure. N parallel
+guesses all passed the lock check, so N passwords were tried instead of 5, and a correct guess inside the
+burst could log in even after the account had locked. An **attempt is now reserved atomically before the
+password is verified.**
 
 ```mermaid
 sequenceDiagram
@@ -1009,51 +1024,80 @@ sequenceDiagram
     participant UI as Angular
     participant A as auth-svc
     participant H as Argon2
-    participant DB as auth_db
+    participant DB as nephro_auth_db
     UI->>A: POST /auth/login {email, password}
     A->>DB: SELECT * FROM users WHERE email = :email
-    alt user exists and locked_until > now
-        A-->>UI: 429 ACCOUNT_LOCKED, Retry-After
-    else user missing
+    alt user missing
         A->>H: verify(dummy_hash, password)
         A-->>UI: 401 INVALID_CREDENTIALS
-    else user exists
-        A->>H: verify(user.password_hash, password)
-        alt wrong password
-            A->>DB: atomic UPDATE failed_login_count / locked_until
-            A-->>UI: 401 INVALID_CREDENTIALS
-        else correct, inactive
-            A-->>UI: 403 ACCOUNT_DISABLED
-        else correct, active
-            opt hash parameters changed
-                A->>H: hash(password)
+    else locked_until > now (fast path, no hashing)
+        A-->>UI: 429 ACCOUNT_LOCKED + Retry-After (401 if LOCKOUT_REVEAL=false)
+    else
+        A->>DB: reserve attempt (one atomic UPDATE)
+        alt no row: locked meanwhile, or all attempts taken by in-flight requests
+            A->>DB: lock account if not already locked (idempotent)
+            A-->>UI: 429 ACCOUNT_LOCKED (password NOT verified)
+        else attempt reserved
+            A->>H: verify(user.password_hash, password)  (waits at most ARGON2_QUEUE_TIMEOUT_S)
+            alt hash queue full
+                A->>DB: release the reserved attempt
+                A-->>UI: 503 SERVICE_BUSY + Retry-After: 1
+            else wrong password
+                opt this was the last allowed attempt
+                    A->>DB: lock_out (locked_until = now + 15 min, counter = 0)
+                end
+                A-->>UI: 401 INVALID_CREDENTIALS
+            else correct, inactive
+                A->>DB: release the reserved attempt
+                A-->>UI: 403 ACCOUNT_DISABLED
+            else correct, active
+                A->>DB: BEGIN; SELECT user FOR UPDATE
+                alt locked_until > now (another request locked it meanwhile)
+                    A-->>UI: 429 ACCOUNT_LOCKED
+                else
+                    A->>DB: reset counter, clear lock and last_failed_at, set last_login_at, maybe new hash; INSERT refresh_tokens; COMMIT
+                    A-->>UI: 200 TokenOut + Set-Cookie
+                end
             end
-            A->>DB: BEGIN; reset counters, last_login_at, maybe new hash; INSERT refresh_tokens; COMMIT
-            A-->>UI: 200 TokenOut + Set-Cookie
         end
     end
 ```
 
-**Atomic failure counter** (no read-modify-write race between replicas):
+**Reservation** (one statement checks and consumes an attempt; failures older than
+`LOGIN_FAILURE_WINDOW_MINUTES` no longer count, because the `CASE` resets the counter first):
 
 ```sql
 UPDATE users
-SET failed_login_count = CASE WHEN failed_login_count + 1 >= :max_attempts
-                              THEN 0 ELSE failed_login_count + 1 END,
-    locked_until       = CASE WHEN failed_login_count + 1 >= :max_attempts
-                              THEN :now + make_interval(mins => :lock_minutes)
-                              ELSE locked_until END,
-    updated_at         = :now
+SET failed_login_count = (CASE WHEN last_failed_at IS NOT NULL AND last_failed_at < :now - make_interval(mins => :window)
+                               THEN 0 ELSE failed_login_count END) + 1,
+    last_failed_at = :now, updated_at = :now
 WHERE id = :user_id
+  AND (locked_until IS NULL OR locked_until <= :now)
+  AND (CASE WHEN last_failed_at IS NOT NULL AND last_failed_at < :now - make_interval(mins => :window)
+            THEN 0 ELSE failed_login_count END) < :max_attempts
+RETURNING failed_login_count;
+```
+
+**Lock** (idempotent: only the request that actually flips the account gets a row back):
+
+```sql
+UPDATE users
+SET locked_until = :now + make_interval(mins => :lock_minutes), failed_login_count = 0, updated_at = :now
+WHERE id = :user_id AND (locked_until IS NULL OR locked_until <= :now)
 RETURNING locked_until;
 ```
 
-`:now` comes from the injected clock (§20.6), never from SQL `now()`, so lockout expiry can be tested with a fake clock. The same applies to every timestamp the service writes.
+`:now` comes from the injected clock (§20.6), never from SQL `now()`, so lockout expiry and failure decay
+can be tested with a fake clock. The same applies to every timestamp the service writes.
 
 Rules:
 - A locked account is rejected **before** password verification, so guessing during the lock gives no signal and costs no CPU.
-- The 5th failure locks the account and still returns `401`; the 6th attempt sees `429` (matches the prototype).
-- A successful login resets `failed_login_count` to 0 and clears `locked_until`.
+- Only `LOGIN_MAX_ATTEMPTS` (5) passwords can ever reach argon2 per lock cycle, however many requests run in parallel.
+- The 5th failure locks the account and still returns `401`; the next attempt sees `429` (matches the prototype).
+- A correct password can never succeed after `locked_until` was set: the success path re-reads the user `FOR UPDATE` and rejects as locked.
+- A successful login resets `failed_login_count` to 0 and clears `locked_until` and `last_failed_at`.
+- Failures older than `LOGIN_FAILURE_WINDOW_MINUTES` (15) stop counting: 4 failures, 16 minutes, 1 failure does not lock.
+- A reserved attempt that was never judged (hash queue full, or a correct password on a disabled account) is given back, so load cannot push a user toward lockout.
 - With `LOCKOUT_REVEAL=false`, a locked account returns the same `401 INVALID_CREDENTIALS`.
 
 ### 19.3 Refresh (rotation, reuse detection, race window)
@@ -1612,6 +1656,13 @@ All settings come from environment variables (12-factor, HLD-v2 §12). Defaults 
 | `LOGIN_MAX_ATTEMPTS` | `5` | |
 | `LOGIN_LOCK_MINUTES` | `15` | |
 | `LOCKOUT_REVEAL` | `true` | `false` returns `401` while locked (R8) |
+| `LOGIN_FAILURE_WINDOW_MINUTES` | `15` | Failures older than this stop counting toward lockout (R10) |
+| `RATE_LIMIT_ENABLED` | `true` | In-process per-IP limiter on login and signup (R11) |
+| `RATE_LIMIT_LOGIN_PER_MIN` | `10` | Sustained refill rate per IP, per worker process |
+| `RATE_LIMIT_LOGIN_BURST` | `5` | Bucket size: requests allowed back-to-back from a cold start |
+| `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Max wait for a hash slot before `503 SERVICE_BUSY` |
+| `ENVIRONMENT` | `development` | `development` / `test` / `production`; production enables the startup guard (R12) |
+| `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION` | `false` | Explicit opt-in needed to run with `ENABLE_PUBLIC_SIGNUP=true` in production |
 | `ARGON2_TIME_COST` | `3` | |
 | `ARGON2_MEMORY_KIB` | `65536` | 64 MiB |
 | `ARGON2_PARALLELISM` | `4` | |
@@ -1826,6 +1877,8 @@ Never logged: email addresses, passwords, cookie values, access or refresh token
 | `auth_refresh_reuse_detected_total` | counter | |
 | `auth_argon2_seconds` | histogram | `op` (`hash`, `verify`) |
 | `auth_argon2_inflight` | gauge | |
+| `auth_argon2_rejected_total` | counter | hash requests rejected because the queue wait timed out |
+| `auth_rate_limited_total` | counter | `route` |
 | `http_request_duration_seconds` | histogram | `route`, `method`, `status` (from libs/common) |
 
 Alert suggestions: any `auth_refresh_reuse_detected_total` increase; login failure rate spike; p95 `auth_argon2_seconds` above 0.5 s.
@@ -1853,6 +1906,9 @@ Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATA
 | Signup | `201` with token and cookie; user row role is `clinician` regardless of payload; `409` on duplicate email with different case; `422` with rule codes; `403` when flag off; password stored as `$argon2id$` |
 | Login | `200` for seeded user; `401` same body for unknown email and wrong password; 5 failures then `429` with `Retry-After`; lock expires (fake clock) and login works; success resets counter; `403` for inactive; `LOCKOUT_REVEAL=false` returns `401` while locked; rehash happens when cost settings change |
 | Refresh | rotates (old row `rotated`, `replaced_by_id` set, new cookie differs); missing cookie `401 REFRESH_MISSING`; unknown `401 REFRESH_INVALID` and cookie cleared; expired idle; expired absolute (`family_expires_at`); reuse of a `rotated` token outside grace revokes all family rows and returns `401 REFRESH_REUSED`; **login, logout, then refresh with the old cookie returns `401 REFRESH_INVALID`, clears the cookie, logs `auth.refresh.failure reason=invalid`, logs no `reuse_detected` and leaves the family untouched**; replaying a `reuse_detected` token also returns `REFRESH_INVALID`; reuse inside grace returns `409` and does **not** revoke; **revocation persists** after the error response (regression test for §19.3 note); inactive user revokes family; bad `Origin` → `403` |
+| Lockout concurrency | 20 parallel wrong guesses reach argon2 at most 5 times and the account ends locked; a correct password slowed while 9 others lock the account answers `429` and starts no session; randomised bursts never succeed after the lock; failures decay after the window (4 failures, +16 min, 1 failure: not locked); `SERVICE_BUSY` gives the attempt back |
+| Rate limit and hash queue | the 6th login in a burst from one IP is `429` with `Retry-After`; another IP is unaffected; tokens refill with the fake clock; the bucket map is bounded with LRU eviction; a saturated hash pool answers `503 SERVICE_BUSY` in about the wait timeout and recovers |
+| Production guard | each forbidden setting fails startup (and the process exits non-zero); a valid production config starts; `/docs`, `/redoc` and `/openapi.json` return `404` in production; `seed_users` refuses |
 | Concurrency | two parallel refreshes with the same cookie → exactly one `200`, one `409`, family still active |
 | Logout | `204` with and without cookie; family revoked; subsequent refresh `401` |
 | Me | `200` with valid token; `401` missing; `401 TOKEN_EXPIRED`; `403` inactive |
@@ -1945,3 +2001,18 @@ Their next refresh revokes the family (`user_inactive`) and `/auth/me` returns `
 | 12 | Gateway routes, public paths, cookie pass-through, JWKS cache | Login through `:8080` returns cookie; `/api/auth/me` works with the token |
 | 13 | Angular `AuthService`, boot refresh, interceptor, guards | Reload keeps the session; sign-out returns to `/login` |
 | 14 | Export OpenAPI to `docs/api/auth-svc.json` | File committed (HLD-v2 §21 item 4) |
+
+---
+
+## 28. Production hardening
+
+| Area | Behavior |
+|---|---|
+| Startup guard | With `ENVIRONMENT=production` the service refuses to start (logs `startup.refused` with every reason, exits non-zero) if: `SEED_DEMO_USERS=true`; `COOKIE_SECURE=false`; `CORS_ALLOWED_ORIGINS` contains `localhost` or `*`; the private key file is group- or world-readable; `ENABLE_PUBLIC_SIGNUP=true` without `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true` |
+| Docs | `/docs`, `/redoc`, `/openapi.json` are disabled in production. The schema is exported at build time to `docs/api/openapi.json` |
+| Seeding | `seed_users` refuses to run in production, even with `--force` |
+| Compose | `docker-compose.yml` is dev-oriented and reads seed/signup from `.env`. `docker-compose.prod.yml` sets `ENVIRONMENT=production`, seeding off, signup off, and requires `PROD_CORS_ALLOWED_ORIGINS` |
+| Rate limiting | In-process token bucket per client address on `/auth/login` and `/auth/signup`. **Limits are per process** (2 workers means up to 2x the configured rate). Behind the gateway the client address comes from `X-Forwarded-For` (`--proxy-headers`). The gateway is the real limiter; this is defense in depth |
+| Bounded hashing | At most `ARGON2_MAX_CONCURRENCY` hashes run at once; others wait up to `ARGON2_QUEUE_TIMEOUT_S`, then get `503 SERVICE_BUSY` (`auth_argon2_rejected_total`) |
+| Reproducible builds | `requirements.lock`, `requirements-dev.lock` and `requirements-build.lock` carry hashes (generated inside the pinned Linux image with `pip-compile --generate-hashes`). The Dockerfile installs with `--require-hashes`, from a base image pinned by digest (one digest, both stages) |
+| CI | `.github/workflows/auth-svc.yml`: ruff, mypy, pytest against Postgres 16, `pip-audit` on the locks, image build and Trivy (fail on fixable HIGH/CRITICAL) |
