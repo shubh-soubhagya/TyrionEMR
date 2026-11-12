@@ -38,7 +38,9 @@ def settings(make_settings) -> Settings:
 
 @pytest.fixture
 def app(settings: Settings) -> FastAPI:
-    return create_app(settings)
+    # Mock transports for every client: building a real httpx transport loads the CA bundle (~1 s on Windows)
+    nowhere = httpx.MockTransport(lambda request: httpx.Response(503))
+    return create_app(settings, transports={"auth": nowhere, "jwks": nowhere})
 
 
 @pytest.fixture
