@@ -11,7 +11,7 @@ export
 
 PYTHON_IMAGE := $(shell sed -n 's/^ARG PYTHON_IMAGE=//p' Dockerfile)
 
-.PHONY: migrate-local lock venv install keys init-db init-test-db migrate revision seed run test test-unit test-api lint fmt openapi build up down logs
+.PHONY: retire-legacy-role retire-legacy-role-plan migrate-local lock venv install keys init-db init-test-db migrate revision seed run test test-unit test-api lint fmt openapi build up down logs
 
 # Regenerate the hash-locked requirements inside the SAME pinned Linux image the Dockerfile uses, so
 # platform-specific packages (uvloop, ...) resolve for production, not for the developer's OS.
@@ -33,6 +33,11 @@ init-db:
 	bash setup/init-auth-db.sh $(PG_CONTAINER) $(PG_SUPERUSER)
 init-test-db:
 	bash setup/init-auth-db-test.sh $(PG_CONTAINER) $(PG_SUPERUSER)
+# Retires ONLY the legacy role auth_svc (NOLOGIN, no CONNECT; never dropped). Refuses if it still owns anything.
+retire-legacy-role-plan:
+	bash setup/retire-legacy-role.sh $(PG_CONTAINER) $(PG_SUPERUSER) --plan
+retire-legacy-role:
+	bash setup/retire-legacy-role.sh $(PG_CONTAINER) $(PG_SUPERUSER)
 
 # Migrations run as the schema-owner role (AUTH_MIGRATION_DATABASE_URL), in a one-off container.
 migrate:

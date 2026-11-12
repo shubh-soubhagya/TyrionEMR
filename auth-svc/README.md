@@ -24,21 +24,26 @@ Prerequisites: Docker, Python 3.12, and a running Postgres 13+ container. The co
 `graphgpt-postgres`; override with `PG_CONTAINER=... PG_SUPERUSER=...`.
 
 ```bash
-cp .env.example .env            # set AUTH_DB_PW (and the password inside the two URLs)
+cp .env.example .env            # set the two role passwords and the same passwords inside the four URLs
 make install                    # .venv + dev dependencies
 make keys                       # RSA-3072 signing key pair -> setup/keys (gitignored)
 
-# These two change the shared Postgres container. Read setup/*.sh first. They only create the
-# role auth_svc and the databases nephro_auth_db / nephro_auth_db_test, and refuse to touch a
-# database owned by anyone else.
 docker network create nephro-net
 docker network connect --alias postgres nephro-net graphgpt-postgres
-set -a; . ./.env; set +a
-make init-db init-test-db
 
-make migrate                    # alembic upgrade head
+# This changes the shared Postgres container. Read setup/*.sh first. It creates the roles auth_migrator and
+# auth_app and the databases nephro_auth_db / nephro_auth_db_test, moves ownership from the legacy auth_svc
+# role if it finds it, and refuses to touch a database owned by anyone else. Only auth_* roles are touched.
+set -a; . ./.env; set +a
+make init-db init-test-db       # needs AUTH_MIGRATOR_DB_PW and AUTH_APP_DB_PW from .env
+
+make migrate                    # as auth_migrator: docker compose run --rm migrate   (make migrate-local on the host)
 make seed                       # demo clinicians
 ```
+
+`docker-compose.yml` REQUIRES `AUTH_APP_DB_USER`, `AUTH_APP_DB_PW`, `AUTH_MIGRATOR_DB_USER` and
+`AUTH_MIGRATOR_DB_PW`. There is no fallback to the retired single role `auth_svc`, so a missing variable stops
+`docker compose` with a message naming it. `.env.example` lists every setting with its default.
 
 Run it:
 
@@ -119,6 +124,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D21 | `auth_events` audit table (migration 0004), 365-day retention | Durable, PII-free audit trail. LLD §15.4b |
 | D24 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through `purge_auth_events(days)` (migration 0005, `SECURITY DEFINER`, 30-day floor, database clock); `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The runtime role could rewrite or erase login history. LLD §15.4b |
 | D25 | No fallback to the legacy `auth_svc` role: compose requires the four `AUTH_APP_DB_*` / `AUTH_MIGRATOR_DB_*` variables; `env.py` needs `AUTH_MIGRATION_DATABASE_URL`; production refuses a runtime URL using `auth_svc` or `auth_migrator` (dev warns). Implemented in `app/db/migration_url.py`, `build_state` and the guard rather than in `config.py`, so nothing is logged while settings are still loading | A missing variable used to break startup quietly. LLD §16.3b |
+| D26 | `.env.example` (and the root example's auth section) list the role variables and every setting; `setup/retire-legacy-role.sh` retires `auth_svc` (NOLOGIN, never dropped); `make retire-legacy-role` | The examples had fallen behind the hardening work and still described the single role. LLD §16.3b |
 | D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
 | D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
 
@@ -186,6 +192,8 @@ Each prints what it changed and writes an audit event.
 | Reset a password (prompted twice, policy applied, signs out everywhere) | `python -m app.cli.set_password --email ...` |
 | Create a clinician when signup is off | `python -m app.cli.create_user --email ... --name "Dr. X"` |
 | Migrate the schema (schema-owner role) | `make migrate` |
+| See what retiring the legacy `auth_svc` role would do (read-only) | `make retire-legacy-role-plan` |
+| Retire the legacy `auth_svc` role (no login, no connect; not dropped) | `make retire-legacy-role` |
 | Rotate the signing key (steps 1-2 of LLD §26.2) | `./setup/rotate-keys.sh [--prod]` |
 | Production signing key (0600, uid 10001) | `./setup/generate-keys.sh --prod` |
 
@@ -193,18 +201,35 @@ Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-kn
 
 ### Least-privilege database roles
 
-`setup/init-auth-db.sh` creates `auth_migrator` (owns the schema, runs Alembic) and `auth_app` (runtime, DML only),
-is idempotent, and **moves ownership from the legacy `auth_svc`** role. It changes roles and grants, so on a shared
-Postgres read it first:
+| Role | Used by | Rights |
+|---|---|---|
+| `auth_migrator` | Alembic, `make migrate`, test cleanup | owns the database, the `public` schema and every table and function; never used at runtime |
+| `auth_app` | the running service (`AUTH_DATABASE_URL`) | `CONNECT`; `USAGE` on `public`; `SELECT, INSERT, UPDATE, DELETE` on `users` and `refresh_tokens`; **`SELECT, INSERT` only on `auth_events`** (append-only); `EXECUTE` on `purge_auth_events()`. Cannot create, alter, drop or truncate anything |
+| `auth_svc` | nobody: the retired single role | owns nothing after `init-auth-db.sh`; `make retire-legacy-role` blocks its login |
+
+`setup/init-auth-db.sh` is idempotent and **moves ownership from the legacy `auth_svc`**. It changes roles and
+grants, so on a shared Postgres read it first. A fresh setup ends with the same grants as after migration `0005`.
 
 ```bash
-export AUTH_MIGRATOR_DB_PW=... AUTH_APP_DB_PW=...
-make init-db init-test-db                  # then set AUTH_DATABASE_URL to auth_app and AUTH_MIGRATION_DATABASE_URL to auth_migrator
-make migrate
+set -a; . ./.env; set +a
+make init-db init-test-db       # create/repair the roles, databases and grants
+make migrate                    # schema changes run as auth_migrator
 ```
 
-Tests that prove the split (`tests/api/test_db_roles.py`) run when `AUTH_TEST_DATABASE_URL` (auth_app) and
-`AUTH_TEST_MIGRATION_DATABASE_URL` (auth_migrator) differ; otherwise they are skipped.
+Tests that prove the split (`tests/api/test_db_roles.py`, `tests/api/test_audit_append_only.py`) run when
+`AUTH_TEST_DATABASE_URL` (auth_app) and `AUTH_TEST_MIGRATION_DATABASE_URL` (auth_migrator) differ.
+
+#### Retiring the legacy role
+
+```bash
+make retire-legacy-role-plan    # read-only: shows what it would do
+make retire-legacy-role         # REVOKE CONNECT on both databases, then ALTER ROLE auth_svc NOLOGIN
+```
+
+`setup/retire-legacy-role.sh` touches only `auth_svc`. It is idempotent, **refuses to run** if `auth_migrator` or
+`auth_app` is missing or if `auth_svc` still owns any object in either database, and never drops the role. It prints
+the undo commands (`ALTER ROLE auth_svc LOGIN`, `GRANT CONNECT ...`). Existing `auth_svc` sessions keep running
+until they close; the script does not terminate them.
 
 ### Backups, and the risk of sharing a Postgres
 
