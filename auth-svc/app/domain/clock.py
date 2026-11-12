@@ -22,3 +22,7 @@ class FakeClock:
 
     def advance(self, **kwargs: float) -> None:
         self._now += timedelta(**kwargs)
+
+    def sync_to_real_time(self) -> None:
+        """For tests that cross into code using the real clock (the operator CLI)."""
+        self._now = utcnow()

@@ -42,6 +42,14 @@ class LoginIn(BaseModel):
     password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
+class ChangePasswordIn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    current_password: Annotated[str, Field(min_length=1, max_length=128)]
+    # generous pydantic bound; the policy reports TOO_LONG / TOO_SHORT with proper codes
+    new_password: Annotated[str, Field(max_length=1024)]
+
+
 class UserOut(BaseModel):
     id: UUID
     email: str

@@ -79,17 +79,50 @@ class UserRepository:
                                          "window": window_minutes, "now": now})
         return row.scalar_one_or_none()
 
-    async def lock_out(self, s: AsyncSession, user_id: uuid.UUID, lock_minutes: int, now: datetime) -> datetime | None:
-        """Locks the account if it is not already locked; returns the effective ``locked_until``."""
+    async def lock_out(
+        self, s: AsyncSession, user_id: uuid.UUID, lock_minutes: int, now: datetime
+    ) -> tuple[datetime | None, bool]:
+        """Locks the account if it is not already locked.
+
+        Returns ``(locked_until, flipped)``: the effective deadline, and whether THIS call locked it."""
         row = await s.execute(_LOCK_OUT, {"user_id": user_id, "lock_minutes": lock_minutes, "now": now})
         locked_until = row.scalar_one_or_none()
         if locked_until is not None:
-            return locked_until
+            return locked_until, True
         # someone else locked it first: report their deadline
-        return (await s.execute(select(User.locked_until).where(User.id == user_id))).scalar_one_or_none()
+        existing = (await s.execute(select(User.locked_until).where(User.id == user_id))).scalar_one_or_none()
+        return existing, False
 
     async def release_attempt(self, s: AsyncSession, user_id: uuid.UUID) -> None:
         await s.execute(_RELEASE, {"user_id": user_id})
+
+    async def get_by_email_for_update(self, s: AsyncSession, email: str) -> User | None:
+        stmt = select(User).where(User.email == email).with_for_update().execution_options(populate_existing=True)
+        return (await s.execute(stmt)).scalar_one_or_none()
+
+    async def set_password(self, s: AsyncSession, user: User, password_hash: str, now: datetime) -> None:
+        """New hash and a clean lockout slate."""
+        user.password_hash = password_hash
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.last_failed_at = None
+        user.updated_at = now
+        await s.flush()
+
+    async def unlock(self, s: AsyncSession, user: User, now: datetime) -> bool:
+        """Returns True if the account was locked or had counted failures."""
+        was_locked = bool(user.locked_until and user.locked_until > now) or user.failed_login_count > 0
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.last_failed_at = None
+        user.updated_at = now
+        await s.flush()
+        return was_locked
+
+    async def set_active(self, s: AsyncSession, user: User, active: bool, now: datetime) -> None:
+        user.is_active = active
+        user.updated_at = now
+        await s.flush()
 
     async def register_success(self, s: AsyncSession, user: User, new_hash: str | None, now: datetime) -> None:
         user.failed_login_count = 0

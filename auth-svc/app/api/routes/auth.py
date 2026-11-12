@@ -9,10 +9,10 @@ from app.api.cookies import clear_refresh_cookie, set_refresh_cookie
 from app.api.deps import get_auth_service, get_clock, get_settings_dep
 from app.core.config import Settings
 from app.core.errors import RefreshMissing
-from app.core.ratelimit import rate_limit
+from app.core.ratelimit import client_key, rate_limit
 from app.core.security import Claims, require_role, require_trusted_origin
 from app.domain.clock import Clock
-from app.schemas.auth import LoginIn, SignupIn, TokenOut, UserOut
+from app.schemas.auth import ChangePasswordIn, LoginIn, SignupIn, TokenOut, UserOut
 from app.schemas.errors import ErrorEnvelope
 from app.services.auth_service import AuthService, SessionResult
 
@@ -36,7 +36,7 @@ def _token_response(r: SessionResult, response: Response, s: Settings, clock: Cl
 async def signup(body: SignupIn, request: Request, response: Response,
                  svc: AuthService = Depends(get_auth_service), s: Settings = Depends(get_settings_dep),
                  clock: Clock = Depends(get_clock)) -> TokenOut:
-    r = await svc.signup(body, request.headers.get("user-agent"))
+    r = await svc.signup(body, request.headers.get("user-agent"), client_key(request))
     return _token_response(r, response, s, clock)
 
 
@@ -45,7 +45,7 @@ async def signup(body: SignupIn, request: Request, response: Response,
 async def login(body: LoginIn, request: Request, response: Response,
                 svc: AuthService = Depends(get_auth_service), s: Settings = Depends(get_settings_dep),
                 clock: Clock = Depends(get_clock)) -> TokenOut:
-    r = await svc.login(body, request.headers.get("user-agent"))
+    r = await svc.login(body, request.headers.get("user-agent"), client_key(request))
     return _token_response(r, response, s, clock)
 
 
@@ -58,7 +58,7 @@ async def refresh(request: Request, response: Response,
     if not raw:
         raise RefreshMissing()
     # Errors carrying clear_cookie get a clearing Set-Cookie from the app-level handler
-    r = await svc.refresh(raw, request.headers.get("user-agent"))
+    r = await svc.refresh(raw, request.headers.get("user-agent"), client_key(request))
     return _token_response(r, response, s, clock)
 
 
@@ -66,9 +66,27 @@ async def refresh(request: Request, response: Response,
              responses=_err(403))
 async def logout(request: Request, svc: AuthService = Depends(get_auth_service),
                  s: Settings = Depends(get_settings_dep)) -> Response:
-    await svc.logout(request.cookies.get(s.refresh_cookie_name))
+    await svc.logout(request.cookies.get(s.refresh_cookie_name), request.headers.get("user-agent"),
+                     client_key(request))
     resp = Response(status_code=204, headers=NO_STORE)
     clear_refresh_cookie(resp, s)
+    return resp
+
+
+@router.post("/password", status_code=204, dependencies=[Depends(require_trusted_origin), Depends(rate_limit)],
+             responses=_err(401, 403, 422, 429, 503))
+async def change_password(body: ChangePasswordIn, request: Request,
+                          claims: Claims = Depends(require_role("clinician")),
+                          svc: AuthService = Depends(get_auth_service), s: Settings = Depends(get_settings_dep),
+                          clock: Clock = Depends(get_clock)) -> Response:
+    """Change the signed-in user's password. Every OTHER session is signed out; this one keeps working
+    (its refresh token is rotated and the new cookie is set on this response)."""
+    result = await svc.change_password(
+        uuid.UUID(claims.sub), body.current_password, body.new_password,
+        request.cookies.get(s.refresh_cookie_name), request.headers.get("user-agent"), client_key(request))
+    resp = Response(status_code=204, headers=NO_STORE)
+    if result is not None:
+        set_refresh_cookie(resp, result.raw_refresh, result.refresh_expires_at, s, clock)
     return resp
 
 

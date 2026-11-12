@@ -22,18 +22,25 @@ EXPECTED_COLUMNS = {
         "replaced_by_id": ("uuid", "YES"), "user_agent": ("text", "YES"),
         "created_at": ("timestamp with time zone", "NO"),
     },
+    "auth_events": {
+        "id": ("uuid", "NO"), "at": ("timestamp with time zone", "NO"), "event": ("text", "NO"),
+        "outcome": ("text", "NO"), "user_id": ("uuid", "YES"), "family_id": ("uuid", "YES"),
+        "request_id": ("text", "YES"), "ip": ("inet", "YES"), "user_agent": ("text", "YES"),
+    },
 }
 EXPECTED_CONSTRAINTS = {
     "uq_users_email", "ck_users_email_len", "ck_users_full_name_len", "ck_users_role",
     "ck_users_failed_count", "ck_users_hash_format", "uq_refresh_tokens_hash", "ck_rt_hash_len",
     "ck_rt_expiry_order", "ck_rt_revoked_reason", "ck_rt_revoked_consistency", "ck_rt_user_agent_len",
+    "ck_auth_events_user_agent_len",
 }
-EXPECTED_INDEXES = {"ix_rt_family_active", "ix_rt_user_id", "ix_rt_expires_at"}
+EXPECTED_INDEXES = {"ix_rt_family_active", "ix_rt_user_id", "ix_rt_expires_at", "ix_auth_events_user_at",
+                    "ix_auth_events_at"}
 
 
 async def test_columns_match(app):
     rows = await sql(app, "SELECT table_name, column_name, data_type, is_nullable FROM information_schema.columns "
-                          "WHERE table_schema='public' AND table_name IN ('users','refresh_tokens')")
+                          "WHERE table_schema='public' AND table_name IN ('users','refresh_tokens','auth_events')")
     actual: dict[str, dict] = {}
     for t, c, d, n in rows:
         actual.setdefault(t, {})[c] = (d, n)

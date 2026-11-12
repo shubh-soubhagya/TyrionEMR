@@ -86,7 +86,7 @@ async def make_app(migrated_db, rsa_key, clock):
         app = create_app(s, clock)
         build_state(app, s, clock, KeyStore(SigningKey(kid, rsa_key), {kid: pub}))
         async with app.state.engine.begin() as conn:
-            await conn.execute(text("TRUNCATE users CASCADE"))
+            await conn.execute(text("TRUNCATE users, auth_events CASCADE"))
         created.append(app)
         return app
 

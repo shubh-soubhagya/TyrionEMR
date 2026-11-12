@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     session_max_days: int = 30
     refresh_reuse_grace_s: int = 10
     refresh_retention_days: int = 7
+    auth_events_retention_days: int = 365      # audit rows older than this are purged by the cleanup job
     cleanup_interval_s: int = 3600
 
     refresh_cookie_name: str = "nephro_rt"

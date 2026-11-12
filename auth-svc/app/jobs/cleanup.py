@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.domain.clock import Clock
+from app.repositories.auth_event_repository import AuthEventRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 
 log = logging.getLogger("auth.cleanup")
@@ -25,7 +26,9 @@ async def run_cleanup_once(sm: async_sessionmaker[AsyncSession], s: Settings, cl
             return None
         n = await RefreshTokenRepository().delete_expired(
             session, before=clock() - timedelta(days=s.refresh_retention_days))
-    log.info("auth.cleanup.done", extra={"deleted": n})
+        events = await AuthEventRepository().delete_older_than(
+            session, before=clock() - timedelta(days=s.auth_events_retention_days))
+    log.info("auth.cleanup.done", extra={"deleted": n, "events_deleted": events})
     return n
 
 

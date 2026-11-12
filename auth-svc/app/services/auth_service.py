@@ -10,12 +10,14 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum, auto
+from typing import TypedDict
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core import metrics
 from app.core.config import Settings
+from app.core.context import get_request_id
 from app.core.errors import (
     AccountDisabled,
     AccountLocked,
@@ -31,8 +33,9 @@ from app.core.errors import (
     SignupDisabled,
 )
 from app.domain.clock import Clock
-from app.domain.password_policy import check_password
+from app.domain.password_policy import Violation, check_password
 from app.models import RefreshToken, User
+from app.repositories.auth_event_repository import AuthEventRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import LoginIn, SignupIn
@@ -59,6 +62,13 @@ class RefreshOutcome(Enum):
     RACE = auto()
 
 
+class _Who(TypedDict):
+    """Who is asking: recorded in the audit trail."""
+
+    ip: str | None
+    user_agent: str | None
+
+
 def _trim(user_agent: str | None) -> str | None:
     return user_agent[:256] if user_agent else None
 
@@ -74,22 +84,42 @@ class AuthService:
         settings: Settings,
         common_passwords: frozenset[str],
         clock: Clock,
+        events: AuthEventRepository | None = None,
     ) -> None:
         self._sm, self._users, self._rt = sm, users, refresh_tokens
         self._hasher, self._tokens, self._s = hasher, tokens, settings
         self._common, self._clock = common_passwords, clock
+        self._events = events or AuthEventRepository()
+
+    # ----------------------------------------------------------- audit trail
+    def _event(
+        self, session: AsyncSession, event: str, outcome: str, *, user_id: uuid.UUID | None = None,
+        family_id: uuid.UUID | None = None, ip: str | None = None, user_agent: str | None = None,
+    ) -> None:
+        """Adds an audit row to the caller's transaction, so it commits with the change it records.
+        Never takes an email, password or token: the table has no such columns."""
+        self._events.add(session, at=self._clock(), event=event, outcome=outcome, user_id=user_id,
+                         family_id=family_id, request_id=get_request_id(), ip=ip, user_agent=user_agent)
+
+    async def _event_alone(self, event: str, outcome: str, **fields) -> None:
+        """For failures that have no transaction of their own: a short transaction just for the event."""
+        async with self._sm() as session, session.begin():
+            self._event(session, event, outcome, **fields)
 
     # ---------------------------------------------------------------- signup
-    async def signup(self, data: SignupIn, user_agent: str | None) -> SessionResult:
+    async def signup(self, data: SignupIn, user_agent: str | None, ip: str | None = None) -> SessionResult:
+        who: _Who = {"ip": ip, "user_agent": user_agent}
         if not self._s.enable_public_signup:
             metrics.AUTH_SIGNUP.labels("disabled").inc()
             log.info("auth.signup.rejected", extra={"reason": "disabled"})
+            await self._event_alone("signup", "disabled", **who)
             raise SignupDisabled()
 
         violations = check_password(data.password, data.email, self._common)
         if violations:
             metrics.AUTH_SIGNUP.labels("policy").inc()
             log.info("auth.signup.rejected", extra={"reason": "policy"})
+            await self._event_alone("signup", "policy", **who)
             raise PasswordPolicyError(details=[
                 {"field": "password", "code": v.code, "message": v.message} for v in violations])
 
@@ -103,10 +133,12 @@ class AuthService:
             async with self._sm() as session, session.begin():
                 await self._users.add(session, user)
                 await self._users.register_success(session, user, None, now)
-                raw, rt_exp = await self._start_session(session, user, user_agent, now)
+                raw, rt_exp, family_id = await self._start_session(session, user, user_agent, now)
+                self._event(session, "signup", "success", user_id=user.id, family_id=family_id, **who)
         except IntegrityError as exc:
             metrics.AUTH_SIGNUP.labels("email_taken").inc()
             log.info("auth.signup.rejected", extra={"reason": "email_taken"})
+            await self._event_alone("signup", "email_taken", **who)
             raise EmailTaken() from exc
 
         access, ttl = self._tokens.issue_access_token(user)
@@ -125,11 +157,44 @@ class AuthService:
         async with self._sm() as session, session.begin():
             await self._users.release_attempt(session, user_id)
 
-    async def login(self, data: LoginIn, user_agent: str | None) -> SessionResult:
+    async def _reserve_or_lock(
+        self, user: User, event: str, now: datetime, who: _Who
+    ) -> tuple[int | None, datetime | None]:
+        """Reserve an attempt. No row back means the account is locked, or every attempt is already taken
+        by in-flight requests: lock it (idempotent) and report the deadline."""
+        locked_until: datetime | None = None
+        async with self._sm() as session, session.begin():
+            count = await self._users.reserve_attempt(
+                session, user.id, self._s.login_max_attempts, self._s.login_failure_window_minutes, now)
+            if count is None:
+                locked_until, flipped = await self._users.lock_out(
+                    session, user.id, self._s.login_lock_minutes, now)
+                if flipped:
+                    self._event(session, "lockout", "locked", user_id=user.id, **who)
+                self._event(session, event, "locked", user_id=user.id, **who)
+        return count, locked_until
+
+    async def _record_bad_password(self, user: User, event: str, count: int, now: datetime, who: _Who) -> None:
+        """One transaction: lock the account if this was the last allowed attempt, and record the failure."""
+        locked_until: datetime | None = None
+        flipped = False
+        async with self._sm() as session, session.begin():
+            if count >= self._s.login_max_attempts:
+                locked_until, flipped = await self._users.lock_out(
+                    session, user.id, self._s.login_lock_minutes, now)
+                if flipped:
+                    self._event(session, "lockout", "locked", user_id=user.id, **who)
+            self._event(session, event, "bad_password", user_id=user.id, **who)
+        if flipped:
+            log.warning("auth.account.locked", extra={
+                "user_id": str(user.id), "until": locked_until.isoformat() if locked_until else None})
+
+    async def login(self, data: LoginIn, user_agent: str | None, ip: str | None = None) -> SessionResult:
         """Attempt reservation (LLD §19.2). An attempt is reserved atomically BEFORE the password is
         verified, so N parallel guesses can only ever try ``login_max_attempts`` passwords. A correct
         password re-checks the lock under a row lock, so it can never succeed after the account locked."""
         now = self._clock()
+        who: _Who = {"ip": ip, "user_agent": user_agent}
         async with self._sm() as session:
             user = await self._users.get_by_email(session, data.email)
 
@@ -137,22 +202,17 @@ class AuthService:
             await self._hasher.verify_dummy(data.password)   # equalize timing for unknown emails
             metrics.AUTH_LOGIN.labels("unknown_user").inc()
             log.info("auth.login.failure", extra={"reason": "unknown_user"})
+            await self._event_alone("login", "unknown_user", **who)
             raise InvalidCredentials()
 
         # Fast path: a locked account is rejected before any hashing (no signal, no CPU cost)
         if user.locked_until and user.locked_until > now:
             metrics.AUTH_LOGIN.labels("locked").inc()
             log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
+            await self._event_alone("login", "locked", user_id=user.id, **who)
             raise self._locked_error(user.locked_until, now)
 
-        # Reserve an attempt. No row back = locked meanwhile, or all attempts already taken by
-        # in-flight requests: lock the account (idempotent) and answer as for a locked account.
-        locked_until: datetime | None = None
-        async with self._sm() as session, session.begin():
-            count = await self._users.reserve_attempt(
-                session, user.id, self._s.login_max_attempts, self._s.login_failure_window_minutes, now)
-            if count is None:
-                locked_until = await self._users.lock_out(session, user.id, self._s.login_lock_minutes, now)
+        count, locked_until = await self._reserve_or_lock(user, "login", now, who)
         if count is None:
             metrics.AUTH_LOGIN.labels("locked").inc()
             log.info("auth.login.failure", extra={"reason": "locked", "user_id": str(user.id)})
@@ -166,18 +226,15 @@ class AuthService:
             raise
 
         if not correct:
-            if count >= self._s.login_max_attempts:      # this was the last allowed attempt
-                async with self._sm() as session, session.begin():
-                    locked_until = await self._users.lock_out(
-                        session, user.id, self._s.login_lock_minutes, now)
-                log.warning("auth.account.locked", extra={
-                    "user_id": str(user.id), "until": locked_until.isoformat() if locked_until else None})
+            await self._record_bad_password(user, "login", count, now, who)
             metrics.AUTH_LOGIN.labels("bad_password").inc()
             log.info("auth.login.failure", extra={"reason": "bad_password", "user_id": str(user.id)})
             raise InvalidCredentials()   # the 5th failure still returns 401; the next attempt sees 429
 
         if not user.is_active:
-            await self._release(user.id)         # a correct password is not a failed attempt
+            async with self._sm() as session, session.begin():   # a correct password is not a failed attempt
+                await self._users.release_attempt(session, user.id)
+                self._event(session, "login", "disabled", user_id=user.id, **who)
             metrics.AUTH_LOGIN.labels("disabled").inc()
             log.info("auth.login.failure", extra={"reason": "disabled", "user_id": str(user.id)})
             raise AccountDisabled()
@@ -195,9 +252,11 @@ class AuthService:
             fresh = await self._users.get_for_update(session, user.id)
             if fresh is not None and fresh.locked_until and fresh.locked_until > now:
                 locked_now = fresh.locked_until           # another request locked it while we verified
+                self._event(session, "login", "locked", user_id=user.id, **who)
             elif fresh is not None:
                 await self._users.register_success(session, fresh, new_hash, now)
-                raw, rt_exp = await self._start_session(session, fresh, user_agent, now)
+                raw, rt_exp, family_id = await self._start_session(session, fresh, user_agent, now)
+                self._event(session, "login", "success", user_id=fresh.id, family_id=family_id, **who)
         if fresh is None:
             raise InvalidCredentials()
         if locked_now is not None:
@@ -209,8 +268,88 @@ class AuthService:
         log.info("auth.login.success", extra={"user_id": str(fresh.id), "rehashed": rehash})
         return SessionResult(fresh, access, ttl, raw, rt_exp)
 
+    # ------------------------------------------------------- change password
+    async def change_password(
+        self, user_id: uuid.UUID, current_password: str, new_password: str, raw_refresh: str | None,
+        user_agent: str | None, ip: str | None = None,
+    ) -> SessionResult | None:
+        """Verifies the current password (it counts toward lockout exactly like a login), applies the
+        policy, stores the new hash, revokes EVERY other session of the user and keeps this one by
+        rotating its refresh token. Returns the rotated session, or None if the caller had no valid
+        refresh cookie (then all sessions are revoked and nothing is issued)."""
+        now = self._clock()
+        who: _Who = {"ip": ip, "user_agent": user_agent}
+        async with self._sm() as session:
+            user = await self._users.get(session, user_id)
+        if user is None:
+            raise NotFound()
+        if not user.is_active:
+            raise AccountDisabled()
+
+        violations: list[Violation] = check_password(new_password, user.email, self._common)
+        if new_password == current_password:
+            violations.append(Violation("SAME_AS_CURRENT", "Must differ from the current password."))
+        if violations:
+            await self._event_alone("password_change", "policy", user_id=user.id, **who)
+            raise PasswordPolicyError(details=[
+                {"field": "new_password", "code": v.code, "message": v.message} for v in violations])
+
+        if user.locked_until and user.locked_until > now:
+            await self._event_alone("password_change", "locked", user_id=user.id, **who)
+            raise self._locked_error(user.locked_until, now)
+        count, locked_until = await self._reserve_or_lock(user, "password_change", now, who)
+        if count is None:
+            raise self._locked_error(locked_until, now)
+
+        try:
+            correct = await self._hasher.verify(user.password_hash, current_password)
+        except ServiceBusy:
+            await self._release(user.id)
+            raise
+        if not correct:
+            await self._record_bad_password(user, "password_change", count, now, who)
+            raise InvalidCredentials("Current password is incorrect.")
+
+        try:
+            new_hash = await self._hasher.hash(new_password)
+        except ServiceBusy:
+            await self._release(user.id)
+            raise
+
+        new_raw: str | None = None
+        new_exp = now
+        locked_now: datetime | None = None
+        fresh: User | None
+        async with self._sm() as session, session.begin():
+            fresh = await self._users.get_for_update(session, user.id)
+            if fresh is not None and fresh.locked_until and fresh.locked_until > now:
+                locked_now = fresh.locked_until
+                self._event(session, "password_change", "locked", user_id=user.id, **who)
+            elif fresh is not None:
+                await self._users.set_password(session, fresh, new_hash, now)
+                keep_family: uuid.UUID | None = None
+                row = (await self._rt.get_by_hash_for_update(session, self._tokens.hash_refresh(raw_refresh))
+                       if raw_refresh else None)
+                if (row is not None and row.user_id == fresh.id and row.revoked_at is None
+                        and row.expires_at > now and row.family_expires_at > now):
+                    new_raw, new_exp = await self._rotate(session, row, user_agent, now)
+                    keep_family = row.family_id
+                revoked = await self._rt.revoke_user_sessions(
+                    session, fresh.id, "password_changed", now, except_family_id=keep_family)
+                self._event(session, "password_change", "success", user_id=fresh.id, family_id=keep_family, **who)
+        if fresh is None:
+            raise NotFound()
+        if locked_now is not None:
+            raise self._locked_error(locked_now, now)
+        log.info("auth.password.changed", extra={"user_id": str(fresh.id), "revoked_count": revoked,
+                                                "kept_session": new_raw is not None})
+        if new_raw is None:
+            return None
+        access, ttl = self._tokens.issue_access_token(fresh)
+        return SessionResult(fresh, access, ttl, new_raw, new_exp)
+
     # --------------------------------------------------------------- refresh
-    async def refresh(self, raw: str, user_agent: str | None) -> SessionResult:
+    async def refresh(self, raw: str, user_agent: str | None, ip: str | None = None) -> SessionResult:
         now = self._clock()
         outcome = RefreshOutcome.INVALID
         user: User | None = None
@@ -237,6 +376,8 @@ class AuthService:
                         # A token that was legitimately rotated away is replayed: someone kept a copy
                         revoked_count = await self._rt.revoke_family(session, row.family_id, "reuse_detected", now)
                         outcome = RefreshOutcome.REUSED
+                        self._event(session, "refresh", "reuse_detected", user_id=row.user_id,
+                                    family_id=row.family_id, ip=ip, user_agent=user_agent)
                 elif row.expires_at <= now or row.family_expires_at <= now:
                     outcome = RefreshOutcome.EXPIRED
                 else:
@@ -245,14 +386,7 @@ class AuthService:
                         await self._rt.revoke_family(session, row.family_id, "user_inactive", now)
                         outcome = RefreshOutcome.INVALID
                     else:
-                        new_raw, new_hash = self._tokens.new_refresh_secret()
-                        new_exp = min(now + timedelta(days=self._s.refresh_token_ttl_days), row.family_expires_at)
-                        new = RefreshToken(
-                            id=uuid.uuid4(), user_id=user.id, family_id=row.family_id, token_hash=new_hash,
-                            expires_at=new_exp, family_expires_at=row.family_expires_at,
-                            user_agent=_trim(user_agent), created_at=now)
-                        await self._rt.add(session, new)   # flush, so new.id exists
-                        row.revoked_at, row.revoked_reason, row.replaced_by_id = now, "rotated", new.id
+                        new_raw, new_exp = await self._rotate(session, row, user_agent, now)
                         outcome = RefreshOutcome.OK
         # The transaction has COMMITTED here, including any family revocation. The error is raised
         # only now: raising inside the block would roll the revocation back (LLD §19.3 / §20.6).
@@ -273,7 +407,7 @@ class AuthService:
         raise errors[outcome]()
 
     # --------------------------------------------------------------- logout
-    async def logout(self, raw: str | None) -> None:
+    async def logout(self, raw: str | None, user_agent: str | None = None, ip: str | None = None) -> None:
         """Idempotent: missing, unknown or already-revoked cookies all succeed."""
         if not raw:
             return
@@ -285,6 +419,8 @@ class AuthService:
             if row is not None:
                 user_id = row.user_id
                 revoked = await self._rt.revoke_family(session, row.family_id, "logout", now)
+                self._event(session, "logout", "success", user_id=row.user_id, family_id=row.family_id,
+                            ip=ip, user_agent=user_agent)
         log.info("auth.logout", extra={"user_id": str(user_id) if user_id else None, "revoked_count": revoked})
 
     # ------------------------------------------------------------------- me
@@ -298,13 +434,28 @@ class AuthService:
         return user
 
     # -------------------------------------------------------------- helpers
+    async def _rotate(
+        self, session: AsyncSession, row: RefreshToken, user_agent: str | None, now: datetime
+    ) -> tuple[str, datetime]:
+        """Single-use rotation: issue the next token in the same family and mark this one rotated."""
+        new_raw, new_hash = self._tokens.new_refresh_secret()
+        new_exp = min(now + timedelta(days=self._s.refresh_token_ttl_days), row.family_expires_at)
+        new = RefreshToken(
+            id=uuid.uuid4(), user_id=row.user_id, family_id=row.family_id, token_hash=new_hash,
+            expires_at=new_exp, family_expires_at=row.family_expires_at,
+            user_agent=_trim(user_agent), created_at=now)
+        await self._rt.add(session, new)   # flush, so new.id exists
+        row.revoked_at, row.revoked_reason, row.replaced_by_id = now, "rotated", new.id
+        return new_raw, new_exp
+
     async def _start_session(
         self, session: AsyncSession, user: User, user_agent: str | None, now: datetime
-    ) -> tuple[str, datetime]:
+    ) -> tuple[str, datetime, uuid.UUID]:
         raw, h = self._tokens.new_refresh_secret()
+        family_id = uuid.uuid4()
         family_exp = now + timedelta(days=self._s.session_max_days)
         exp = min(now + timedelta(days=self._s.refresh_token_ttl_days), family_exp)
         await self._rt.add(session, RefreshToken(
-            id=uuid.uuid4(), user_id=user.id, family_id=uuid.uuid4(), token_hash=h,
+            id=uuid.uuid4(), user_id=user.id, family_id=family_id, token_hash=h,
             expires_at=exp, family_expires_at=family_exp, user_agent=_trim(user_agent), created_at=now))
-        return raw, exp
+        return raw, exp, family_id

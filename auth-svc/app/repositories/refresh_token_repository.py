@@ -30,6 +30,24 @@ class RefreshTokenRepository:
         ))
         return result.rowcount or 0
 
+    async def revoke_user_sessions(
+        self,
+        s: AsyncSession,
+        user_id: uuid.UUID,
+        reason: str,
+        now: datetime,
+        except_family_id: uuid.UUID | None = None,
+    ) -> int:
+        """Revoke every active token of a user, optionally sparing one session family."""
+        stmt = (
+            update(RefreshToken)
+            .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+            .values(revoked_at=now, revoked_reason=reason)
+        )
+        if except_family_id is not None:
+            stmt = stmt.where(RefreshToken.family_id != except_family_id)
+        return cast(CursorResult, await s.execute(stmt)).rowcount or 0
+
     async def delete_expired(self, s: AsyncSession, before: datetime) -> int:
         result = cast(CursorResult, await s.execute(
             delete(RefreshToken).where(
