@@ -34,6 +34,8 @@ def production_problems(s: Settings, file_mode: Callable[[str], int | None] | No
     mode = file_mode(s.jwt_private_key_path)
     if mode is not None and mode & 0o077:
         problems.append(f"JWT private key must not be group/world readable (mode is {mode:04o}, expected 0600)")
+    if s.auth_db_sslmode == "disable":
+        problems.append("AUTH_DB_SSLMODE must be require or verify-full (database traffic must be encrypted)")
     if s.enable_public_signup and not s.allow_public_signup_in_production:
         problems.append("ENABLE_PUBLIC_SIGNUP=true needs ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true")
     return problems

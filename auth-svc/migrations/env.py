@@ -7,6 +7,7 @@ from alembic import context
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.db.session import build_ssl
 from app.models import Base
 
 config = context.config
@@ -39,7 +40,9 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_async() -> None:
-    engine = create_async_engine(_url())
+    # same TLS settings as the application (AUTH_DB_SSLMODE / AUTH_DB_SSLROOTCERT)
+    ssl_arg = build_ssl(os.environ.get("AUTH_DB_SSLMODE", "disable"), os.environ.get("AUTH_DB_SSLROOTCERT"))
+    engine = create_async_engine(_url(), connect_args={"ssl": ssl_arg} if ssl_arg is not None else {})
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await engine.dispose()

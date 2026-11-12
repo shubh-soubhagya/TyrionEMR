@@ -15,7 +15,7 @@ from tests.conftest import make_settings
 
 ROOT = Path(__file__).resolve().parents[2]
 GOOD = dict(environment="production", seed_demo_users=False, cookie_secure=True, enable_public_signup=False,
-            cors_allowed_origins=["https://emr.example.org"])
+            cors_allowed_origins=["https://emr.example.org"], auth_db_sslmode="verify-full")
 
 
 def mode_600(_path):
@@ -38,6 +38,7 @@ def test_a_valid_production_config_passes():
     ({"cors_allowed_origins": ["*"]}, "CORS_ALLOWED_ORIGINS"),
     ({"cors_allowed_origins": ["https://emr.example.org", "http://localhost:4200"]}, "CORS_ALLOWED_ORIGINS"),
     ({"enable_public_signup": True}, "ENABLE_PUBLIC_SIGNUP"),
+    ({"auth_db_sslmode": "disable"}, "AUTH_DB_SSLMODE"),
 ])
 def test_each_forbidden_setting_fails_startup(override, fragment):
     with pytest.raises(ConfigurationError) as exc:

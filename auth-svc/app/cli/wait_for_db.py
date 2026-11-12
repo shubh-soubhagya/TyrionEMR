@@ -6,14 +6,13 @@ import asyncio
 import sys
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-
 from app.core.config import get_settings
+from app.db.session import create_engine
 
 
 async def main() -> int:
     s = get_settings()
-    engine = create_async_engine(s.auth_database_url, connect_args={"timeout": 3})
+    engine = create_engine(s)
     try:
         for attempt in range(1, s.db_wait_attempts + 1):
             try:
