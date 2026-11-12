@@ -75,6 +75,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": ["host.docker.internal"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "nephro-emr:build:production"

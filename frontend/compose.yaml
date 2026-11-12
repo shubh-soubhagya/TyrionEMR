@@ -2,10 +2,11 @@ services:
   web:
     image: node:24-bookworm-slim
     working_dir: /app
-    # Install only when node_modules is missing. `npm ci` deletes node_modules first, which is
+    # Install only when node_modules is missing (checked via a real file: the .bin symlinks are not
+    # reliable on this Windows bind mount, so testing .bin/ng re-ran npm ci on every restart). `npm ci` deletes node_modules first, which is
     # very slow on a Windows bind mount (it made every restart take minutes).
     # After changing dependencies, run `docker compose exec web npm install`.
-    command: sh -c "[ -x node_modules/.bin/ng ] || npm ci; npx ng serve --host 0.0.0.0 --port 4200 --poll 1000"
+    command: sh -c "[ -f node_modules/@angular/cli/package.json ] || npm ci; npx ng serve --host 0.0.0.0 --port 4200 --poll 1000"
     ports:
       - '4200:4200'
     volumes:
@@ -13,3 +14,19 @@ services:
     environment:
       NG_CLI_ANALYTICS: 'false'
       CHOKIDAR_USEPOLLING: 'true'
+
+  # Visual parity check (reference HTML vs Angular app). Started on demand only:
+  #   docker compose --profile tools run --rm parity
+  # The image tag MUST equal the installed @playwright/test version (1.65.0, pinned in package.json),
+  # otherwise Playwright cannot find the browsers bundled in the image.
+  parity:
+    image: mcr.microsoft.com/playwright:v1.65.0-noble
+    profiles: ['tools']
+    working_dir: /app
+    command: npx playwright test --config=playwright.parity.config.ts
+    ipc: host # recommended by Playwright for Chromium
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - .:/app
+      - ../reference:/reference:ro

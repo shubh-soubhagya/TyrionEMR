@@ -10,7 +10,8 @@
     "lint": "ng lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:ci": "ng test --watch=false"
+    "test:ci": "ng test --watch=false",
+    "parity": "playwright test --config=playwright.parity.config.ts"
   },
   "private": true,
   "engines": {
@@ -34,9 +35,13 @@
     "@angular/cli": "^22.2.6",
     "@angular/compiler-cli": "^22.2.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/pngjs": "^6.0.5",
     "angular-eslint": "22.6.0",
     "eslint": "^10.12.0",
     "jsdom": "^30.0.0",
+    "pixelmatch": "^8.0.0",
+    "pngjs": "^7.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "8.71.0",

@@ -50,3 +50,23 @@ replaces it in the development build (`fileReplacements`). Fields: `apiBaseUrl`,
 ## Path aliases
 
 `@core/*`, `@shared/*`, `@features/*`, `@layout/*`, `@env/*` (see `tsconfig.json`).
+
+## Visual parity check (Playwright)
+
+Compares `../reference/emr-ui.html` with the running Angular app at 1440, 1024, 768 and 375 px.
+It replaces manual side-by-side checking and is reused by every later phase (add a
+`<screen>.parity.ts` under `e2e/parity/`).
+
+```bash
+docker compose up -d web                                   # the app must be running
+docker compose --profile tools run --rm parity             # runs `npm run parity` in the Playwright image
+```
+
+- Output: `docs/parity/<screen>-<width>.png` (left to right: reference, Angular, diff) and
+  `docs/parity/report.md` with the pixel-diff percentage per screen and width.
+- The `parity` service uses `mcr.microsoft.com/playwright:v1.65.0-noble`. **Its tag must equal the
+  installed `@playwright/test` version** (pinned exactly in `package.json`); change both together.
+- The Angular app is reached at `http://host.docker.internal:4200` (allowed in `angular.json`
+  `serve.options.allowedHosts`); the reference HTML is mounted read-only at `/reference`.
+- IBM Plex is served to the reference page from the same npm fonts the app uses, so a missing
+  internet connection does not skew the diff.
