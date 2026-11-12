@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/latest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "latest",
+    "egfr_category",
+    "uacr_category",
+    "has_critical",
+    "rapid_decline",
+    "last_result_at"
+  ],
+  "properties": {
+    "patient_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "latest": {
+      "type": "object"
+    },
+    "egfr_category": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "label"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "uacr_category": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "label"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "has_critical": {
+      "type": "boolean"
+    },
+    "rapid_decline": {
+      "type": "boolean"
+    },
+    "last_result_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

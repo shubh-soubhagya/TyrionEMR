@@ -47,6 +47,11 @@ def select_range(ranges: Iterable[RangeRow], test_code: str, sex: str | None, ag
     return best[1] if best else None
 
 
+def age_on(dob: date, on: date) -> int:
+    """Whole years of age on a date (negative when ``on`` precedes the birth date)."""
+    return on.year - dob.year - ((on.month, on.day) < (dob.month, dob.day))
+
+
 def flag_for(value: Decimal, rng: RangeRow | None) -> Flag:
     """Critical limits first, then the normal range. Limits are exclusive: a value equal to a limit is not
     beyond it."""

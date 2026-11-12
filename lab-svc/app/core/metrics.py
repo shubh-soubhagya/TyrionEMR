@@ -43,6 +43,11 @@ class MetricsMiddleware:
                 HTTP_DURATION.labels(route, scope["method"], str(status)).observe(time.perf_counter() - start)
 
 
+REPORTS_CREATED = Counter("lab_reports_created_total", "Lab reports created")
+RESULTS_STORED = Counter("lab_results_stored_total", "Lab results stored", ["flag"])
+CORRECTIONS = Counter("lab_corrections_total", "Result corrections appended")
+UPSTREAM_CALLS = Counter("lab_upstream_calls_total", "Calls to other services", ["upstream", "outcome"])
+STATUS_REFRESH = Histogram("lab_status_refresh_seconds", "Time to recompute patient_lab_status")
 DB_POOL_CHECKED_OUT = Gauge("db_pool_checked_out", "Connections currently checked out of the pool")
 DB_TRIGGER_REJECTIONS = Counter("db_trigger_rejections_total",
                                 "Writes rejected by a database trigger (a service bug: should stay 0)", ["hint"])

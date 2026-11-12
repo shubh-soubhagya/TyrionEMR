@@ -3,8 +3,7 @@
 Laboratory data and everything derived from it (reference ranges, unit conversion, flags, CKD categories,
 trends). Design: [../docs/HLD.md](../docs/HLD.md) §4.3, §5.4, §6, §9, §11.3. Build plan: [PHASES.md](PHASES.md).
 
-**Status: phases 1–5 done** (database, skeleton, schema, clinical domain, test catalog). Reports, results,
-the `patient_lab_status` read model and the read APIs are phases 6–9.
+**Status: phases 1–10 done.** Seed patients/scenarios, gateway route and OpenAPI/EXPLAIN artifacts are phase 11.
 
 ## Run (uses the same Postgres container as auth-svc and patient-svc)
 
@@ -28,7 +27,21 @@ databases (asserted by `tests/db/test_db_guards.py`).
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/labs/tests?sex=M\|F` | Catalog: units + factors, plausibility limit, range for that sex. A sex-specific test without `sex` returns `reference_range: null`, never a guessed range |
+| POST | `/labs/patients/{id}/reports` | One blood draw, 1-8 analytes. Converts to the canonical unit, snapshots range + flag, updates the read model in the same transaction. Calls patient-svc once (404 unknown patient, 502 if it is down) |
+| POST | `/labs/results/{rid}/correct` | Appends a result that supersedes `rid`; 409 `ALREADY_CORRECTED` on a second attempt |
+| GET | `/labs/patients/{id}/results` | `test`, `from`, `to`, `flag=abnormal\|low\|...`, `include_superseded`, `page`, `size`; newest first |
+| GET | `/labs/patients/{id}/trends?tests=CREAT,EGFR` | Points + stats recomputed for the selected window |
+| GET | `/labs/patients/{id}/latest` | Latest per test, eGFR G-category, UACR A-category, attention flags. Empty (not guessed) when nothing is documented |
+| GET | `/labs/summary?patient_ids=a,b` | Max 50 ids, one indexed read; every id returned, `has_data: false` when none |
+| GET | `/internal/labs/patients/{id}/{results,trends,latest}` | Same handlers for ai-svc |
+| GET | `/internal/labs/status?cursor=&limit=` | Bulk read model, cursor = last `patient_id`, limit capped at 200 |
 | GET | `/health`, `/ready`, `/metrics` | `/ready` checks DB, migration head and JWKS |
+
+Results of a patient lab-svc has never heard of are simply empty: it calls patient-svc only when writing.
+
+Operations: `python -m app.cli.rebuild_status [--patient <uuid>]` recomputes `patient_lab_status` from `lab_results`
+with the same function the write path uses. Every write and every patient read writes an `audit_events` row in the
+same transaction (field names and counts only, never values). JSON schemas for the responses are in `contracts/lab/`.
 
 ## Clinical rules (all in `app/domain`, pure and unit-tested)
 

@@ -10,6 +10,7 @@ import os
 import time
 import uuid
 from collections.abc import AsyncIterator, Callable
+from datetime import date
 from typing import Any
 
 import httpx
@@ -20,10 +21,12 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI
 
 from app.core.config import Settings
+from app.core.errors import NotFound
 from app.core.security import Clinician, User, require_role
 from app.domain.clock import FakeClock
 from app.main import create_app
 from app.services.jwks import JwksCache, _b64u_uint, thumbprint_kid
+from app.services.patient_client import PatientBasic
 
 load_dotenv()          # picks up LAB_TEST_DATABASE_URL from .env when running on the host
 
@@ -90,9 +93,36 @@ def jwks(rsa_key: rsa.RSAPrivateKey, settings: Settings) -> JwksCache:
     return JwksCache(fetch, settings, mono=time.monotonic)
 
 
+class FakePatients:
+    """Stands in for patient-svc GET /internal/patients/{id}/basic."""
+
+    def __init__(self) -> None:
+        self.people: dict[uuid.UUID, PatientBasic] = {}
+        self.error: Exception | None = None
+        self.calls: list[tuple[uuid.UUID, str, str | None]] = []
+
+    def add(self, sex: str = "M", dob: date = date(1959, 4, 17)) -> uuid.UUID:
+        pid = uuid.uuid4()
+        self.people[pid] = PatientBasic(sex, dob)
+        return pid
+
+    async def basic(self, patient_id: uuid.UUID, authorization: str, request_id: str | None) -> PatientBasic:
+        self.calls.append((patient_id, authorization, request_id))
+        if self.error:
+            raise self.error
+        if patient_id not in self.people:
+            raise NotFound()
+        return self.people[patient_id]
+
+
 @pytest.fixture
-def app(settings: Settings, clock: FakeClock, jwks: JwksCache) -> FastAPI:
-    app = create_app(settings, clock=clock, jwks=jwks)
+def patients() -> FakePatients:
+    return FakePatients()
+
+
+@pytest.fixture
+def app(settings: Settings, clock: FakeClock, jwks: JwksCache, patients: FakePatients) -> FastAPI:
+    app = create_app(settings, clock=clock, jwks=jwks, patients=patients)
     # A probe route proves the auth dependencies independently of business routes.
     probe = APIRouter()
 
@@ -133,7 +163,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine  # noqa: E40
 
 ROOT = Path(__file__).resolve().parents[1]
 # Only the data tables are cleared; the catalog (lab_tests, lab_reference_ranges) is reference data.
-TABLES = "patient_lab_status, lab_results, lab_reports"
+TABLES = "audit_events, patient_lab_status, lab_results, lab_reports"
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/results.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items",
+    "total",
+    "page",
+    "size"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "report_id",
+          "patient_id",
+          "test_code",
+          "collected_at",
+          "value",
+          "unit",
+          "value_original",
+          "unit_original",
+          "ref_low",
+          "ref_high",
+          "flag",
+          "supersedes_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "report_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "patient_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "test_code": {
+            "type": "string"
+          },
+          "collected_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value_original": {
+            "type": "number"
+          },
+          "unit_original": {
+            "type": "string"
+          },
+          "ref_low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ref_high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "flag": {
+            "enum": [
+              "normal",
+              "low",
+              "high",
+              "critical_low",
+              "critical_high",
+              "unknown"
+            ]
+          },
+          "supersedes_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "total": {
+      "type": "integer"
+    },
+    "page": {
+      "type": "integer"
+    },
+    "size": {
+      "type": "integer"
+    }
+  }
+}

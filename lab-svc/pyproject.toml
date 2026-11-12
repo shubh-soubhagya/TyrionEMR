@@ -49,3 +49,6 @@ extend-immutable-calls = ["fastapi.Depends", "app.core.security.require_role"]
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501", "E731", "B023"]

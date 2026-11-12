@@ -1,0 +1,90 @@
+"""Public lab routes (HLD 11.3) and their internal twins for ai-svc (same handlers, /internal prefix)."""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Response
+
+from app.api.deps import AuthHeader, ReadSvc, ReportSvc
+from app.core.errors import ValidationFailed
+from app.core.security import Clinician
+from app.schemas.reads import LatestOut, ResultsPage, StatusPage, SummaryOut, TrendsOut
+from app.schemas.reports import CorrectionIn, ReportIn, ReportOut, ResultOut
+
+router = APIRouter(prefix="/labs", tags=["labs"])
+internal = APIRouter(prefix="/internal/labs", tags=["internal"])
+
+
+# ---- writes (public only) ---------------------------------------------------------------------------
+@router.post("/patients/{patient_id}/reports", response_model=ReportOut, status_code=201)
+async def create_report(patient_id: uuid.UUID, body: ReportIn, svc: ReportSvc, user: Clinician,
+                        auth: AuthHeader, response: Response) -> ReportOut:
+    out = await svc.create(patient_id, body, user, auth)
+    response.headers["Location"] = f"/labs/patients/{patient_id}/results?test={out.results[0].test_code}"
+    return out
+
+
+@router.post("/results/{result_id}/correct", response_model=ResultOut, status_code=201)
+async def correct_result(result_id: uuid.UUID, body: CorrectionIn, svc: ReportSvc, user: Clinician,
+                         auth: AuthHeader) -> ResultOut:
+    """Appends a correction that supersedes the result. The original row is kept."""
+    return await svc.correct(result_id, body, user, auth)
+
+
+# ---- reads (registered on both routers) -------------------------------------------------------------
+def _split(value: str, name: str) -> list[str]:
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    if not parts:
+        raise ValidationFailed([(name, "At least one value is required.")])
+    return parts
+
+
+for r in (router, internal):
+
+    @r.get("/patients/{patient_id}/results", response_model=ResultsPage)
+    async def results(
+        patient_id: uuid.UUID, svc: ReadSvc, user: Clinician,
+        test: Annotated[str | None, Query(max_length=16)] = None,
+        date_from: Annotated[datetime | None, Query(alias="from")] = None,
+        date_to: Annotated[datetime | None, Query(alias="to")] = None,
+        flag: Annotated[str | None, Query(description="abnormal | normal | low | high | critical_low | ...")] = None,
+        include_superseded: bool = False,
+        page: Annotated[int, Query(ge=1)] = 1,
+        size: Annotated[int, Query(ge=1, le=200)] = 50,
+    ) -> ResultsPage:
+        return await svc.results(patient_id, user, test=test, date_from=date_from, date_to=date_to, flag=flag,
+                                 include_superseded=include_superseded, page=page, size=size)
+
+    @r.get("/patients/{patient_id}/trends", response_model=TrendsOut)
+    async def trends(
+        patient_id: uuid.UUID, svc: ReadSvc, user: Clinician,
+        tests: Annotated[str, Query(description="Comma separated, e.g. CREAT,EGFR")] = "CREAT,EGFR",
+        date_from: Annotated[datetime | None, Query(alias="from")] = None,
+        date_to: Annotated[datetime | None, Query(alias="to")] = None,
+    ) -> TrendsOut:
+        return await svc.trends(patient_id, user, _split(tests, "tests"), date_from, date_to)
+
+    @r.get("/patients/{patient_id}/latest", response_model=LatestOut)
+    async def latest(patient_id: uuid.UUID, svc: ReadSvc, user: Clinician) -> LatestOut:
+        return await svc.latest(patient_id, user)
+
+
+@router.get("/summary", response_model=SummaryOut)
+async def summary(svc: ReadSvc, user: Clinician,
+                  patient_ids: Annotated[str, Query(description="Comma separated ids, at most 50")]) -> SummaryOut:
+    """Batch for list rows: latest eGFR, category, sparkline, attention flags. Every requested id is returned;
+    one with no results has ``has_data: false``."""
+    try:
+        ids = list(dict.fromkeys(uuid.UUID(p) for p in _split(patient_ids, "patient_ids")))
+    except ValueError:
+        raise ValidationFailed([("patient_ids", "Every id must be a valid UUID.")]) from None
+    return await svc.summary(ids, user)
+
+
+@internal.get("/status", response_model=StatusPage)
+async def status(svc: ReadSvc, user: Clinician, cursor: uuid.UUID | None = None,
+                 limit: Annotated[int, Query(ge=1, le=1000)] = 200) -> StatusPage:
+    """Bulk read of the read model for the worklist and dashboard; cursor = last patient_id of the previous page."""
+    return await svc.status_page(cursor, limit, user)

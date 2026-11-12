@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/summary.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "patient_id",
+          "has_data",
+          "latest_egfr",
+          "egfr_category",
+          "egfr_spark",
+          "has_critical",
+          "rapid_decline",
+          "last_result_at"
+        ],
+        "properties": {
+          "patient_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "has_data": {
+            "type": "boolean"
+          },
+          "latest_egfr": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "egfr_category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "egfr_spark": {
+            "type": "array",
+            "maxItems": 12
+          },
+          "has_critical": {
+            "type": "boolean"
+          },
+          "rapid_decline": {
+            "type": "boolean"
+          },
+          "last_result_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

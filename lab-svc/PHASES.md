@@ -12,11 +12,11 @@ Each phase must be finished, tested and committed before the next starts.
 | 3 ✅ | Baseline migration and models | 5 tables, CHECKs, indexes, DB guards |
 | 4 ✅ | Pure clinical domain | Unit conversion, flagging, CKD categories, trends (no I/O) |
 | 5 ✅ | Catalog and reference ranges | `GET /labs/tests`, seeded ranges |
-| 6 | Reports, results and corrections | Create report, unit conversion, snapshots, append-only corrections |
-| 7 | Read model `patient_lab_status` | Same-transaction updates, rebuild script, batch summary |
-| 8 | Read APIs | results, trends, latest, summary |
-| 9 | Internal endpoints and contracts | ai-svc reads, bulk status, JSON Schemas |
-| 10 | Observability and audit | Logs, metrics, no PHI |
+| 6 ✅ | Reports, results and corrections | Create report, unit conversion, snapshots, append-only corrections |
+| 7 ✅ | Read model `patient_lab_status` | Same-transaction updates, rebuild script, batch summary |
+| 8 ✅ | Read APIs | results, trends, latest, summary |
+| 9 ✅ | Internal endpoints and contracts | ai-svc reads, bulk status, JSON Schemas |
+| 10 ✅ | Observability and audit | Logs, metrics, no PHI |
 | 11 | Seed, image, compose, handover | Deployable seeded service, OpenAPI, EXPLAIN plans |
 
 ---

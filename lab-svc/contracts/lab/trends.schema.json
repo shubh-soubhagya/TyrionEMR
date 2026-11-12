@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/trends.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "patient_id",
+    "series"
+  ],
+  "properties": {
+    "patient_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "test_code",
+          "unit",
+          "points",
+          "stats"
+        ],
+        "properties": {
+          "test_code": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "collected_at",
+                "value",
+                "flag",
+                "ref_low",
+                "ref_high"
+              ],
+              "properties": {
+                "collected_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "flag": {
+                  "type": "string"
+                },
+                "ref_low": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "ref_high": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "n",
+                  "first",
+                  "last",
+                  "abs_change",
+                  "pct_change",
+                  "slope_per_year",
+                  "direction",
+                  "rapid_decline",
+                  "span_days"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer"
+                  },
+                  "first": {
+                    "type": "number"
+                  },
+                  "last": {
+                    "type": "number"
+                  },
+                  "abs_change": {
+                    "type": "number"
+                  },
+                  "pct_change": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "slope_per_year": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "direction": {
+                    "enum": [
+                      "improving",
+                      "stable",
+                      "worsening",
+                      "insufficient_data"
+                    ]
+                  },
+                  "rapid_decline": {
+                    "type": "boolean"
+                  },
+                  "span_days": {
+                    "type": "integer"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

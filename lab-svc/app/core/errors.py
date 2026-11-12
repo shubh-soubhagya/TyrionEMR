@@ -128,3 +128,18 @@ class ValidationFailed(AppError):
 
     def __init__(self, issues: list[tuple[str, str]]) -> None:
         super().__init__(details=[{"field": f, "issue": m} for f, m in issues])
+
+
+class UpstreamUnavailable(AppError):
+    """A service we depend on (patient-svc) failed. The upstream is named in details (HLD section 9)."""
+
+    status_code, code = 502, "UPSTREAM_UNAVAILABLE"
+    message = "A dependent service is unavailable. Please retry shortly."
+
+    def __init__(self, upstream: str) -> None:
+        super().__init__(details=[{"upstream": upstream}])
+
+
+class AlreadyCorrected(AppError):
+    status_code, code = 409, "ALREADY_CORRECTED"
+    message = "This result has already been corrected. Correct the latest value instead."
