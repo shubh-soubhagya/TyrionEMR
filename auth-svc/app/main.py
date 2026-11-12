@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DBAPIError
 
 from app.api.cookies import clear_refresh_cookie
 from app.api.routes import auth as routes_auth
@@ -15,6 +16,7 @@ from app.api.routes import health as routes_health
 from app.api.routes import wellknown as routes_wellknown
 from app.core.common_setup import install_common_middleware
 from app.core.config import Settings, get_settings
+from app.core.dberrors import db_error_handler
 from app.core.errors import AuthError, error_response
 from app.core.guard import ConfigurationError, enforce_production
 from app.core.logging import configure_logging
@@ -94,6 +96,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
     )
     install_common_middleware(app)
     app.add_exception_handler(AuthError, _auth_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(DBAPIError, db_error_handler)  # type: ignore[arg-type]
     app.include_router(routes_auth.router, prefix="/auth", tags=["auth"])
     app.include_router(routes_wellknown.router)
     app.include_router(routes_health.router)

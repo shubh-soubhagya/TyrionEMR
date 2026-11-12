@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     auth_db_pool_size: int = 5
     auth_db_max_overflow: int = 5
     db_wait_attempts: int = 30
+    # Server-side limits so a stuck query or lock turns into a fast 503, not a hung request (item 6)
+    # TLS to Postgres: disable | require (encrypt; verifies the chain only if a root cert is given) | verify-full
+    auth_db_sslmode: Literal["disable", "require", "verify-full"] = "disable"
+    auth_db_sslrootcert: str | None = None
+    db_statement_timeout_ms: int = 5000
+    db_lock_timeout_ms: int = 2000
+    db_idle_in_transaction_timeout_ms: int = 10000
 
     jwt_issuer: str = "nephro-auth"
     jwt_audience: str = "nephro-api"
