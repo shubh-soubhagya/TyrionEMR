@@ -9,7 +9,11 @@ services:
     env_file: .env
     environment:
       # Defined here (not in .env) because compose interpolates ${...} in `environment:` reliably
-      AUTH_DATABASE_URL: postgresql+asyncpg://auth_svc:${AUTH_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      # Runtime login. Defaults to the legacy single role so the current setup keeps working; set
+      # AUTH_APP_DB_USER=auth_app and AUTH_APP_DB_PW once the least-privilege roles exist (setup/init-auth-db.sh).
+      AUTH_DATABASE_URL: postgresql+asyncpg://${AUTH_APP_DB_USER:-auth_svc}:${AUTH_APP_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      RUN_MIGRATIONS_ON_START: ${RUN_MIGRATIONS_ON_START:-false}
+      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:-auth_svc}:${AUTH_MIGRATOR_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private
       # Everything else (SEED_DEMO_USERS, ENABLE_PUBLIC_SIGNUP, COOKIE_SECURE, ...) comes from .env
     secrets:
@@ -22,6 +26,19 @@ services:
     stop_grace_period: 25s       # > uvicorn --timeout-graceful-shutdown 20
     # No "ports": auth-svc is never published. Only the gateway will publish a port.
     # For a local smoke test, `docker compose exec` / a debug port override is used instead (see README).
+
+  # One-off schema migration with the schema-owner role:  docker compose run --rm migrate   (make migrate)
+  migrate:
+    image: nephro/auth-svc
+    profiles: [tools]              # never started by `docker compose up`
+    env_file: .env
+    environment:
+      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:-auth_svc}:${AUTH_MIGRATOR_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      AUTH_DB_SSLMODE: ${AUTH_DB_SSLMODE:-disable}
+    entrypoint: ["alembic", "upgrade", "head"]
+    networks: [nephro-net]
+    read_only: true
+    tmpfs: [/tmp]
 
 secrets:
   jwt_private:

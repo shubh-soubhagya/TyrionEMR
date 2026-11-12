@@ -52,6 +52,7 @@ from pathlib import Path  # noqa: E402
 import httpx  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 from app.main import build_state, create_app  # noqa: E402
 from app.models import User  # noqa: E402
@@ -60,6 +61,8 @@ from app.services.keystore import KeyStore, SigningKey, thumbprint_kid  # noqa: 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 TEST_DB_URL = os.environ.get("AUTH_TEST_DATABASE_URL")
+# Schema changes (and the TRUNCATE between tests) need the schema-owner role. Unset = single-role setup.
+TEST_MIGRATION_URL = os.environ.get("AUTH_TEST_MIGRATION_DATABASE_URL") or TEST_DB_URL
 GOOD_PASSWORD = "Kidney2026care"
 
 
@@ -67,7 +70,7 @@ GOOD_PASSWORD = "Kidney2026care"
 def migrated_db() -> str:
     if not TEST_DB_URL:
         pytest.skip("AUTH_TEST_DATABASE_URL is not set")
-    env = {**os.environ, "AUTH_DATABASE_URL": TEST_DB_URL}
+    env = {**os.environ, "AUTH_DATABASE_URL": TEST_DB_URL, "AUTH_MIGRATION_DATABASE_URL": TEST_MIGRATION_URL or ""}
     for cmd in (["downgrade", "base"], ["upgrade", "head"]):   # fresh schema from the real migration
         subprocess.run([sys.executable, "-m", "alembic", *cmd], cwd=ROOT, env=env, check=True,
                        capture_output=True)
@@ -86,8 +89,10 @@ async def make_app(migrated_db, rsa_key, clock):
         app = create_app(s, clock)
         build_state(app, s, clock, keystore or KeyStore(SigningKey(kid, rsa_key), {kid: pub}))
         if truncate:
-            async with app.state.engine.begin() as conn:
+            owner_engine = create_async_engine(TEST_MIGRATION_URL)   # the runtime role may not TRUNCATE
+            async with owner_engine.begin() as conn:
                 await conn.execute(text("TRUNCATE users, auth_events CASCADE"))
+            await owner_engine.dispose()
         created.append(app)
         return app
 

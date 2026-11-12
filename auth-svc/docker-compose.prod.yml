@@ -8,6 +8,9 @@ services:
       SEED_DEMO_USERS: "false"
       ENABLE_PUBLIC_SIGNUP: "false"
       COOKIE_SECURE: "true"
+      RUN_MIGRATIONS_ON_START: "false"        # production migrates with the migrate job, not at boot
+      # Database traffic must be encrypted; production refuses to start with `disable`.
+      AUTH_DB_SSLMODE: ${PROD_AUTH_DB_SSLMODE:-verify-full}
       # No default on purpose: starting without real origins must fail, not fall back to localhost.
       CORS_ALLOWED_ORIGINS: ${PROD_CORS_ALLOWED_ORIGINS:?set PROD_CORS_ALLOWED_ORIGINS to the real https origin(s)}
     # The key file must be owned by uid 10001 with mode 0600 (setup/generate-keys.sh --prod).

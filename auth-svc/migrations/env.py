@@ -15,9 +15,10 @@ MIGRATION_LOCK_ID = 727_001  # unique per service: auth=727001, patient=727002, 
 
 
 def _url() -> str:
-    url = os.environ.get("AUTH_DATABASE_URL")
+    # DDL needs the schema owner; the runtime role (AUTH_DATABASE_URL) can only read and write rows
+    url = os.environ.get("AUTH_MIGRATION_DATABASE_URL") or os.environ.get("AUTH_DATABASE_URL")
     if not url:
-        raise RuntimeError("AUTH_DATABASE_URL is not set")
+        raise RuntimeError("AUTH_MIGRATION_DATABASE_URL (or AUTH_DATABASE_URL) is not set")
     return url
 
 
@@ -42,7 +43,7 @@ def do_run_migrations(connection) -> None:
 async def run_async() -> None:
     # same TLS settings as the application (AUTH_DB_SSLMODE / AUTH_DB_SSLROOTCERT)
     ssl_arg = build_ssl(os.environ.get("AUTH_DB_SSLMODE", "disable"), os.environ.get("AUTH_DB_SSLROOTCERT"))
-    engine = create_async_engine(_url(), connect_args={"ssl": ssl_arg} if ssl_arg is not None else {})
+    engine = create_async_engine(_url(), connect_args={"ssl": ssl_arg})
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await engine.dispose()

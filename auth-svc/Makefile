@@ -11,7 +11,7 @@ export
 
 PYTHON_IMAGE := $(shell sed -n 's/^ARG PYTHON_IMAGE=//p' Dockerfile)
 
-.PHONY: lock venv install keys init-db init-test-db migrate revision seed run test test-unit test-api lint fmt openapi build up down logs
+.PHONY: migrate-local lock venv install keys init-db init-test-db migrate revision seed run test test-unit test-api lint fmt openapi build up down logs
 
 # Regenerate the hash-locked requirements inside the SAME pinned Linux image the Dockerfile uses, so
 # platform-specific packages (uvloop, ...) resolve for production, not for the developer's OS.
@@ -34,7 +34,10 @@ init-db:
 init-test-db:
 	bash setup/init-auth-db-test.sh $(PG_CONTAINER) $(PG_SUPERUSER)
 
+# Migrations run as the schema-owner role (AUTH_MIGRATION_DATABASE_URL), in a one-off container.
 migrate:
+	docker compose run --rm migrate
+migrate-local:
 	$(PY) -m alembic upgrade head
 revision:
 	$(PY) -m alembic revision -m "$(m)"

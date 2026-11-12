@@ -31,10 +31,14 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       # Throwaway credentials for the CI-only database service container
-      AUTH_DB_PW: ci-only-not-a-secret
+      AUTH_MIGRATOR_DB_PW: ci-migrator-not-a-secret
+      AUTH_APP_DB_PW: ci-app-not-a-secret
       PGPASSWORD: postgres
-      AUTH_DATABASE_URL: postgresql+asyncpg://auth_svc:ci-only-not-a-secret@localhost:5432/nephro_auth_db
-      AUTH_TEST_DATABASE_URL: postgresql+asyncpg://auth_svc:ci-only-not-a-secret@localhost:5432/nephro_auth_db_test
+      # runtime = auth_app (DML only); migrations and test cleanup = auth_migrator (owns the schema)
+      AUTH_DATABASE_URL: postgresql+asyncpg://auth_app:ci-app-not-a-secret@localhost:5432/nephro_auth_db
+      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://auth_migrator:ci-migrator-not-a-secret@localhost:5432/nephro_auth_db
+      AUTH_TEST_DATABASE_URL: postgresql+asyncpg://auth_app:ci-app-not-a-secret@localhost:5432/nephro_auth_db_test
+      AUTH_TEST_MIGRATION_DATABASE_URL: postgresql+asyncpg://auth_migrator:ci-migrator-not-a-secret@localhost:5432/nephro_auth_db_test
       JWT_PRIVATE_KEY_PATH: setup/keys/jwt_private.pem
     steps:
       - uses: actions/checkout@v4
@@ -50,27 +54,33 @@ jobs:
           pip install --require-hashes --no-deps -r requirements-dev.lock
           pip install --no-deps -e .
 
-      # Same SQL as setup/init-auth-db.sh and setup/init-auth-db-test.sh
-      - name: Create role, databases and citext
+      # Same SQL as setup/init-auth-db.sh (a service container has no name the script could docker-exec into)
+      - name: Create roles, databases and citext (least privilege)
         run: |
-          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -v pw="$AUTH_DB_PW" -d postgres <<'SQL'
-          SELECT format('CREATE ROLE auth_svc LOGIN PASSWORD %L', :'pw')
-          WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'auth_svc') \gexec
-          ALTER ROLE auth_svc NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
-          SELECT 'CREATE DATABASE nephro_auth_db OWNER auth_svc ENCODING ''UTF8'' TEMPLATE template0'
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -v mpw="$AUTH_MIGRATOR_DB_PW" -v apw="$AUTH_APP_DB_PW" -d postgres <<'SQL'
+          SELECT format('CREATE ROLE auth_migrator LOGIN PASSWORD %L', :'mpw')
+          WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'auth_migrator') \gexec
+          SELECT format('CREATE ROLE auth_app LOGIN PASSWORD %L', :'apw')
+          WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'auth_app') \gexec
+          ALTER ROLE auth_migrator NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          ALTER ROLE auth_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          SELECT 'CREATE DATABASE nephro_auth_db OWNER auth_migrator ENCODING ''UTF8'' TEMPLATE template0'
           WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'nephro_auth_db') \gexec
-          SELECT 'CREATE DATABASE nephro_auth_db_test OWNER auth_svc ENCODING ''UTF8'' TEMPLATE template0'
+          SELECT 'CREATE DATABASE nephro_auth_db_test OWNER auth_migrator ENCODING ''UTF8'' TEMPLATE template0'
           WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'nephro_auth_db_test') \gexec
           REVOKE CONNECT ON DATABASE nephro_auth_db FROM PUBLIC;
-          GRANT  CONNECT ON DATABASE nephro_auth_db TO auth_svc;
+          GRANT  CONNECT ON DATABASE nephro_auth_db TO auth_migrator, auth_app;
           REVOKE CONNECT ON DATABASE nephro_auth_db_test FROM PUBLIC;
-          GRANT  CONNECT ON DATABASE nephro_auth_db_test TO auth_svc;
+          GRANT  CONNECT ON DATABASE nephro_auth_db_test TO auth_migrator, auth_app;
           SQL
           for db in nephro_auth_db nephro_auth_db_test; do
             psql -h localhost -U postgres -v ON_ERROR_STOP=1 -d "$db" -c "
               CREATE EXTENSION IF NOT EXISTS citext;
-              ALTER SCHEMA public OWNER TO auth_svc;
-              REVOKE CREATE ON SCHEMA public FROM PUBLIC;"
+              ALTER SCHEMA public OWNER TO auth_migrator;
+              REVOKE ALL ON SCHEMA public FROM PUBLIC;
+              GRANT USAGE ON SCHEMA public TO auth_app;
+              ALTER DEFAULT PRIVILEGES FOR ROLE auth_migrator IN SCHEMA public
+                GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO auth_app;"
           done
 
       - name: Throwaway signing key

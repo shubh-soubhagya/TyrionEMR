@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     allow_public_signup_in_production: bool = False
     log_level: str = "INFO"
 
-    auth_database_url: str
+    auth_database_url: str                      # RUNTIME connection: the DML-only role auth_app
+    # Used only by Alembic and the migrate job: the role that owns the schema (auth_migrator).
+    # Unset = fall back to AUTH_DATABASE_URL (single-role setups, tests).
+    auth_migration_database_url: str | None = None
+    run_migrations_on_start: bool = False       # local convenience; production runs the migrate job
     auth_db_pool_size: int = 5
     auth_db_max_overflow: int = 5
     db_wait_attempts: int = 30
