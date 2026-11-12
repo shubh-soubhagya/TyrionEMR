@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, FastAPI
 
 from app.core.config import Settings
-from app.core.errors import NotFound
+from app.core.errors import PatientNotFound
 from app.core.security import Clinician, User, require_role
 from app.domain.clock import FakeClock
 from app.main import create_app
@@ -111,7 +111,7 @@ class FakePatients:
         if self.error:
             raise self.error
         if patient_id not in self.people:
-            raise NotFound()
+            raise PatientNotFound(patient_id)
         return self.people[patient_id]
 
 

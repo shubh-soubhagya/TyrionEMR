@@ -53,12 +53,22 @@ class LabRepository:
     async def patients_with_results(self) -> list[uuid.UUID]:
         return list((await self._s.scalars(select(LabResult.patient_id).distinct())).all())
 
-    async def save_status(self, patient_id: uuid.UUID, status: dict[str, Any]) -> None:
+    async def chain_head(self, result_id: uuid.UUID) -> uuid.UUID:
+        """The current (not superseded) result at the end of a correction chain."""
+        head = result_id
+        for _ in range(50):                                   # chains are one or two long; the cap is a guard
+            nxt = await self._s.scalar(select(LabResult.id).where(LabResult.supersedes_id == head))
+            if nxt is None:
+                return head
+            head = nxt
+        return head
+
+    async def save_status(self, patient_id: uuid.UUID, status: dict[str, Any]) -> int:
         stmt = pg_insert(PatientLabStatus).values(patient_id=patient_id, **status)
         stmt = stmt.on_conflict_do_update(
             index_elements=[PatientLabStatus.patient_id],
             set_={**status, "version": PatientLabStatus.version + 1, "updated_at": func.clock_timestamp()})
-        await self._s.execute(stmt)
+        return int((await self._s.execute(stmt.returning(PatientLabStatus.version))).scalar_one())
 
     # ---- reads ---------------------------------------------------------------------------------------
     async def list_results(self, patient_id: uuid.UUID, *, test: str | None, date_from: datetime | None,

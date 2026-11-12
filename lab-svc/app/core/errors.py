@@ -72,10 +72,12 @@ async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResp
     # Deliberately omit each error's "input": it can contain PHI.
     details = []
     for e in exc.errors():
-        loc = [str(p) for p in e.get("loc", ()) if p != "body"]
-        # LLD §18.1 shape: field + issue. Never the submitted value ("input").
+        path = ""
+        for p in (p for p in e.get("loc", ()) if p != "body"):
+            path += f"[{p}]" if isinstance(p, int) else (f".{p}" if path else str(p))
+        # field + issue, never the submitted value ("input"): results[1].unit
         msg = str(e.get("msg", "Invalid value.")).removeprefix("Value error, ")
-        details.append({"field": ".".join(loc), "issue": msg})
+        details.append({"field": path, "issue": msg})
     return error_response(422, "VALIDATION_ERROR", "Request validation failed.", details)
 
 
@@ -88,8 +90,7 @@ def install_exception_handlers(app: FastAPI) -> None:
 
 
 # --------------------------------------------------------------------------------------
-# lab-svc error classes (LLD §18.2). Domain errors (VERSION_CONFLICT, ENCOUNTER_FINAL, ...)
-# are added with the phase that needs them.
+# lab-svc error classes (LLD B8).
 # --------------------------------------------------------------------------------------
 class Unauthenticated(AppError):
     status_code, code, message = 401, "UNAUTHENTICATED", "Please sign in."
@@ -131,7 +132,7 @@ class ValidationFailed(AppError):
 
 
 class UpstreamUnavailable(AppError):
-    """A service we depend on (patient-svc) failed. The upstream is named in details (HLD section 9)."""
+    """A service we depend on (patient-svc) failed or is unreachable. The upstream is named in details."""
 
     status_code, code = 502, "UPSTREAM_UNAVAILABLE"
     message = "A dependent service is unavailable. Please retry shortly."
@@ -140,6 +141,70 @@ class UpstreamUnavailable(AppError):
         super().__init__(details=[{"upstream": upstream}])
 
 
-class AlreadyCorrected(AppError):
-    status_code, code = 409, "ALREADY_CORRECTED"
-    message = "This result has already been corrected. Correct the latest value instead."
+class UpstreamTimeout(AppError):
+    status_code, code = 504, "UPSTREAM_TIMEOUT"
+    message = "A dependent service did not answer in time. Please retry shortly."
+
+    def __init__(self, upstream: str) -> None:
+        super().__init__(details=[{"upstream": upstream}])
+
+
+class PatientNotFound(AppError):
+    status_code, code, message = 404, "PATIENT_NOT_FOUND", "Patient not found."
+
+    def __init__(self, patient_id: Any) -> None:
+        super().__init__(details=[{"patient_id": str(patient_id)}])
+
+
+class ResultNotFound(AppError):
+    status_code, code, message = 404, "RESULT_NOT_FOUND", "Result not found."
+
+    def __init__(self, result_id: Any) -> None:
+        super().__init__(details=[{"result_id": str(result_id)}])
+
+
+class ResultAlreadySuperseded(AppError):
+    status_code, code = 409, "RESULT_ALREADY_SUPERSEDED"
+    message = "This result has already been corrected. Correct the current value instead."
+
+    def __init__(self, current_id: Any = None) -> None:
+        super().__init__(details=[{"current_id": str(current_id)}] if current_id else None)
+
+
+class NoChange(AppError):
+    status_code, code, message = 422, "NO_CHANGE", "The corrected value equals the current value."
+
+
+class TooManyIds(AppError):
+    status_code, code = 422, "TOO_MANY_IDS"
+    message = "Too many patient ids in one request."
+
+    def __init__(self, maximum: int) -> None:
+        super().__init__(details=[{"max": maximum}])
+
+
+class InvalidCursor(AppError):
+    status_code, code, message = 400, "INVALID_CURSOR", "The cursor is not valid."
+
+
+class Rejected(AppError):
+    """422 with one detail per problem, each carrying its own code and field path (LLD B6.1: all validation
+    errors of a request are returned together so the form can mark every row). The top-level code is the
+    specific one when every problem has the same code, otherwise VALIDATION_ERROR."""
+
+    status_code = 422
+    message = "Some fields need attention."
+
+    def __init__(self, problems: list[dict[str, Any]]) -> None:
+        codes = {p["code"] for p in problems}
+        super().__init__(code=codes.pop() if len(codes) == 1 else "VALIDATION_ERROR", details=problems)
+
+
+def problem(code: str, field: str, issue: str, **extra: Any) -> dict[str, Any]:
+    return {"code": code, "field": field, "issue": issue, **extra}
+
+
+class CollectedBeforeBirth(Rejected):
+    def __init__(self) -> None:
+        super().__init__([problem("COLLECTED_BEFORE_BIRTH", "collected_at",
+                                  "Collection date is before the patient was born.")])

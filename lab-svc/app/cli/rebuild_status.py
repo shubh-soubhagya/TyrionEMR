@@ -17,14 +17,14 @@ from app.repositories.labs import LabRepository
 from app.services.reports import refresh_status
 
 
-async def rebuild(sessionmaker, only: uuid.UUID | None = None) -> int:
+async def rebuild(sessionmaker, settings, only: uuid.UUID | None = None) -> int:
     async with sessionmaker() as session, session.begin():
         ids = [only] if only else await LabRepository(session).patients_with_results()
     for pid in ids:
         async with sessionmaker() as session, session.begin():
             repo = LabRepository(session)
             await repo.lock_patient(pid)
-            await refresh_status(repo, pid)
+            await refresh_status(repo, pid, settings.trend_config(), settings.spark_points)
     return len(ids)
 
 
@@ -32,9 +32,10 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--patient", type=uuid.UUID)
     args = parser.parse_args()
-    engine = create_engine(get_settings())
+    settings = get_settings()
+    engine = create_engine(settings)
     try:
-        n = await rebuild(create_sessionmaker(engine), args.patient)
+        n = await rebuild(create_sessionmaker(engine), settings, args.patient)
         print(f"rebuilt patient_lab_status for {n} patient(s)")
     finally:
         await engine.dispose()

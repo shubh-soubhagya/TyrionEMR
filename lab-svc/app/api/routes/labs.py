@@ -11,26 +11,25 @@ from app.api.deps import AuthHeader, ReadSvc, ReportSvc
 from app.core.errors import ValidationFailed
 from app.core.security import Clinician
 from app.schemas.reads import LatestOut, ResultsPage, StatusPage, SummaryOut, TrendsOut
-from app.schemas.reports import CorrectionIn, ReportIn, ReportOut, ResultOut
+from app.schemas.reports import Correction, CorrectionIn, CreatedReport, ReportIn
 
 router = APIRouter(prefix="/labs", tags=["labs"])
 internal = APIRouter(prefix="/internal/labs", tags=["internal"])
 
 
 # ---- writes (public only) ---------------------------------------------------------------------------
-@router.post("/patients/{patient_id}/reports", response_model=ReportOut, status_code=201)
+@router.post("/patients/{patient_id}/reports", response_model=CreatedReport, status_code=201)
 async def create_report(patient_id: uuid.UUID, body: ReportIn, svc: ReportSvc, user: Clinician,
-                        auth: AuthHeader, response: Response) -> ReportOut:
+                        auth: AuthHeader, response: Response) -> CreatedReport:
     out = await svc.create(patient_id, body, user, auth)
-    response.headers["Location"] = f"/labs/patients/{patient_id}/results?test={out.results[0].test_code}"
+    response.headers["Location"] = f"/labs/patients/{patient_id}/results?report_id={out.report.id}"
     return out
 
 
-@router.post("/results/{result_id}/correct", response_model=ResultOut, status_code=201)
-async def correct_result(result_id: uuid.UUID, body: CorrectionIn, svc: ReportSvc, user: Clinician,
-                         auth: AuthHeader) -> ResultOut:
-    """Appends a correction that supersedes the result. The original row is kept."""
-    return await svc.correct(result_id, body, user, auth)
+@router.post("/results/{result_id}/correct", response_model=Correction, status_code=201)
+async def correct_result(result_id: uuid.UUID, body: CorrectionIn, svc: ReportSvc, user: Clinician) -> Correction:
+    """Appends a correction that supersedes the result. The original row is kept; no patient-svc call is made."""
+    return await svc.correct(result_id, body, user)
 
 
 # ---- reads (registered on both routers) -------------------------------------------------------------

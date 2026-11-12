@@ -129,7 +129,7 @@ class ReadService:
         return SummaryOut(items=items)
 
     async def status_page(self, cursor: uuid.UUID | None, limit: int, user: User) -> StatusPage:
-        limit = min(limit, self._settings.internal_bulk_max_limit)
+        limit = min(limit, self._settings.status_bulk_max)
         async with self._session.begin():
             rows = await self._repo.status_page(cursor, limit)
             # one audit row per page, not per patient: a system-wide aggregate read

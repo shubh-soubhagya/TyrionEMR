@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/correction.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corrected",
+    "current",
+    "status_version"
+  ],
+  "properties": {
+    "corrected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "value",
+        "flag",
+        "superseded"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "value": {
+          "type": "number"
+        },
+        "flag": {
+          "type": "string"
+        },
+        "superseded": {
+          "const": true
+        }
+      }
+    },
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "test_code",
+        "value",
+        "unit",
+        "value_original",
+        "unit_original",
+        "ref_low",
+        "ref_high",
+        "crit_low",
+        "crit_high",
+        "flag",
+        "supersedes_id",
+        "correction_reason"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "test_code": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "value_original": {
+          "type": "number"
+        },
+        "unit_original": {
+          "type": "string"
+        },
+        "ref_low": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ref_high": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "crit_low": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "crit_high": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "flag": {
+          "enum": [
+            "normal",
+            "low",
+            "high",
+            "critical_low",
+            "critical_high",
+            "unknown"
+          ]
+        },
+        "supersedes_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "correction_reason": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "status_version": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

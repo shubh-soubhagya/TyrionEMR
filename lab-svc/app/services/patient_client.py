@@ -17,7 +17,7 @@ from typing import Protocol
 import httpx
 
 from app.core.config import Settings
-from app.core.errors import NotFound, UpstreamUnavailable
+from app.core.errors import PatientNotFound, UpstreamTimeout, UpstreamUnavailable
 from app.core.metrics import UPSTREAM_CALLS
 
 log = logging.getLogger("lab.patients")
@@ -40,8 +40,8 @@ class PatientClient:
         self._s = settings
         self._http = httpx.AsyncClient(
             base_url=settings.patient_svc_url, transport=transport,
-            timeout=httpx.Timeout(settings.upstream_read_timeout_s, connect=settings.upstream_connect_timeout_s),
-            limits=httpx.Limits(max_connections=20))        # bounded pool: a slow upstream cannot take all sockets
+            timeout=httpx.Timeout(settings.patient_read_timeout_s, connect=settings.patient_connect_timeout_s),
+            limits=httpx.Limits(max_connections=settings.patient_pool_size))   # bulkhead
 
     async def aclose(self) -> None:
         await self._http.aclose()
@@ -51,27 +51,33 @@ class PatientClient:
         if request_id and request_id != "-":
             headers["X-Request-ID"] = request_id
         last = "error"
-        for attempt in range(self._s.upstream_max_retries + 1):
+        for attempt in range(self._s.patient_retries + 1):
             try:
                 r = await self._http.get(f"/internal/patients/{patient_id}/basic", headers=headers)
-            except (httpx.ConnectError, httpx.ConnectTimeout):
-                last = "connect_error"
+            except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+                last = "connect_timeout" if isinstance(exc, httpx.ConnectTimeout) else "connect_error"
+            except httpx.TimeoutException:
+                UPSTREAM_CALLS.labels(UPSTREAM, "timeout").inc()      # read or pool timeout: not retried
+                raise UpstreamTimeout(UPSTREAM) from None
             except httpx.HTTPError:
-                UPSTREAM_CALLS.labels(UPSTREAM, "error").inc()        # read timeout etc.: not retried
+                UPSTREAM_CALLS.labels(UPSTREAM, "error").inc()
                 raise UpstreamUnavailable(UPSTREAM) from None
             else:
                 if r.status_code == 200:
                     return self._parse(r)
                 if r.status_code == 404:
                     UPSTREAM_CALLS.labels(UPSTREAM, "not_found").inc()
-                    raise NotFound()
+                    raise PatientNotFound(patient_id)
                 last = str(r.status_code)
                 if r.status_code not in RETRY_STATUS:
                     break
-            if attempt < self._s.upstream_max_retries:
+            if attempt < self._s.patient_retries:
+                UPSTREAM_CALLS.labels(UPSTREAM, "retry").inc()
                 await asyncio.sleep(0.1 * 2**attempt + random.uniform(0, 0.05))  # noqa: S311 (jitter only)
-        UPSTREAM_CALLS.labels(UPSTREAM, "failed").inc()
+        UPSTREAM_CALLS.labels(UPSTREAM, "timeout" if last == "connect_timeout" else "error").inc()
         log.warning("patient_svc.failed", extra={"last": last})
+        if last == "connect_timeout":
+            raise UpstreamTimeout(UPSTREAM)
         raise UpstreamUnavailable(UPSTREAM)
 
     @staticmethod

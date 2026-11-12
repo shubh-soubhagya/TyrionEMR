@@ -12,6 +12,8 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from tests.conftest import make_settings
+
 pytestmark = pytest.mark.api
 BASE = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
 CONTRACTS = Path(__file__).resolve().parents[2] / "contracts" / "lab"
@@ -94,7 +96,7 @@ async def test_rebuild_equals_incremental_state(api, patients, db_engine) -> Non
         before = (await c.execute(q, {"p": pid})).one()
         await c.execute(text("TRUNCATE patient_lab_status"))
         await c.commit()
-    assert await rebuild(async_sessionmaker(db_engine)) == 1
+    assert await rebuild(async_sessionmaker(db_engine), make_settings()) == 1
     async with db_engine.connect() as c:
         assert (await c.execute(q, {"p": pid})).one() == before
 

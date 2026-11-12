@@ -12,11 +12,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError
 
 from app.core.errors import (
-    AlreadyCorrected,
     AppError,
     DbUnavailable,
-    NotFound,
+    Rejected,
+    ResultAlreadySuperseded,
     error_response,
+    problem,
 )
 from app.core.metrics import DB_TRIGGER_REJECTIONS
 
@@ -49,10 +50,14 @@ def map_db_error(exc: BaseException) -> AppError | None:
     hint = getattr(pg, "hint", None)
     if state in BUSY_SQLSTATES:
         return DbUnavailable()
-    if state == "23505" and getattr(pg, "constraint_name", None) == "ux_results_supersedes":
-        return AlreadyCorrected()      # two corrections raced; the unique index decided
+    constraint = getattr(pg, "constraint_name", None)
+    if state == "23505" and constraint == "ux_results_supersedes":
+        return ResultAlreadySuperseded()      # two corrections raced; the unique index decided
+    if state == "23505" and constraint == "ux_results_report_test_original":
+        return Rejected([problem("DUPLICATE_TEST_IN_REPORT", "results", "Each test can appear once per report.")])
     if state == "23503":
-        return NotFound()
+        log.error("db.foreign_key_violation", extra={"constraint": constraint})   # we built an inconsistent row
+        return None
     if state == "P0001" and hint:
         DB_TRIGGER_REJECTIONS.labels(hint=str(hint)).inc()
     return None

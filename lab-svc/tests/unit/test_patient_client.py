@@ -7,7 +7,7 @@ from datetime import date
 import httpx
 import pytest
 
-from app.core.errors import NotFound, UpstreamUnavailable
+from app.core.errors import PatientNotFound, UpstreamTimeout, UpstreamUnavailable
 from app.services.patient_client import PatientClient
 from tests.conftest import make_settings
 
@@ -16,7 +16,7 @@ OK = {"id": str(PID), "sex": "F", "date_of_birth": "1980-02-29"}
 
 
 def client(handler, **kw) -> PatientClient:
-    return PatientClient(make_settings(upstream_max_retries=2, **kw), transport=httpx.MockTransport(handler))
+    return PatientClient(make_settings(patient_retries=2, **kw), transport=httpx.MockTransport(handler))
 
 
 async def test_success_and_forwarded_headers() -> None:
@@ -75,9 +75,27 @@ async def test_read_timeout_is_not_retried() -> None:
         calls.append(1)
         raise httpx.ReadTimeout("slow")
 
-    with pytest.raises(UpstreamUnavailable):
+    with pytest.raises(UpstreamTimeout) as e:                    # 504, and the upstream is named
         await client(handler).basic(PID, "Bearer x", None)
-    assert len(calls) == 1
+    assert len(calls) == 1 and e.value.details == [{"upstream": "patient-svc"}]
+
+
+async def test_connect_timeouts_are_retried_then_reported_as_504() -> None:
+    calls = []
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        raise httpx.ConnectTimeout("slow connect")
+
+    with pytest.raises(UpstreamTimeout):
+        await client(handler).basic(PID, "Bearer x", None)
+    assert len(calls) == 3
+
+
+def test_the_connection_pool_is_a_bounded_bulkhead() -> None:
+    c = client(lambda _: httpx.Response(200, json=OK), patient_pool_size=10)
+    assert c._http._transport is not None                        # the injected transport is used in tests
+    assert c._s.patient_pool_size == 10
 
 
 @pytest.mark.parametrize("status", [401, 403, 500])
@@ -100,9 +118,9 @@ async def test_404_is_not_found_and_not_retried() -> None:
         calls.append(1)
         return httpx.Response(404)
 
-    with pytest.raises(NotFound):
+    with pytest.raises(PatientNotFound) as e:
         await client(handler).basic(PID, "Bearer x", None)
-    assert len(calls) == 1
+    assert len(calls) == 1 and e.value.details == [{"patient_id": str(PID)}]
 
 
 @pytest.mark.parametrize("body", [{"sex": "M"}, {"sex": "M", "date_of_birth": "nope"}, ["x"]])

@@ -4,42 +4,55 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "id",
-    "patient_id",
-    "collected_at",
-    "lab_name",
-    "notes",
-    "created_at",
-    "results"
+    "report",
+    "results",
+    "summary"
   ],
   "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-    },
-    "patient_id": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-    },
-    "collected_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "lab_name": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "notes": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "patient_id",
+        "collected_at",
+        "lab_name",
+        "notes",
+        "entered_by",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "patient_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lab_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entered_by": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
     "results": {
       "type": "array",
@@ -49,41 +62,24 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "report_id",
-          "patient_id",
           "test_code",
-          "collected_at",
           "value",
           "unit",
           "value_original",
           "unit_original",
           "ref_low",
           "ref_high",
-          "flag",
-          "supersedes_id",
           "crit_low",
           "crit_high",
-          "correction_reason"
+          "flag"
         ],
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
           },
-          "report_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-          },
-          "patient_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-          },
           "test_code": {
             "type": "string"
-          },
-          "collected_at": {
-            "type": "string",
-            "format": "date-time"
           },
           "value": {
             "type": "number"
@@ -109,27 +105,6 @@
               "null"
             ]
           },
-          "flag": {
-            "enum": [
-              "normal",
-              "low",
-              "high",
-              "critical_low",
-              "critical_high",
-              "unknown"
-            ]
-          },
-          "supersedes_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "crit_low": {
             "type": [
               "number",
@@ -142,12 +117,36 @@
               "null"
             ]
           },
-          "correction_reason": {
-            "type": [
-              "string",
-              "null"
+          "flag": {
+            "enum": [
+              "normal",
+              "low",
+              "high",
+              "critical_low",
+              "critical_high",
+              "unknown"
             ]
           }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "n",
+        "abnormal",
+        "critical"
+      ],
+      "properties": {
+        "n": {
+          "type": "integer"
+        },
+        "abnormal": {
+          "type": "integer"
+        },
+        "critical": {
+          "type": "integer"
         }
       }
     }

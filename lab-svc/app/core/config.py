@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain.trends import TrendConfig
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
@@ -24,7 +26,7 @@ class Settings(BaseSettings):
     # TLS to Postgres: disable | require | verify-full (same semantics as auth-svc)
     lab_db_sslmode: Literal["disable", "require", "verify-full"] = "disable"
     lab_db_sslrootcert: str | None = None
-    db_statement_timeout_ms: int = 3000
+    db_statement_timeout_ms: int = 5000
     db_lock_timeout_ms: int = 2000
     db_idle_in_transaction_timeout_ms: int = 10000
 
@@ -36,19 +38,31 @@ class Settings(BaseSettings):
     jwt_issuer: str = "nephro-auth"
     jwt_audience: str = "nephro-api"
 
-    internal_bulk_max_limit: int = 200          # /internal/labs/status page cap
-    catalog_cache_ttl_s: float = 300.0          # catalog + ranges cache lifetime (LLD B2)
-    summary_max_ids: int = 50                   # GET /labs/summary batch cap (HLD §5.6)
-    # patient-svc internal read, used only when creating a report (HLD §9)
+    # request limits (LLD B2)
+    summary_max_ids: int = 50                   # GET /labs/summary
+    results_page_max: int = 100                 # max `size` for result pages
+    status_bulk_max: int = 200                  # max `limit` for /internal/labs/status
+    catalog_cache_ttl_s: float = 300.0          # catalog + ranges cache lifetime
+    clock_skew_s: int = 60                      # tolerance when rejecting a future collected_at
+    # rules (changing any of these changes RULES_VERSION, see domain/constants.py)
+    spark_points: int = 12                      # eGFR points kept in the read model
+    trend_min_points: int = 3                   # below this, direction = insufficient_data
+    egfr_stable_band: float = 2.0               # mL/min/1.73 m2 per year
+    creat_stable_band: float = 0.1              # mg/dL per year
+    egfr_rapid_decline: float = -5.0            # slope at or below this is rapid decline
+    # patient-svc: read only, and only when creating a report (HLD section 9)
     patient_svc_url: str = "http://patient-svc:8000"
-    upstream_connect_timeout_s: float = 1.0
-    upstream_read_timeout_s: float = 3.0
-    upstream_max_retries: int = 2
+    patient_connect_timeout_s: float = 1.0
+    patient_read_timeout_s: float = 3.0
+    patient_retries: int = 2                    # GET only, connect errors and 502/503/504
+    patient_pool_size: int = 10                 # bulkhead
     max_body_bytes: int = 1_048_576             # request bodies above this are rejected with 413
     clinic_tz: str = "Asia/Kolkata"             # "today" for date-only rules (P-09)
-    list_default_page_size: int = 50
-    list_max_page_size: int = 200
     uvicorn_workers: int = 2
+
+    def trend_config(self) -> TrendConfig:
+        return TrendConfig(min_points=self.trend_min_points, egfr_stable_band=self.egfr_stable_band,
+                           creat_stable_band=self.creat_stable_band, egfr_rapid_decline=self.egfr_rapid_decline)
 
     @field_validator("clinic_tz")
     @classmethod
