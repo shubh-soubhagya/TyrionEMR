@@ -19,6 +19,20 @@ async def lock_for_update(session: AsyncSession, pid: uuid.UUID, eid: uuid.UUID)
     return res.scalar_one_or_none()
 
 
+async def clinician_state(session: AsyncSession, pid: uuid.UUID, eid: uuid.UUID) -> tuple[uuid.UUID, str | None] | None:
+    """Unlocked peek used to decide whether a name lookup is needed BEFORE the transaction opens."""
+    res = await session.execute(select(Encounter.clinician_id, Encounter.clinician_name).where(
+        Encounter.id == eid, Encounter.patient_id == pid, Encounter.deleted_at.is_(None)))
+    row = res.first()
+    return (row[0], row[1]) if row else None
+
+
+async def set_clinician_name(session: AsyncSession, eid: uuid.UUID, name: str) -> None:
+    """Fills a NULL snapshot on a DRAFT (no version bump: it is not an edit of clinical content)."""
+    await session.execute(update(Encounter).where(Encounter.id == eid, Encounter.clinician_name.is_(None))
+                          .values(clinician_name=name).execution_options(synchronize_session=False))
+
+
 async def get_detail(session: AsyncSession, pid: uuid.UUID, eid: uuid.UUID) -> Encounter | None:
     res = await session.execute(
         select(Encounter).where(Encounter.id == eid, Encounter.patient_id == pid, Encounter.deleted_at.is_(None))

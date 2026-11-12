@@ -24,6 +24,7 @@ from app.models import Encounter, Patient
 from app.repositories import encounters as repo
 from app.repositories import patients as patients_repo
 from app.schemas.encounter import EncounterCreate, EncounterPatch
+from app.services.clinician_directory import ClinicianNames
 from app.services.conditions import ConditionService
 
 log = logging.getLogger("patient.encounters")
@@ -55,9 +56,31 @@ def _fields(enc: Encounter | dict[str, Any]) -> rules.EncounterFields:
 
 
 class EncounterService:
-    def __init__(self, session: AsyncSession, settings: Settings, clock: Clock) -> None:
+    def __init__(self, session: AsyncSession, settings: Settings, clock: Clock, *,
+                 directory: ClinicianNames | None = None, authorization: str = "",
+                 request_id: str | None = None) -> None:
         self.session, self.settings, self.clock = session, settings, clock
+        self.directory, self.authorization, self.request_id = directory, authorization, request_id
         self.conditions = ConditionService(session, settings, clock)
+
+    # ---- clinician name (resolved BEFORE any transaction: no HTTP call while a patient lock is held) ----
+    async def _lookup_name(self, user: User) -> str | None:
+        if self.directory is None:
+            return None
+        return await self.directory.name_for(user.id, self.authorization, self.request_id)
+
+    async def _name_to_fill(self, pid: uuid.UUID, eid: uuid.UUID, user: User) -> str | None:
+        """A NULL snapshot is filled by its own creator on a later edit or finalize; never by someone else."""
+        state = await repo.clinician_state(self.session, pid, eid)
+        await self.session.rollback()               # end the peek's implicit transaction before any HTTP call
+        if state is None or state[1] is not None or state[0] != user.id:
+            return None
+        return await self._lookup_name(user)
+
+    async def _fill_name(self, enc: Encounter, user: User, resolved: str | None) -> None:
+        # re-checked on the LOCKED row; must happen before the status flips, final rows are frozen
+        if resolved and enc.clinician_name is None and enc.clinician_id == user.id:
+            await repo.set_clinician_name(self.session, enc.id, resolved)
 
     # ---- reads -------------------------------------------------------------------------------
     async def history(self, pid: uuid.UUID, status: str | None, page: int, size: int) -> dict[str, Any]:
@@ -92,6 +115,7 @@ class EncounterService:
 
     # ---- create ------------------------------------------------------------------------------
     async def create(self, pid: uuid.UUID, body: EncounterCreate, user: User) -> EncounterResult:
+        clinician_name = await self._lookup_name(user)       # before the transaction; may be None
         async with self.session.begin():
             patient = await self._lock_patient(pid)
             values = {
@@ -102,7 +126,7 @@ class EncounterService:
             self._validate(values, patient, finalize=body.status == "final")
             enc = await repo.insert(self.session, {
                 **values, "patient_id": pid, "status": "draft", "clinician_id": user.id,
-                "clinician_name": user.name, "created_by": user.id, "updated_by": user.id})
+                "clinician_name": clinician_name, "created_by": user.id, "updated_by": user.id})
             await repo.replace_vitals(self.session, enc.id, body.vitals.model_dump() if body.vitals else None)
             await repo.replace_diagnoses(self.session, enc.id, [d.model_dump() for d in body.diagnoses])
             changes = ProblemListChanges()
@@ -116,9 +140,11 @@ class EncounterService:
     # ---- edit a draft ------------------------------------------------------------------------
     async def patch(self, pid: uuid.UUID, eid: uuid.UUID, body: EncounterPatch, user: User) -> EncounterResult:
         sent = body.model_dump(exclude_unset=True, exclude={"version"})
+        fill = await self._name_to_fill(pid, eid, user)
         async with self.session.begin():
             patient = await self._lock_patient(pid)
             enc = await self._lock_draft(pid, eid, body.version)
+            await self._fill_name(enc, user, fill)
             vitals_sent, dx_sent = "vitals" in sent, "diagnoses" in sent
             status = sent.pop("status", None)
             vitals = sent.pop("vitals", None)
@@ -141,9 +167,11 @@ class EncounterService:
             return await self._result(pid, eid, changes)
 
     async def finalize(self, pid: uuid.UUID, eid: uuid.UUID, version: int, user: User) -> EncounterResult:
+        fill = await self._name_to_fill(pid, eid, user)
         async with self.session.begin():
             patient = await self._lock_patient(pid)
             enc = await self._lock_draft(pid, eid, version)
+            await self._fill_name(enc, user, fill)
             self._validate(_fields_dict(enc), patient, finalize=True)
             changes = await self._finalize_in_tx(patient, eid, user)
             await self._audit_write(user, pid, eid, "finalize", [], changes)
@@ -164,7 +192,8 @@ class EncounterService:
     # ---- internals ---------------------------------------------------------------------------
     async def _finalize_in_tx(self, patient: Patient, eid: uuid.UUID, user: User) -> ProblemListChanges:
         enc = await repo.lock_for_update(self.session, patient.id, eid)
-        assert enc is not None                                   # caller holds the lock on this row
+        if enc is None:                                          # impossible: the caller holds the lock
+            raise RuntimeError("encounter row vanished while locked")
         issues = rules.validate_finalizable(_fields(enc))        # re-check on the stored state
         if issues:
             raise ValidationFailed(issues)
@@ -227,7 +256,8 @@ class EncounterService:
 
     async def _result(self, pid: uuid.UUID, eid: uuid.UUID, changes: ProblemListChanges) -> EncounterResult:
         enc = await repo.get_detail(self.session, pid, eid)
-        assert enc is not None
+        if enc is None:
+            raise RuntimeError("encounter row vanished inside its own transaction")
         return EncounterResult(enc, changes)
 
 

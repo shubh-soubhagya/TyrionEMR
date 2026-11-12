@@ -61,12 +61,12 @@ async def test_no_token_is_401(client):
 async def test_valid_clinician_token(client, sign):
     r = await client.get("/_probe/me", headers={"Authorization": f"Bearer {sign(name='Dr. Anita Rao')}"})
     assert r.status_code == 200
-    assert r.json()["name"] == "Dr. Anita Rao"
+    assert "name" not in r.json()                  # a `name` claim is ignored: tokens carry no PII
 
 
-async def test_missing_name_claim_falls_back(client, sign):
+async def test_token_without_name_claim_is_fine(client, sign):
     r = await client.get("/_probe/me", headers={"Authorization": f"Bearer {sign(name=None)}"})
-    assert r.json()["name"] == "Unknown clinician"
+    assert r.status_code == 200
 
 
 @pytest.mark.parametrize("kwargs", [

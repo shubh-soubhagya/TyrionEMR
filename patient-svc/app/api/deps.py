@@ -4,6 +4,7 @@ from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.core.context import get_request_id
 from app.domain.clock import Clock
 
 
@@ -64,7 +65,11 @@ from app.services.encounters import EncounterService  # noqa: E402
 
 
 def get_encounter_service(request: Request, session: SessionDep) -> EncounterService:
-    return EncounterService(session, request.app.state.settings, request.app.state.clock)
+    return EncounterService(
+        session, request.app.state.settings, request.app.state.clock,
+        directory=request.app.state.clinician_directory,
+        authorization=request.headers.get("authorization", ""),      # the caller's own token, forwarded to /auth/me
+        request_id=get_request_id())
 
 
 EncounterSvc = Annotated[EncounterService, Depends(get_encounter_service)]

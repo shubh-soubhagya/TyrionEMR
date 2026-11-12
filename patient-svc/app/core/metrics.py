@@ -43,6 +43,8 @@ class MetricsMiddleware:
                 HTTP_DURATION.labels(route, scope["method"], str(status)).observe(time.perf_counter() - start)
 
 
+CLINICIAN_NAME_LOOKUPS = Counter("clinician_name_lookups_total", "Clinician name lookups against auth-svc",
+                                 ["result"])
 DB_POOL_CHECKED_OUT = Gauge("db_pool_checked_out", "Connections currently checked out of the pool")
 ENCOUNTERS_FINALIZED = Counter("encounters_finalized_total", "Encounters finalized")
 PROBLEM_LIST_CHANGES = Counter("problem_list_changes_total", "Problem-list changes made by finalize", ["kind"])

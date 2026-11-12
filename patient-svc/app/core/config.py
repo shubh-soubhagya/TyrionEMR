@@ -38,6 +38,11 @@ class Settings(BaseSettings):
 
     internal_bulk_max_limit: int = 200          # /internal/patients/charts page cap
     internal_note_max_chars: int = 1500         # tool endpoint note truncation
+    # Clinician display names come from auth-svc /auth/me with the caller's own token (tokens carry no PII)
+    auth_me_url: str = "http://auth-svc:8000/auth/me"
+    clinician_name_cache_ttl_s: float = 600.0
+    clinician_name_negative_ttl_s: float = 30.0   # failed lookups: do not hammer auth-svc during an outage
+    clinician_name_cache_max: int = 1000
     clinic_tz: str = "Asia/Kolkata"             # "today" for date-only rules (P-09)
     list_default_page_size: int = 20
     list_max_page_size: int = 100

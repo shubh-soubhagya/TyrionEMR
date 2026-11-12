@@ -172,7 +172,7 @@ class EncounterDetail(Out):
     encounter_date: datetime
     encounter_type: str
     clinician_id: uuid.UUID
-    clinician_name: str
+    clinician_name: str | None
     chief_complaint: str | None
     symptoms: list[str]
     examination_notes: str | None
@@ -210,7 +210,7 @@ class EncounterListItem(Out):
     id: uuid.UUID
     encounter_date: datetime
     encounter_type: str
-    clinician_name: str
+    clinician_name: str | None
     chief_complaint: str | None
     assessment: str | None
     vitals_brief: VitalsBrief | None

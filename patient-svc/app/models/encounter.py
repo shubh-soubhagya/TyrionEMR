@@ -18,7 +18,7 @@ class Encounter(Base):
     encounter_date: Mapped[datetime]
     encounter_type: Mapped[str] = mapped_column(server_default="follow_up")
     clinician_id: Mapped[uuid.UUID]
-    clinician_name: Mapped[str]
+    clinician_name: Mapped[str | None]       # NULL when auth-svc could not be reached at write time
     chief_complaint: Mapped[str | None]
     symptoms: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
     examination_notes: Mapped[str | None]

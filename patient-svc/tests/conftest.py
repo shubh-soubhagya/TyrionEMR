@@ -17,8 +17,9 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Request
 
+from app.api.deps import get_session
 from app.core.config import Settings
 from app.core.security import Clinician, User, require_role
 from app.domain.clock import FakeClock
@@ -90,15 +91,44 @@ def jwks(rsa_key: rsa.RSAPrivateKey, settings: Settings) -> JwksCache:
     return JwksCache(fetch, settings, mono=time.monotonic)
 
 
+class FakeDirectory:
+    """Stands in for auth-svc /auth/me. Asserts it is never called while a database transaction is open:
+    a slow auth-svc must not be able to hold the patient row lock (review fix, phase 2)."""
+
+    def __init__(self) -> None:
+        self.default: str | None = "Dr. Test"
+        self.names: dict[uuid.UUID, str | None] = {}
+        self.calls: list[tuple[uuid.UUID, str, str | None]] = []
+        self.sessions: list[Any] = []                 # every AsyncSession the app opened
+
+    async def name_for(self, user_id: uuid.UUID, authorization: str, request_id: str | None) -> str | None:
+        in_tx = [s for s in self.sessions if s.in_transaction()]
+        assert not in_tx, "clinician name lookup (an HTTP call) happened inside a database transaction"
+        self.calls.append((user_id, authorization, request_id))
+        return self.names[user_id] if user_id in self.names else self.default
+
+
 @pytest.fixture
-def app(settings: Settings, clock: FakeClock, jwks: JwksCache) -> FastAPI:
-    app = create_app(settings, clock=clock, jwks=jwks)
+def directory() -> FakeDirectory:
+    return FakeDirectory()
+
+
+@pytest.fixture
+def app(settings: Settings, clock: FakeClock, jwks: JwksCache, directory: FakeDirectory) -> FastAPI:
+    app = create_app(settings, clock=clock, jwks=jwks, directory=directory)
+
+    async def tracked_session(request: Request) -> AsyncIterator[Any]:
+        async with request.app.state.sessionmaker() as session:
+            directory.sessions.append(session)
+            yield session
+
+    app.dependency_overrides[get_session] = tracked_session
     # Phase 2 has no business routes yet: a probe route proves the auth dependencies.
     probe = APIRouter()
 
     @probe.get("/_probe/me")
     async def me(user: Clinician) -> dict:
-        return {"id": str(user.id), "name": user.name}
+        return {"id": str(user.id)}
 
     @probe.get("/_probe/admin")
     async def admin(_: User = Depends(require_role("admin"))) -> dict:

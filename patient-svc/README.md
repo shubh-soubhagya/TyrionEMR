@@ -33,6 +33,26 @@ make openapi      # docs/api/patient-svc.json
 
 Not verified yet: the Docker image build and `docker compose up` (see "Open items").
 
+## Configuration (service-specific settings)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PATIENT_DATABASE_URL` | required | `postgresql+asyncpg://patient_svc:...@postgres:5432/nephro_patient_db` |
+| `JWKS_URL` | `http://auth-svc:8000/.well-known/jwks.json` | auth-svc public keys |
+| `AUTH_ME_URL` | `http://auth-svc:8000/auth/me` | clinician name lookup, called with the caller's own token |
+| `CLINICIAN_NAME_CACHE_TTL_S` | 600 | how long a resolved name is cached |
+| `CLINICIAN_NAME_NEGATIVE_TTL_S` | 30 | how long a failed lookup is remembered (protects auth-svc during an outage) |
+| `CLINICIAN_NAME_CACHE_MAX` | 1000 | cache size cap; the oldest entry is evicted |
+| `CLINIC_TZ` | `Asia/Kolkata` | "today" for date-only rules |
+
+## Runtime dependencies
+
+| Dependency | Used for | If it fails |
+|---|---|---|
+| `patient_db` (shared Postgres container) | everything | `/ready` fails, requests return 503 |
+| auth-svc `/.well-known/jwks.json` | verifying access tokens | cached keys keep working; new key ids fail until it is back |
+| auth-svc `/auth/me` | the clinician name stored on a new encounter | the name is null and the write still succeeds; the same clinician's later edit or finalize fills it in |
+
 ## Open items
 
 | # | Item |
@@ -51,6 +71,6 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 | D3 | External network `nephro-pgnet`, alias `nephro-pg` | `nephro-net`, alias `postgres` | Reuses the network auth-svc already uses |
 | D4 | `alembic/` folder | `migrations/` | auth-svc layout |
 | D5 | Config names `DB_POOL_SIZE` etc. | `PATIENT_DB_POOL_SIZE`, ... | auth-svc prefixes service-specific DB settings |
-| D6 | JWT `name` claim | Optional; falls back to "Unknown clinician" | auth-svc does not issue `name` yet (LLD §27.1 #1) |
+| D6 | Clinician name from a JWT `name` claim (LLD §27.1 #1) | `clinician_name` is resolved from auth-svc `/auth/me` with the caller's token, cached per user, and is nullable when auth-svc is unreachable | auth-svc keeps tokens free of PII (its LLD §17.9) and that will not change; a `name` claim is ignored |
 | D7 | `encounter_diagnoses` as in §9.2 | + `category` column (migration 0002) | A draft's explicit diagnosis category must survive until finalize, when the problem-list entry is created |
 

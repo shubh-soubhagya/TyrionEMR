@@ -920,8 +920,15 @@
             "type": "string"
           },
           "clinician_name": {
-            "title": "Clinician Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
           },
           "created_at": {
             "format": "date-time",
@@ -1124,8 +1131,15 @@
             "title": "Chief Complaint"
           },
           "clinician_name": {
-            "title": "Clinician Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
           },
           "encounter_date": {
             "format": "date-time",

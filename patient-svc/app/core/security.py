@@ -21,14 +21,12 @@ from app.services.jwks import JwksCache
 ALGORITHM = "RS256"
 LEEWAY_S = 30
 REQUIRED_CLAIMS = ["exp", "iat", "sub", "iss", "aud"]
-UNKNOWN_CLINICIAN = "Unknown clinician"   # until auth-svc adds the `name` claim (LLD §27.1 #1)
 
 
 @dataclass(frozen=True)
 class User:
     id: uuid.UUID
     role: str
-    name: str
     raw: Mapping[str, Any]
 
 
@@ -65,9 +63,8 @@ async def verify_access_token(
         raise TokenExpired()
     if nbf - LEEWAY_S > now or iat - LEEWAY_S > now:
         raise Unauthenticated()
-    name = payload.get("name")
-    return User(id=user_id, role=str(payload.get("role", "")),
-                name=name if isinstance(name, str) and name.strip() else UNKNOWN_CLINICIAN, raw=payload)
+    # Any `name` claim is deliberately ignored: auth-svc keeps tokens free of PII (see ClinicianDirectory)
+    return User(id=user_id, role=str(payload.get("role", "")), raw=payload)
 
 
 def bearer_token(request: Request) -> str:

@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import uuid
 from datetime import date, datetime, time, timedelta
 from importlib import resources
 from typing import Any
@@ -38,14 +39,24 @@ TABLES = ("audit_events, encounter_diagnoses, encounter_vitals, patient_conditio
           "encounters, patients")
 
 
+class StaticNames:
+    """Seed-time clinician names (the demo accounts), so seeding needs no running auth-svc."""
+
+    def __init__(self, names: dict[uuid.UUID, str]) -> None:
+        self._names = names
+
+    async def name_for(self, user_id: uuid.UUID, authorization: str, request_id: str | None) -> str | None:
+        return self._names.get(user_id)
+
+
 def load_data() -> dict[str, Any]:
     return json.loads(resources.files("app.domain").joinpath("data/seed_patients.json").read_text(encoding="utf-8"))
 
 
 async def seed_scenarios(sm: async_sessionmaker, settings: Settings, clock: Clock) -> tuple[int, int]:
     data = load_data()
-    clinicians = {k: User(id=user_id(v["email"]), role="clinician", name=v["name"], raw={})
-                  for k, v in data["clinicians"].items()}
+    clinicians = {k: User(id=user_id(v["email"]), role="clinician", raw={}) for k, v in data["clinicians"].items()}
+    names = StaticNames({user_id(v["email"]): v["name"] for v in data["clinicians"].values()})
     today = today_in(clock, settings.clinic_tz)
     tz = ZoneInfo(settings.clinic_tz)
 
@@ -93,7 +104,7 @@ async def seed_scenarios(sm: async_sessionmaker, settings: Settings, clock: Cloc
                            for i, d, add in e.get("dx", [])],
                 status=status)
             async with sm() as s:
-                await EncounterService(s, settings, clock).create(pid, body, clinicians[e["doc"]])
+                await EncounterService(s, settings, clock, directory=names).create(pid, body, clinicians[e["doc"]])
         created += 1
     async with sm() as s, s.begin():
         await patients_repo.reseed_mrn_sequence(s)          # the next registration gets PT-000111
