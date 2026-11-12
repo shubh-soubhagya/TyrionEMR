@@ -41,9 +41,9 @@ jobs:
       AUTH_TEST_MIGRATION_DATABASE_URL: postgresql+asyncpg://auth_migrator:ci-migrator-not-a-secret@localhost:5432/nephro_auth_db_test
       JWT_PRIVATE_KEY_PATH: setup/keys/jwt_private.pem
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.12"
           cache: pip
@@ -97,8 +97,8 @@ jobs:
   audit:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.12"
       - name: Known-vulnerability scan of the locked dependencies
@@ -110,11 +110,11 @@ jobs:
   image:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Build image
         run: docker build -t nephro/auth-svc:ci .
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           image-ref: nephro/auth-svc:ci
           severity: HIGH,CRITICAL
