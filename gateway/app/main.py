@@ -14,15 +14,18 @@ from typing import Any
 import httpx
 from fastapi import FastAPI
 
+from app.api.routes import docs as routes_docs
 from app.api.routes import gateway as routes_gateway
 from app.api.routes import health as routes_health
 from app.core.common_setup import install_common_middleware
 from app.core.config import Settings, get_settings
 from app.core.guard import enforce_production
 from app.core.logging import configure_logging
+from app.core.metrics import mount_metrics
 from app.domain.clock import Clock, SystemClock
 from app.routing.table import build_routes
 from app.services.auth_gate import AuthGate
+from app.services.health_prober import HealthProber
 from app.services.jwks_cache import JwksCache
 from app.services.pipeline import GatewayPipeline
 from app.services.proxy import ProxyService
@@ -50,6 +53,7 @@ def build_state(app: FastAPI, s: Settings, clock: Clock,
     limiter: RateLimiter = InMemoryRateLimiter(clock, s.rl_max_keys) if s.rate_limit_enabled \
         else DisabledRateLimiter()
     app.state.limiter = limiter
+    app.state.prober = HealthProber(app.state.upstreams, s)
     app.state.pipeline = GatewayPipeline(
         s, build_routes(s), app.state.upstreams, limiter,
         AuthGate(app.state.jwks, s, clock), ProxyService(app.state.upstreams))
@@ -65,7 +69,8 @@ def create_app(settings: Settings | None = None, *, clock: Clock | None = None,
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        tasks = [asyncio.create_task(app.state.jwks.run_forever())]
+        tasks = [asyncio.create_task(app.state.jwks.run_forever()),
+                 asyncio.create_task(app.state.prober.run_forever())]
         try:
             yield
         finally:
@@ -80,6 +85,10 @@ def create_app(settings: Settings | None = None, *, clock: Clock | None = None,
     build_state(app, s, clk, transports, jwks_fetch)
     install_common_middleware(app, s)
     app.include_router(routes_health.router)
+    if s.docs_enabled:
+        app.include_router(routes_docs.router)
+    if s.metrics_enabled:
+        mount_metrics(app, s.metrics_token)
     app.include_router(routes_gateway.router)
     return app
 

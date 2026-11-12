@@ -41,3 +41,5 @@ make lock      # regenerate hash-locked requirements inside the pinned image (ne
 | D12 | Not specified | `httpx` and `httpcore` loggers are set to WARNING in `configure_logging` | httpx logs `HTTP Request: GET <full url>` at INFO, which would write query strings (patient search text) to the logs |
 | D13 | `Clock.mono()` | `Clock.monotonic()` | Clearer name; `FakeClock` moves both readings together |
 | D14 | LLD §24: a preflight's `Access-Control-Request-Method` is tested with `in "GET, POST, ..."` (substring) | Exact membership of the allowed-method tuple | The substring test accepts `PO`, `GET, P` and the empty string |
+| D15 | LLD §27.4: Swagger UI with an Authorize button | Swagger UI assets come from the jsDelivr CDN (dev-only page); the aggregated spec gets a `bearerAuth` scheme injected, because auth-svc and patient-svc read the header themselves and declare none | Without a scheme Swagger shows no Authorize button and "Try it out" would always get `401` |
+| D16 | LLD §30.2 lists `kind` values `stream` and `non_json` | Both are counted in `gateway_upstream_errors_total` | Listed in the design but not wired in its code |
