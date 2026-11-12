@@ -16,7 +16,7 @@ from app.core.config import Settings
 from app.core.errors import EncounterFinal, NotFound, ValidationFailed, VersionConflict
 from app.core.security import User
 from app.domain import encounter_rules as rules
-from app.domain.clock import Clock
+from app.domain.clock import Clock, today_in
 from app.models import Encounter, Patient
 from app.repositories import encounters as repo
 from app.repositories import patients as patients_repo
@@ -61,6 +61,19 @@ class EncounterService:
             raise NotFound()
         items, total = await repo.history(self.session, pid, status, page, size)
         return {"items": items, "page": page, "size": size, "total": total}
+
+    async def dashboard(self, *, status: str | None, upcoming_followups: bool, limit: int | None) -> dict[str, Any]:
+        """Exactly one mode per call; both or neither is a 422 (LLD §12.1)."""
+        if (status is None) == (not upcoming_followups):
+            raise ValidationFailed([("status", "Use exactly one of status=draft or upcoming_followups=true.")])
+        if status is not None:
+            if status != "draft":
+                raise ValidationFailed([("status", "Only status=draft is supported here.")])
+            items, total = await repo.drafts(self.session, limit or 10)
+        else:
+            today = today_in(self.clock, self.settings.clinic_tz)
+            items, total = await repo.upcoming_followups(self.session, today, limit or 5)
+        return {"items": items, "total": total}
 
     async def get(self, pid: uuid.UUID, eid: uuid.UUID) -> Encounter:
         if not await patients_repo.exists(self.session, pid):

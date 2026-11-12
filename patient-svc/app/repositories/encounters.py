@@ -98,3 +98,43 @@ async def history(session: AsyncSession, pid: uuid.UUID, status: str | None, pag
               "vitals_brief": ({"systolic_bp": r["systolic_bp"], "diastolic_bp": r["diastolic_bp"],
                                 "heart_rate": r["heart_rate"]} if r["has_vitals"] else None)} for r in rows]
     return items, int(total)
+
+
+_DASH_COLS = ("encounter_id", "patient_id", "mrn", "patient_name", "encounter_date", "encounter_type",
+              "chief_complaint", "plan", "follow_up_date")
+
+
+async def drafts(session: AsyncSession, limit: int) -> tuple[list[dict[str, Any]], int]:
+    """Draft encounters of non-deleted patients, newest first (LLD §12.1)."""
+    base = ("FROM encounters e JOIN patients p ON p.id = e.patient_id AND p.deleted_at IS NULL "
+            "WHERE e.status = 'draft' AND e.deleted_at IS NULL")
+    rows = (await session.execute(text(f"""
+        SELECT e.id AS encounter_id, e.patient_id, p.mrn, p.first_name || ' ' || p.last_name AS patient_name,
+               e.encounter_date, e.encounter_type, e.chief_complaint, e.plan, e.follow_up_date
+        {base} ORDER BY e.encounter_date DESC, e.id LIMIT :limit"""), {"limit": limit})).mappings().all()
+    total = (await session.execute(text(f"SELECT count(*) {base}"))).scalar_one()
+    return [dict(r) for r in rows], int(total)
+
+
+_LATEST_FINAL = """
+    SELECT DISTINCT ON (e.patient_id)
+           e.id AS encounter_id, e.patient_id, p.mrn, p.first_name || ' ' || p.last_name AS patient_name,
+           e.encounter_date, e.encounter_type, e.chief_complaint, e.plan, e.follow_up_date
+    FROM encounters e
+    JOIN patients p ON p.id = e.patient_id AND p.deleted_at IS NULL
+    WHERE e.status = 'final' AND e.deleted_at IS NULL
+    ORDER BY e.patient_id, e.encounter_date DESC, e.created_at DESC"""
+
+
+async def upcoming_followups(session: AsyncSession, today: Any, limit: int) -> tuple[list[dict[str, Any]], int]:
+    """Only the follow-up of each patient's MOST RECENT final encounter, so a stale date that a later visit
+    replaced is never shown (LLD §12.1)."""
+    params = {"today": today}
+    rows = (await session.execute(text(f"""
+        SELECT * FROM ({_LATEST_FINAL}) latest
+        WHERE latest.follow_up_date >= :today
+        ORDER BY latest.follow_up_date, latest.patient_name, latest.encounter_id
+        LIMIT :limit"""), {**params, "limit": limit})).mappings().all()
+    total = (await session.execute(text(
+        f"SELECT count(*) FROM ({_LATEST_FINAL}) latest WHERE latest.follow_up_date >= :today"), params)).scalar_one()
+    return [dict(r) for r in rows], int(total)

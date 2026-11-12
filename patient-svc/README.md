@@ -35,5 +35,5 @@ Phase 0 (scaffold), 1 (database provisioning) and 2 (skeleton: config, JWT/JWKS 
 | D6 | JWT `name` claim | Optional; falls back to "Unknown clinician" | auth-svc does not issue `name` yet (LLD §27.1 #1) |
 | D7 | `encounter_diagnoses` as in §9.2 | + `category` column (migration 0002) | A draft's explicit diagnosis category must survive until finalize, when the problem-list entry is created |
 
-Phases 3-6 (schema and triggers, patients, conditions/medications/allergies, encounters) are implemented.
+Phases 3-7 (schema and triggers, patients, conditions/medications/allergies, encounters, dashboard queries) are implemented.
 Audit rows (Phase 9) are not written yet. `requirements.lock` / `requirements-dev.lock` are still to be generated with `make lock`.

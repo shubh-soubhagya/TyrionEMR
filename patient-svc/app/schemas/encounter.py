@@ -218,6 +218,23 @@ class EncounterListItem(Out):
     status: str
 
 
+class DashboardItem(Out):
+    encounter_id: uuid.UUID
+    patient_id: uuid.UUID
+    mrn: str
+    patient_name: str
+    encounter_date: datetime
+    encounter_type: str
+    chief_complaint: str | None
+    plan: str | None
+    follow_up_date: date | None
+
+
+class DashboardList(Out):
+    items: list[DashboardItem]
+    total: int
+
+
 class EncounterList(Out):
     items: list[EncounterListItem]
     page: int

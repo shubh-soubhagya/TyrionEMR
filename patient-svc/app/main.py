@@ -12,6 +12,7 @@ from sqlalchemy.exc import DBAPIError
 
 from app.api.routes import allergies as routes_allergies
 from app.api.routes import conditions as routes_conditions
+from app.api.routes import encounter_queries as routes_encounter_queries
 from app.api.routes import encounters as routes_encounters
 from app.api.routes import health as routes_health
 from app.api.routes import medications as routes_medications
@@ -77,6 +78,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
     app.include_router(routes_medications.router)
     app.include_router(routes_allergies.router)
     app.include_router(routes_encounters.router)
+    app.include_router(routes_encounter_queries.router)
     mount_metrics(app)
     logging.getLogger("patient").debug("app.created")
     return app
