@@ -79,14 +79,15 @@ async def make_app(migrated_db, rsa_key, clock):
     """Factory: build an app against the test DB with per-test settings overrides."""
     created = []
 
-    async def factory(**overrides):
+    async def factory(keystore=None, truncate=True, **overrides):
         s = make_settings(auth_database_url=migrated_db, **overrides)
         pub = rsa_key.public_key()
         kid = thumbprint_kid(pub)
         app = create_app(s, clock)
-        build_state(app, s, clock, KeyStore(SigningKey(kid, rsa_key), {kid: pub}))
-        async with app.state.engine.begin() as conn:
-            await conn.execute(text("TRUNCATE users, auth_events CASCADE"))
+        build_state(app, s, clock, keystore or KeyStore(SigningKey(kid, rsa_key), {kid: pub}))
+        if truncate:
+            async with app.state.engine.begin() as conn:
+                await conn.execute(text("TRUNCATE users, auth_events CASCADE"))
         created.append(app)
         return app
 
