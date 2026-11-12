@@ -79,3 +79,19 @@ async def test_jwks_unknown_kid_refetch_is_rate_limited(rsa_key):
     for _ in range(5):
         assert await cache.key_for("unknown") is None
     assert n["v"] <= 2          # initial fetch + at most one unknown-kid refetch
+
+
+PHI_KEYS = ["first_name", "last_name", "name", "full_name", "patient_name", "phone", "address", "date_of_birth", "dob",
+            "mrn", "past_medical_history", "family_history", "social_history", "chief_complaint", "symptoms",
+            "examination_notes", "assessment", "plan", "allergen", "reaction", "description", "q"]
+
+
+def test_log_formatter_masks_every_phi_key_including_nested_values_and_any_case():
+    import logging
+    rec = logging.LogRecord("t", logging.INFO, "", 0, "evt", (), None)
+    rec.payload = {"outer": {k.upper() if i % 2 else k: "ZQX-SECRET" for i, k in enumerate(PHI_KEYS)},
+                   "rows": [{"first_name": "ZQX-SECRET", "ok": 1}, [{"Phone": "ZQX-SECRET"}]]}
+    rec.mrn = "PT-000101"                       # top-level extra
+    out = JsonFormatter("patient-svc").format(rec)
+    assert "ZQX-SECRET" not in out and "PT-000101" not in out
+    assert '"ok":1' in out                      # non-sensitive values are untouched

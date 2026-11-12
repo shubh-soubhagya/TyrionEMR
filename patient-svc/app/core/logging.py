@@ -14,8 +14,13 @@ from typing import Any
 from app.core.context import get_request_id
 
 SENSITIVE_KEYS = frozenset({
+    # credentials
     "password", "new_password", "token", "access_token", "refresh_token", "authorization",
     "cookie", "set-cookie", "set_cookie", "email", "secret", "api_key", "token_hash",
+    # patient data (PHI): a future ``extra={...}`` must not be able to leak any of it. Matched case-insensitively.
+    "first_name", "last_name", "name", "full_name", "patient_name", "phone", "address", "date_of_birth", "dob",
+    "mrn", "past_medical_history", "family_history", "social_history", "chief_complaint", "symptoms",
+    "examination_notes", "assessment", "plan", "allergen", "reaction", "description", "q",
 })
 _STANDARD = frozenset(vars(logging.LogRecord("", 0, "", 0, "", (), None))) | {"message", "asctime", "taskName"}
 

@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     clinician_name_cache_ttl_s: float = 600.0
     clinician_name_negative_ttl_s: float = 30.0   # failed lookups: do not hammer auth-svc during an outage
     clinician_name_cache_max: int = 1000
+    max_body_bytes: int = 1_048_576             # request bodies above this are rejected with 413
     clinic_tz: str = "Asia/Kolkata"             # "today" for date-only rules (P-09)
     list_default_page_size: int = 20
     list_max_page_size: int = 100

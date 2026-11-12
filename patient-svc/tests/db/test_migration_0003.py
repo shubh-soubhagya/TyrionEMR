@@ -56,7 +56,8 @@ async def test_backfill_guard_and_round_trip(db_engine, migrated_db):
             rows = (await conn.execute(text(
                 "SELECT status, clinician_name, updated_at FROM encounters ORDER BY created_at, id"))).all()
         by_status = sorted(((r.status, r.clinician_name) for r in rows), key=str)
-        assert by_status == sorted([("draft", "Dr Real"), ("draft", None), ("final", None)], key=str)   # placeholders -> NULL
+        expected = [("draft", "Dr Real"), ("draft", None), ("final", None)]            # placeholders -> NULL
+        assert by_status == sorted(expected, key=str)
         assert max(r.updated_at for r in rows if r.clinician_name is None) == before   # timestamps untouched
         # the guard is back on: a final encounter can no longer be modified
         with pytest.raises(DBAPIError) as exc:
