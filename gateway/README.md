@@ -40,3 +40,4 @@ make lock      # regenerate hash-locked requirements inside the pinned image (ne
 | D11 | LLD §19.2: trailing slash tolerated, public routes matched on the template | `POST /api/auth/login/` (trailing slash) is not public: public means the exact path of §18.1 | "Exact (method, path). No trailing-slash variants" in the design's own comment |
 | D12 | Not specified | `httpx` and `httpcore` loggers are set to WARNING in `configure_logging` | httpx logs `HTTP Request: GET <full url>` at INFO, which would write query strings (patient search text) to the logs |
 | D13 | `Clock.mono()` | `Clock.monotonic()` | Clearer name; `FakeClock` moves both readings together |
+| D14 | LLD §24: a preflight's `Access-Control-Request-Method` is tested with `in "GET, POST, ..."` (substring) | Exact membership of the allowed-method tuple | The substring test accepts `PO`, `GET, P` and the empty string |

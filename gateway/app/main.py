@@ -78,7 +78,7 @@ def create_app(settings: Settings | None = None, *, clock: Clock | None = None,
     app = FastAPI(title="gateway", version="1.0.0", lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
     build_state(app, s, clk, transports, jwks_fetch)
-    install_common_middleware(app)
+    install_common_middleware(app, s)
     app.include_router(routes_health.router)
     app.include_router(routes_gateway.router)
     return app

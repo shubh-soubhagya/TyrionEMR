@@ -83,7 +83,7 @@ def build_app(settings: Settings, upstreams: dict[str, Recorder]) -> tuple[FastA
         return await proxy.forward(request, match, await request.body(), client)
 
     app = FastAPI(redirect_slashes=False)           # no JWT, no limits: the proxy layer on its own
-    install_common_middleware(app)
+    install_common_middleware(app, settings)
     app.include_router(router)
     return app, registry
 
