@@ -33,7 +33,14 @@ def check_password(password: str, email: str, common: frozenset[str]) -> list[Vi
     return v
 
 
+# Words specific to this product that an attacker would try first
+_PROJECT_WORDS = frozenset({"nephrocare123", "nephrocare2026", "nephro12345", "nephro2026!", "nephrologist1",
+                            "kidney12345", "dialysis123", "clinician123"})
+
+
 @lru_cache
 def load_common_passwords() -> frozenset[str]:
+    """Breached-password list (SecLists, MIT), loaded once. Lines starting with '#' are comments."""
     text = resources.files("app.domain").joinpath("data/common_passwords.txt").read_text(encoding="utf-8")
-    return frozenset(line.strip().lower() for line in text.splitlines() if line.strip())
+    words = (line.strip().lower() for line in text.splitlines())
+    return frozenset(w for w in words if w and not w.startswith("#")) | _PROJECT_WORDS
