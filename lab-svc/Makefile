@@ -39,6 +39,16 @@ revision:
 
 seed:
 	$(PY) -m app.cli.seed_catalog
+	$(PY) -m app.cli.seed_labs
+seed-reset:
+	$(PY) -m app.cli.seed_catalog
+	$(PY) -m app.cli.seed_labs --reset
+rebuild-status:
+	$(PY) -m app.cli.rebuild_status
+openapi:
+	$(PY) -m app.cli.export_openapi
+explain:
+	$(PY) -m app.cli.explain
 
 run:
 	$(PY) -m uvicorn app.main:app --reload --port 8003

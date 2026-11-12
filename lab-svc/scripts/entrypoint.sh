@@ -7,6 +7,7 @@ if [ "${RUN_MIGRATIONS_ON_START:-true}" = "true" ]; then
 fi
 if [ "${SEED_ON_START:-false}" = "true" ]; then
   python -m app.cli.seed_catalog
+  python -m app.cli.seed_labs
 fi
 # --forwarded-allow-ips="*" is acceptable only because lab-svc publishes no host port and sits
 # on the private network behind the gateway.

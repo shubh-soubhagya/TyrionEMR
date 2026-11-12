@@ -1,0 +1,13 @@
+-- 10000 patients, 200000 results
+-- SELECT patient_lab_status.patient_id, patient_lab_status.latest, patient_lab_status.egfr_category, patient_lab_status.uacr_category, patient_lab_status.egfr_stats, patient_lab_status.creat_stats, patient_lab_status.egfr_spark, patient_lab_status.has_critical, patient_lab_status.rapid_decline, patient_lab_status.last_result_at, patient_lab_status.updated_at 
+FROM patient_lab_status 
+WHERE patient_lab_status.patient_id > $1::UUID ORDER BY patient_lab_status.patient_id 
+ LIMIT $2::INTEGER
+
+Limit  (cost=0.29..19.78 rows=200 width=144) (actual time=0.049..0.251 rows=200 loops=1)
+  Buffers: shared hit=202
+  ->  Index Scan using patient_lab_status_pkey on patient_lab_status  (cost=0.29..677.91 rows=6950 width=144) (actual time=0.048..0.228 rows=200 loops=1)
+        Index Cond: (patient_id > '4df3172d-9ed1-47ca-8717-f0d039a670c2'::uuid)
+        Buffers: shared hit=202
+Planning Time: 0.114 ms
+Execution Time: 0.359 ms

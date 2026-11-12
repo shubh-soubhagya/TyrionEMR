@@ -17,7 +17,7 @@ Each phase must be finished, tested and committed before the next starts.
 | 8 ✅ | Read APIs | results, trends, latest, summary |
 | 9 ✅ | Internal endpoints and contracts | ai-svc reads, bulk status, JSON Schemas |
 | 10 ✅ | Observability and audit | Logs, metrics, no PHI |
-| 11 | Seed, image, compose, handover | Deployable seeded service, OpenAPI, EXPLAIN plans |
+| 11 ✅ | Seed, image, compose, handover | Deployable seeded service, OpenAPI, EXPLAIN plans |
 
 ---
 
