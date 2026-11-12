@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     jwt_audience: str = "nephro-api"
 
     internal_bulk_max_limit: int = 200          # /internal/labs/status page cap
+    catalog_cache_ttl_s: float = 300.0          # catalog + ranges cache lifetime (LLD B2)
     summary_max_ids: int = 50                   # GET /labs/summary batch cap (HLD §5.6)
     # patient-svc internal read, used only when creating a report (HLD §9)
     patient_svc_url: str = "http://patient-svc:8000"

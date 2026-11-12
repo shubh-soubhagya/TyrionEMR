@@ -27,6 +27,7 @@ from app.domain.egfr import creatinine_for_egfr
 from app.domain.flagging import age_on
 from app.domain.seed_ids import patient_id, user_id
 from app.schemas.reports import ReportIn, ResultIn
+from app.services.catalog import CatalogCache
 from app.services.patient_client import PatientBasic
 from app.services.reports import ReportService
 
@@ -129,6 +130,7 @@ async def seed(settings: Settings, sessionmaker, clock: Clock = utcnow, reset: b
             raise SystemExit("--reset is for development only")
         async with sessionmaker() as s, s.begin():
             await s.execute(text("TRUNCATE patient_lab_status, lab_results, lab_reports, audit_events"))
+    catalog = CatalogCache(sessionmaker, settings.catalog_cache_ttl_s)
     directory, user, now = _Static(), User(id=ENTERED_BY, role="clinician", raw={}), clock()
     created: dict[str, int] = {}
     for sc in SCENARIOS:
@@ -142,7 +144,8 @@ async def seed(settings: Settings, sessionmaker, clock: Clock = utcnow, reset: b
             continue
         for d in sorted(sc.draws, key=lambda x: -x.days_ago):             # oldest first
             async with sessionmaker() as s:
-                await ReportService(s, settings, clock, directory).create(pid, _report(sc, d, now), user, "seed")
+                svc = ReportService(s, settings, clock, directory, catalog)
+                await svc.create(pid, _report(sc, d, now), user, "seed")
         created[sc.mrn] = len(sc.draws)
     return created
 

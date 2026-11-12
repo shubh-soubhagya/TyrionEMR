@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel
 
 
-class AllowedUnit(BaseModel):
+class UnitOut(BaseModel):
     unit: str
-    factor: float                      # multiply by this to get the canonical unit
+    factor: str                        # exact decimal as a string: multiply by it to get the canonical unit
 
 
-class ReferenceRangeOut(BaseModel):
+class RangeOut(BaseModel):
+    range_id: uuid.UUID | None
+    sex: str | None = None             # None = any sex
+    age_min: int | None = None
+    age_max: int | None = None
     low: float | None
     high: float | None
     critical_low: float | None
@@ -16,16 +22,18 @@ class ReferenceRangeOut(BaseModel):
     text: str                          # display text, e.g. "0.7–1.3", "≥ 90", "< 30"
 
 
-class LabTestOut(BaseModel):
+class CatalogItem(BaseModel):
     code: str
     name: str
     canonical_unit: str
-    allowed_units: list[AllowedUnit]
     decimals: int
-    max_value: float
-    reference_range: ReferenceRangeOut | None    # None: no range applies for this sex (never read as "normal")
+    plausible_max: float
+    display_order: int
+    units: list[UnitOut]
+    range: RangeOut | None             # with ?sex=: the range that applies today; None when none does (never "normal")
+    ranges: list[RangeOut]             # without ?sex=: every range in force today; [] when sex was given
 
 
 class CatalogOut(BaseModel):
-    sex: str | None
-    tests: list[LabTestOut]
+    rules_version: str
+    items: list[CatalogItem]

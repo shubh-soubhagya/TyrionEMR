@@ -20,6 +20,7 @@ from app.core.logging import configure_logging
 from app.core.metrics import mount_metrics
 from app.db.session import create_engine, create_sessionmaker
 from app.domain.clock import Clock, utcnow
+from app.services.catalog import CatalogCache
 from app.services.jwks import JwksCache, http_fetch
 from app.services.patient_client import PatientClient, PatientDirectory
 
@@ -33,6 +34,7 @@ def build_state(app: FastAPI, settings: Settings, clock: Clock, jwks: JwksCache 
     app.state.patients = patients or PatientClient(settings)
     app.state.engine = create_engine(settings)
     app.state.sessionmaker = create_sessionmaker(app.state.engine)
+    app.state.catalog = CatalogCache(app.state.sessionmaker, settings.catalog_cache_ttl_s)
 
 
 def _is_production(settings: Settings | None) -> bool:
@@ -51,6 +53,10 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
         s = settings or get_settings()
         configure_logging(s.service_name, s.log_level)
         build_state(app, s, clock, jwks, patients)
+        try:
+            await app.state.catalog.load()
+        except Exception as exc:          # the database may still be starting: /ready says so, requests retry
+            logging.getLogger("lab").warning("catalog.initial_load_failed", extra={"error_type": type(exc).__name__})
         # Keep the key set fresh. A stub JWKS passed in by tests has no background refresh.
         refresher = asyncio.create_task(app.state.jwks.run_forever()) if jwks is None else None
         try:

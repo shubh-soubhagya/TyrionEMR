@@ -29,11 +29,11 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 def get_report_service(request: Request, session: SessionDep) -> ReportService:
     s = request.app.state
-    return ReportService(session, s.settings, s.clock, s.patients)
+    return ReportService(session, s.settings, s.clock, s.patients, s.catalog)
 
 
 def get_read_service(request: Request, session: SessionDep) -> ReadService:
-    return ReadService(session, request.app.state.settings)
+    return ReadService(session, request.app.state.settings, request.app.state.catalog)
 
 
 ReportSvc = Annotated[ReportService, Depends(get_report_service)]

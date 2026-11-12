@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Mapping
 from datetime import timedelta
 from decimal import Decimal
 
@@ -20,13 +21,13 @@ from app.core.errors import AlreadyCorrected, NotFound, ValidationFailed
 from app.core.metrics import CORRECTIONS, REPORTS_CREATED, RESULTS_STORED, STATUS_REFRESH
 from app.core.security import User
 from app.domain.clock import Clock
-from app.domain.flagging import age_on, flag_for, select_range
+from app.domain.flagging import RangeDef, age_on, flag_for, select_range
 from app.domain.status import build_status
-from app.domain.units import UnknownUnit, resolve_unit, to_canonical
+from app.domain.units import TestDef, UnknownUnit, resolve_unit, to_canonical
 from app.models import LabReport, LabResult
-from app.repositories.catalog import CatalogRepository
 from app.repositories.labs import LabRepository
 from app.schemas.reports import CorrectionIn, ReportIn, ReportOut, ResultOut
+from app.services.catalog import CatalogCache
 from app.services.patient_client import PatientBasic, PatientDirectory
 
 FUTURE_TOLERANCE = timedelta(minutes=5)       # clock skew between the browser and the server; matches the DB CHECK
@@ -63,16 +64,17 @@ async def refresh_status(repo: LabRepository, patient_id: uuid.UUID) -> None:
 
 
 class ReportService:
-    def __init__(self, session: AsyncSession, settings: Settings, clock: Clock, patients: PatientDirectory) -> None:
+    def __init__(self, session: AsyncSession, settings: Settings, clock: Clock, patients: PatientDirectory,
+                 catalog: CatalogCache) -> None:
         self._session = session
         self._settings = settings
         self._clock = clock
         self._patients = patients
         self._repo = LabRepository(session)
-        self._catalog = CatalogRepository(session)
+        self._catalog = catalog
 
     async def _interpret(self, patient: PatientBasic, collected_on, test_code: str, value: Decimal, unit: str,
-                         field: str, tests: dict, ranges: list):
+                         field: str, tests: Mapping[str, TestDef], ranges: list[RangeDef]):
         """canonical value, snapshot (low, high) and flag for one analyte; raises ValidationFailed."""
         test = tests.get(test_code)
         if test is None:
@@ -102,10 +104,10 @@ class ReportService:
         patient = await self._patients.basic(patient_id, authorization, get_request_id())   # before the transaction
         self._check_date(body.collected_at, patient)
         now = self._clock()
+        cat = await self._catalog.get()                 # in-process, no database round trip
+        tests, ranges = cat.by_code, list(cat.ranges)
         async with self._session.begin():
             await self._repo.lock_patient(patient_id)
-            tests = {t.code: t for t in await self._catalog.tests()}
-            ranges = await self._catalog.ranges()
             report = LabReport(id=uuid.uuid4(), patient_id=patient_id, collected_at=body.collected_at,
                                lab_name=body.lab_name or DEFAULT_LAB_NAME, notes=body.notes, entered_by=user.id,
                                request_id=None if get_request_id() == "-" else get_request_id(), created_at=now)
@@ -148,6 +150,7 @@ class ReportService:
             patient_id = original.patient_id
         patient = await self._patients.basic(patient_id, authorization, get_request_id())
         now = self._clock()
+        cat = await self._catalog.get()
         async with self._session.begin():
             await self._repo.lock_patient(patient_id)
             original = await self._repo.get_result(result_id)
@@ -155,10 +158,10 @@ class ReportService:
                 raise NotFound()
             if await self._repo.is_superseded(result_id):
                 raise AlreadyCorrected()
-            tests = {t.code: t for t in await self._catalog.tests()}
+            tests = cat.by_code
             _, unit_shown, canon, rng, flag = await self._interpret(
                 patient, original.collected_at.date(), original.test_code, body.value, body.unit, "value",
-                tests, await self._catalog.ranges())
+                tests, list(cat.ranges))
             corrected = LabResult(
                 id=uuid.uuid4(), report_id=original.report_id, patient_id=patient_id,
                 collected_at=original.collected_at, test_code=original.test_code, value=canon,

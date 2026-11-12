@@ -54,6 +54,14 @@ async def ready(request: Request) -> dict:
     except Exception as exc:     # never leak connection details to the caller
         log.warning("ready.db_failed", extra={"error_type": type(exc).__name__})
         failed += ["db", "migrations"]
+    catalog = getattr(request.app.state, "catalog", None)
+    if catalog is not None and not catalog.loaded and "db" not in failed:
+        try:
+            await catalog.load()                       # self-heal when the database came up after us
+        except Exception:
+            pass
+    if catalog is None or not catalog.loaded:
+        failed.append("catalog")
     jwks = getattr(request.app.state, "jwks", None)
     if jwks is None or jwks.key_count == 0:     # cannot verify tokens without auth-svc's keys
         failed.append("jwks")

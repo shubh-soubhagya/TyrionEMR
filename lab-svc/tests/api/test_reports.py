@@ -66,12 +66,13 @@ async def test_forwards_the_callers_token_and_request_id(patients, post_report, 
     assert called == pid and auth == api.headers["Authorization"] and rid == resp.headers["x-request-id"]
 
 
-async def test_ranges_revised_later_do_not_change_stored_flag(patients, post_report, db_engine, api) -> None:
+async def test_ranges_revised_later_do_not_change_stored_flag(patients, post_report, db_engine, api, app) -> None:
     pid = patients.add("M")
     rid = (await post_report(pid, [r("K", 5.5, "mmol/L")])).json()["results"][0]["id"]
     async with db_engine.begin() as c:
         await c.execute(text("INSERT INTO lab_reference_ranges (test_code, low, high, effective_from, source) "
                              "VALUES ('K', 3.5, 6.0, '2026-06-01', 'test')"))
+    app.state.catalog.invalidate()                      # the catalog is cached in process
     try:
         got = (await api.get(f"/labs/patients/{pid}/results")).json()["items"][0]
         assert got["id"] == rid and got["flag"] == "high" and got["ref_high"] == 5.0     # snapshot kept
@@ -81,6 +82,7 @@ async def test_ranges_revised_later_do_not_change_stored_flag(patients, post_rep
         async with db_engine.begin() as c:
             await c.execute(text("TRUNCATE patient_lab_status, lab_results, lab_reports, audit_events"))
             await c.execute(text("DELETE FROM lab_reference_ranges WHERE effective_from = '2026-06-01'"))
+        app.state.catalog.invalidate()
 
 
 @pytest.mark.parametrize(("results", "field"), [

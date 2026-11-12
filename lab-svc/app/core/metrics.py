@@ -48,6 +48,7 @@ RESULTS_STORED = Counter("lab_results_stored_total", "Lab results stored", ["fla
 CORRECTIONS = Counter("lab_corrections_total", "Result corrections appended")
 UPSTREAM_CALLS = Counter("lab_upstream_calls_total", "Calls to other services", ["upstream", "outcome"])
 STATUS_REFRESH = Histogram("lab_status_refresh_seconds", "Time to recompute patient_lab_status")
+CATALOG_RELOADS = Counter("lab_catalog_reload_total", "Catalog cache reloads", ["result"])
 DB_POOL_CHECKED_OUT = Gauge("db_pool_checked_out", "Connections currently checked out of the pool")
 DB_TRIGGER_REJECTIONS = Counter("db_trigger_rejections_total",
                                 "Writes rejected by a database trigger (a service bug: should stay 0)", ["hint"])

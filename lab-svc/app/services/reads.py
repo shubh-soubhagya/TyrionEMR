@@ -6,7 +6,7 @@ read cannot happen. The batch summary and the bulk export write one audit row pe
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,8 +17,8 @@ from app.core.errors import ValidationFailed
 from app.core.security import User
 from app.domain.ckd import EGFR_LABELS, UACR_LABELS
 from app.domain.trends import Point, trend_stats
+from app.domain.units import TestDef
 from app.models import PatientLabStatus
-from app.repositories.catalog import CatalogRepository
 from app.repositories.labs import LabRepository
 from app.schemas.reads import (
     CategoryOut,
@@ -32,6 +32,7 @@ from app.schemas.reads import (
     TrendSeries,
     TrendsOut,
 )
+from app.services.catalog import CatalogCache
 from app.services.reports import result_out
 
 ALLOWED_FLAGS = frozenset({"abnormal", "normal", "low", "high", "critical_low", "critical_high", "unknown"})
@@ -42,11 +43,11 @@ def _f(v) -> float | None:
 
 
 class ReadService:
-    def __init__(self, session: AsyncSession, settings: Settings) -> None:
+    def __init__(self, session: AsyncSession, settings: Settings, catalog: CatalogCache) -> None:
         self._session = session
         self._settings = settings
         self._repo = LabRepository(session)
-        self._catalog = CatalogRepository(session)
+        self._catalog = catalog
 
     async def results(self, patient_id: uuid.UUID, user: User, *, test: str | None, date_from: datetime | None,
                       date_to: datetime | None, flag: str | None, include_superseded: bool, page: int,
@@ -63,8 +64,8 @@ class ReadService:
                                patient_id=patient_id, details={"returned": len(rows)})
         return ResultsPage(items=[result_out(r) for r in rows], total=total, page=page, size=size)
 
-    async def _require_tests(self, codes: Sequence[str]) -> dict:
-        tests = {t.code: t for t in await self._catalog.tests()}
+    async def _require_tests(self, codes: Sequence[str]) -> Mapping[str, TestDef]:
+        tests = (await self._catalog.get()).by_code
         unknown = [c for c in codes if c not in tests]
         if unknown:
             raise ValidationFailed([("tests", f"Unknown test: {', '.join(unknown)}.")])
