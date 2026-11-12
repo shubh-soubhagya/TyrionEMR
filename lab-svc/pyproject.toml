@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lab-svc"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "sqlalchemy[asyncio]>=2.0.30",
+  "asyncpg>=0.29",
+  "alembic>=1.13",
+  "pyjwt[crypto]>=2.8",
+  "httpx>=0.27",            # runtime: JWKS fetch and patient-svc lookups
+  "prometheus-client>=0.20",
+  "tzdata>=2024.1",         # zoneinfo data for CLINIC_TZ on slim images
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "python-dotenv", "jsonschema>=4.20", "ruff", "mypy"]
+
+[tool.setuptools.package-data]
+app = ["domain/data/*.json"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = ["api: needs the real Postgres test database"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "app.core.security.require_role"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

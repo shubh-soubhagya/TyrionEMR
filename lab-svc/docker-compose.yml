@@ -1,0 +1,21 @@
+# Runs lab-svc ALONE against the existing Postgres container (graphgpt-postgres), for development.
+# The container is external: it must already be attached to nephro-net with the alias "postgres"
+# (same setup as auth-svc, see ../auth-svc/README.md). Compose does not start a database.
+services:
+  lab-svc:
+    build:
+      context: .
+    image: nephro/lab-svc
+    env_file: .env
+    environment:
+      LAB_DATABASE_URL: postgresql+asyncpg://lab_svc:${LAB_DB_PW}@postgres:5432/${LAB_DB_NAME:-nephro_lab_db}
+    networks: [nephro-net]
+    mem_limit: 512m
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    # No "ports": lab-svc is never published. Only the gateway publishes a port.
+
+networks:
+  nephro-net:
+    external: true     # the existing Postgres container (and auth-svc) are attached to it
