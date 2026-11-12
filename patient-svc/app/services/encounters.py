@@ -6,14 +6,17 @@ final encounter are frozen by trigger (§9.3).
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import audit
 from app.core.config import Settings
 from app.core.errors import EncounterFinal, NotFound, ValidationFailed, VersionConflict
+from app.core.metrics import ENCOUNTERS_FINALIZED, OPTIMISTIC_CONFLICTS, PROBLEM_LIST_CHANGES
 from app.core.security import User
 from app.domain import encounter_rules as rules
 from app.domain.clock import Clock, today_in
@@ -23,6 +26,7 @@ from app.repositories import patients as patients_repo
 from app.schemas.encounter import EncounterCreate, EncounterPatch
 from app.services.conditions import ConditionService
 
+log = logging.getLogger("patient.encounters")
 DIAGNOSIS_FIELDS = ("icd10_code", "description", "category", "add_to_problem_list")
 
 
@@ -75,13 +79,16 @@ class EncounterService:
             items, total = await repo.upcoming_followups(self.session, today, limit or 5)
         return {"items": items, "total": total}
 
-    async def get(self, pid: uuid.UUID, eid: uuid.UUID) -> Encounter:
-        if not await patients_repo.exists(self.session, pid):
-            raise NotFound()
-        enc = await repo.get_detail(self.session, pid, eid)
-        if enc is None:
-            raise NotFound()
-        return enc
+    async def get(self, pid: uuid.UUID, eid: uuid.UUID, user: User) -> Encounter:
+        async with self.session.begin():             # audited read: the audit insert is part of the transaction
+            if not await patients_repo.exists(self.session, pid):
+                raise NotFound()
+            enc = await repo.get_detail(self.session, pid, eid)
+            if enc is None:
+                raise NotFound()
+            await audit.record(self.session, actor_id=user.id, action="encounter.view", resource="encounter",
+                               patient_id=pid, resource_id=eid)
+            return enc
 
     # ---- create ------------------------------------------------------------------------------
     async def create(self, pid: uuid.UUID, body: EncounterCreate, user: User) -> EncounterResult:
@@ -101,6 +108,9 @@ class EncounterService:
             changes = ProblemListChanges()
             if body.status == "final":
                 changes = await self._finalize_in_tx(patient, enc.id, user)
+            await self._audit_write(user, pid, enc.id, "finalize" if body.status == "final" else "create_draft",
+                                    [*values, *(["vitals"] if body.vitals else []),
+                                     *(["diagnoses"] if body.diagnoses else [])], changes)
             return await self._result(pid, enc.id, changes)
 
     # ---- edit a draft ------------------------------------------------------------------------
@@ -125,6 +135,9 @@ class EncounterService:
             changes = ProblemListChanges()
             if status == "final":
                 changes = await self._finalize_in_tx(patient, eid, user)
+            touched = [*sent, *(["vitals"] if vitals_sent else []), *(["diagnoses"] if dx_sent else [])]
+            await self._audit_write(user, pid, eid, "finalize" if status == "final" else "update_draft", touched,
+                                    changes)
             return await self._result(pid, eid, changes)
 
     async def finalize(self, pid: uuid.UUID, eid: uuid.UUID, version: int, user: User) -> EncounterResult:
@@ -133,6 +146,7 @@ class EncounterService:
             enc = await self._lock_draft(pid, eid, version)
             self._validate(_fields_dict(enc), patient, finalize=True)
             changes = await self._finalize_in_tx(patient, eid, user)
+            await self._audit_write(user, pid, eid, "finalize", [], changes)
             return await self._result(pid, eid, changes)
 
     async def delete(self, pid: uuid.UUID, eid: uuid.UUID, user: User) -> None:
@@ -144,6 +158,8 @@ class EncounterService:
             if enc.status == "final":
                 raise EncounterFinal("Final encounters cannot be deleted.")
             await repo.soft_delete(self.session, eid, user.id)
+            await audit.record(self.session, actor_id=user.id, action="encounter.delete_draft",
+                               resource="encounter", patient_id=pid, resource_id=eid)
 
     # ---- internals ---------------------------------------------------------------------------
     async def _finalize_in_tx(self, patient: Patient, eid: uuid.UUID, user: User) -> ProblemListChanges:
@@ -165,7 +181,22 @@ class EncounterService:
             changes.count(kind)
         # 2. then flip the status (an encounter never sets or changes the primary diagnosis)
         await repo.mark_final(self.session, eid, user.id)
+        # Counters and logs carry counts only, never names, notes or values (§20.1)
+        ENCOUNTERS_FINALIZED.inc()
+        for kind in ("added", "reactivated", "linked"):
+            PROBLEM_LIST_CHANGES.labels(kind=kind).inc(getattr(changes, kind))
+        log.info("encounter.finalized", extra={"added": changes.added, "reactivated": changes.reactivated,
+                                               "linked": changes.linked})
         return changes
+
+    async def _audit_write(self, user: User, pid: uuid.UUID, eid: uuid.UUID, kind: str, touched: list[str],
+                           changes: ProblemListChanges) -> None:
+        details: dict[str, Any] = audit.fields(touched)
+        if kind == "finalize":
+            details["problem_list"] = {"added": changes.added, "reactivated": changes.reactivated,
+                                       "linked": changes.linked}
+        await audit.record(self.session, actor_id=user.id, action=f"encounter.{kind}", resource="encounter",
+                           patient_id=pid, resource_id=eid, details=details)
 
     async def _lock_patient(self, pid: uuid.UUID) -> Patient:
         patient = await patients_repo.lock_active(self.session, pid)
@@ -180,6 +211,8 @@ class EncounterService:
         if enc.status == "final":                                # checked after the lock, so a racing finalize wins
             raise EncounterFinal()
         if enc.version != version:
+            OPTIMISTIC_CONFLICTS.labels(resource="encounter").inc()
+            log.info("version_conflict", extra={"resource": "encounter"})
             raise VersionConflict()
         return enc
 

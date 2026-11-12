@@ -1,0 +1,183 @@
+{
+  "clinicians": {
+    "rao": {"name": "Dr. Anita Rao", "email": "dr.rao@nephrocare.demo"},
+    "malhotra": {"name": "Dr. Karan Malhotra", "email": "dr.malhotra@nephrocare.demo"}
+  },
+  "note": "SYNTHETIC patients only. Dates are offsets in days from the day the seed runs, so the dashboard always has recent visits and upcoming follow-ups (LLD 23.3).",
+  "patients": [
+    {
+      "mrn": "PT-000101", "first_name": "Ramesh", "last_name": "Kulkarni", "dob": "1959-04-17", "sex": "M",
+      "phone": "+91 98200 10101", "email": "ramesh.kulkarni@example.test",
+      "pmh": "Type 2 diabetes for 18 years. Hypertension for 12 years.",
+      "fh": "Father had end-stage kidney disease.", "sh": "Retired bank manager. Non-smoker.",
+      "allergy_status": "unknown", "stage": "G3b",
+      "allergies": [{"allergen": "Penicillin", "reaction": "Rash", "severity": "moderate"}],
+      "conditions": [
+        {"icd10": "E11.21", "description": "Type 2 diabetes mellitus with diabetic nephropathy", "category": "nephrology", "primary": true, "onset_days_ago": 2400},
+        {"icd10": "N18.32", "description": "Chronic kidney disease, stage 3b", "category": "nephrology", "onset_days_ago": 700},
+        {"icd10": "I10", "description": "Essential hypertension", "category": "comorbidity", "onset_days_ago": 4300},
+        {"icd10": "E78.5", "description": "Hyperlipidaemia", "category": "comorbidity", "onset_days_ago": 3000}
+      ],
+      "medications": [
+        {"name": "Losartan", "dose": "50 mg", "frequency": "Once daily", "start_days_ago": 900},
+        {"name": "Metformin", "dose": "500 mg", "frequency": "Twice daily", "start_days_ago": 2000},
+        {"name": "Atorvastatin", "dose": "20 mg", "frequency": "At night", "start_days_ago": 1500},
+        {"name": "Amlodipine", "dose": "5 mg", "frequency": "Once daily", "start_days_ago": 600}
+      ],
+      "encounters": [
+        {"days_ago": 200, "type": "follow_up", "doc": "rao", "cc": "Routine kidney review", "assessment": "eGFR stable in stage 3b.", "plan": "Continue current medicines. Repeat labs in 3 months.", "vitals": {"systolic_bp": 142, "diastolic_bp": 86, "heart_rate": 76}},
+        {"days_ago": 100, "type": "follow_up", "doc": "rao", "cc": "Swelling of both feet", "assessment": "Mild fluid retention. Blood pressure above target.", "plan": "Adjust antihypertensives. Salt restriction advised.", "follow_up_in_days": -40, "vitals": {"systolic_bp": 150, "diastolic_bp": 90, "heart_rate": 78, "weight_kg": 74.2}},
+        {"days_ago": 20, "type": "follow_up", "doc": "malhotra", "cc": "Review of recent laboratory results", "assessment": "Persistent eGFR decline over two years. UACR in the severely increased range.", "plan": "Discuss progression at next visit. Follow-up in 6 weeks.", "follow_up_in_days": 22, "vitals": {"systolic_bp": 138, "diastolic_bp": 82, "heart_rate": 74, "temperature_c": 36.6, "weight_kg": 72.9}, "dx": [["N18.32", "Chronic kidney disease, stage 3b", true]]},
+        {"days_ago": 3, "type": "follow_up", "doc": "rao", "cc": "Dietitian referral discussion", "status": "draft"}
+      ]
+    },
+    {
+      "mrn": "PT-000102", "first_name": "Sunita", "last_name": "Verma", "dob": "1971-01-05", "sex": "F",
+      "phone": "+91 98200 10102", "email": "sunita.verma@example.test",
+      "pmh": "Hypertension for 8 years.", "fh": "No known kidney disease.", "sh": "Teacher. Non-smoker.",
+      "allergy_status": "nka", "stage": "G3a", "allergies": [],
+      "conditions": [
+        {"icd10": "N18.31", "description": "Chronic kidney disease, stage 3a", "category": "nephrology", "primary": true, "onset_days_ago": 900},
+        {"icd10": "I10", "description": "Essential hypertension", "category": "comorbidity", "onset_days_ago": 2900}
+      ],
+      "medications": [
+        {"name": "Telmisartan", "dose": "40 mg", "frequency": "Once daily", "start_days_ago": 1000},
+        {"name": "Hydrochlorothiazide", "dose": "12.5 mg", "frequency": "Once daily", "start_days_ago": 500}
+      ],
+      "encounters": [
+        {"days_ago": 150, "type": "new", "doc": "malhotra", "cc": "Raised creatinine on routine check", "assessment": "CKD stage 3a, likely hypertensive.", "plan": "Start ARB. Repeat labs in 3 months.", "vitals": {"systolic_bp": 148, "diastolic_bp": 92, "heart_rate": 80}},
+        {"days_ago": 45, "type": "follow_up", "doc": "malhotra", "cc": "Blood pressure review", "assessment": "Blood pressure at target. eGFR stable.", "plan": "Continue. Review in 3 months.", "follow_up_in_days": 45, "vitals": {"systolic_bp": 128, "diastolic_bp": 80, "heart_rate": 72}}
+      ]
+    },
+    {
+      "mrn": "PT-000103", "first_name": "Arjun", "last_name": "Mehta", "dob": "1985-07-30", "sex": "M",
+      "phone": "+91 98200 10103", "email": "arjun.mehta@example.test",
+      "pmh": "Recurrent haematuria since 2022.", "fh": "Not documented.", "sh": "Software engineer.",
+      "allergy_status": "unknown", "stage": "G2", "allergies": [],
+      "conditions": [
+        {"icd10": "N02.8", "description": "Recurrent haematuria, IgA nephropathy suspected", "category": "nephrology", "primary": true, "onset_days_ago": 1000}
+      ],
+      "medications": [
+        {"name": "Ramipril", "dose": "5 mg", "frequency": "Once daily", "start_days_ago": 300}
+      ],
+      "encounters": [
+        {"days_ago": 60, "type": "follow_up", "doc": "rao", "cc": "Follow-up of haematuria", "assessment": "Stable proteinuria. Biopsy discussed.", "plan": "Arrange renal biopsy consultation."}
+      ]
+    },
+    {
+      "mrn": "PT-000104", "first_name": "Fatima", "last_name": "Sheikh", "dob": "1948-12-01", "sex": "F",
+      "phone": "+91 98200 10104", "email": "fatima.sheikh@example.test",
+      "pmh": "Diabetes, hypertension and anaemia of CKD.", "fh": "Mother had diabetes.", "sh": "Lives with family.",
+      "allergy_status": "unknown", "stage": "G4",
+      "allergies": [
+        {"allergen": "Sulfonamides", "reaction": "Anaphylaxis", "severity": "severe"},
+        {"allergen": "Iodinated contrast", "reaction": "Hives", "severity": "moderate"}
+      ],
+      "conditions": [
+        {"icd10": "N18.4", "description": "Chronic kidney disease, stage 4", "category": "nephrology", "primary": true, "onset_days_ago": 1500},
+        {"icd10": "E11.21", "description": "Type 2 diabetes mellitus with diabetic nephropathy", "category": "nephrology", "onset_days_ago": 4000},
+        {"icd10": "I10", "description": "Essential hypertension", "category": "comorbidity", "onset_days_ago": 5000},
+        {"icd10": "D63.1", "description": "Anaemia in chronic kidney disease", "category": "comorbidity", "onset_days_ago": 600},
+        {"icd10": "N25.81", "description": "Secondary hyperparathyroidism of renal origin", "category": "nephrology", "onset_days_ago": 400}
+      ],
+      "medications": [
+        {"name": "Insulin glargine", "dose": "14 units", "route": "sc", "frequency": "At night", "start_days_ago": 1200},
+        {"name": "Calcitriol", "dose": "0.25 mcg", "frequency": "Once daily", "start_days_ago": 380},
+        {"name": "Erythropoietin", "dose": "4000 IU", "route": "sc", "frequency": "Weekly", "start_days_ago": 550}
+      ],
+      "encounters": [
+        {"days_ago": 90, "type": "follow_up", "doc": "rao", "cc": "Fatigue", "assessment": "Anaemia of CKD, stage 4 disease.", "plan": "Adjust erythropoietin. Dialysis planning discussion.", "vitals": {"systolic_bp": 146, "diastolic_bp": 84, "heart_rate": 82}},
+        {"days_ago": 14, "type": "follow_up", "doc": "rao", "cc": "Routine review", "assessment": "Stable, eGFR in stage 4 range.", "plan": "Continue. Vascular access referral.", "follow_up_in_days": 30, "vitals": {"systolic_bp": 138, "diastolic_bp": 80, "heart_rate": 78}}
+      ]
+    },
+    {
+      "mrn": "PT-000105", "first_name": "Vikram", "last_name": "Rao", "dob": "1990-03-12", "sex": "M",
+      "phone": "+91 98200 10105", "email": "vikram.rao@example.test",
+      "pmh": "Isolated proteinuria found at a health check.", "fh": "Not documented.", "sh": "Runner.",
+      "allergy_status": "nka", "stage": null, "allergies": [],
+      "conditions": [
+        {"icd10": "R80.9", "description": "Isolated proteinuria", "category": "nephrology", "primary": true, "onset_days_ago": 200}
+      ],
+      "medications": [],
+      "encounters": [
+        {"days_ago": 30, "type": "new", "doc": "malhotra", "cc": "Proteinuria on health check", "assessment": "Orthostatic proteinuria suspected.", "plan": "Early-morning urine protein. Review in 2 months.", "follow_up_in_days": 30, "vitals": {"systolic_bp": 118, "diastolic_bp": 74, "heart_rate": 58}}
+      ]
+    },
+    {
+      "mrn": "PT-000106", "first_name": "Lakshmi", "last_name": "Iyer", "dob": "1955-09-23", "sex": "F",
+      "phone": "+91 98200 10106", "email": "lakshmi.iyer@example.test",
+      "pmh": "Hypertension and CKD for 10 years.", "fh": "Sister on dialysis.", "sh": "Widow, lives alone.",
+      "allergy_status": "nka", "stage": "G4", "allergies": [],
+      "conditions": [
+        {"icd10": "N18.4", "description": "Chronic kidney disease, stage 4", "category": "nephrology", "primary": true, "onset_days_ago": 2000},
+        {"icd10": "I12.9", "description": "Hypertensive chronic kidney disease", "category": "nephrology", "onset_days_ago": 3600}
+      ],
+      "medications": [
+        {"name": "Amlodipine", "dose": "10 mg", "frequency": "Once daily", "start_days_ago": 1300},
+        {"name": "Sodium bicarbonate", "dose": "500 mg", "frequency": "Twice daily", "start_days_ago": 400}
+      ],
+      "encounters": [
+        {"days_ago": 120, "type": "follow_up", "doc": "rao", "cc": "Routine review", "assessment": "Established stage 4. Stable.", "plan": "Continue. Repeat labs.", "vitals": {"systolic_bp": 140, "diastolic_bp": 82, "heart_rate": 70}},
+        {"days_ago": 25, "type": "follow_up", "doc": "rao", "cc": "Routine review", "assessment": "Stable.", "plan": "Continue. Review in 3 months.", "vitals": {"systolic_bp": 136, "diastolic_bp": 80, "heart_rate": 72}}
+      ]
+    },
+    {
+      "mrn": "PT-000107", "first_name": "Mohan", "last_name": "Das", "dob": "1962-06-14", "sex": "M",
+      "phone": "+91 98200 10107", "email": "mohan.das@example.test",
+      "pmh": "Polycystic kidney disease.", "fh": "Father and brother with PKD.", "sh": "Farmer.",
+      "allergy_status": "nka", "stage": "G3a", "allergies": [],
+      "conditions": [
+        {"icd10": "Q61.2", "description": "Polycystic kidney disease, autosomal dominant", "category": "nephrology", "primary": true, "onset_days_ago": 3000},
+        {"icd10": "I10", "description": "Essential hypertension", "category": "comorbidity", "onset_days_ago": 2500}
+      ],
+      "medications": [
+        {"name": "Enalapril", "dose": "10 mg", "frequency": "Twice daily", "start_days_ago": 1100}
+      ],
+      "encounters": [
+        {"days_ago": 380, "type": "follow_up", "doc": "malhotra", "cc": "Routine review", "assessment": "Stable.", "plan": "Review in 6 months.", "vitals": {"systolic_bp": 134, "diastolic_bp": 82, "heart_rate": 74}},
+        {"days_ago": 230, "type": "follow_up", "doc": "malhotra", "cc": "Routine review", "assessment": "Stable. Overdue for labs.", "plan": "Repeat labs and review in 3 months.", "vitals": {"systolic_bp": 136, "diastolic_bp": 84, "heart_rate": 76}}
+      ]
+    },
+    {
+      "mrn": "PT-000108", "first_name": "Priya", "last_name": "Nair", "dob": "1996-11-08", "sex": "F",
+      "phone": null, "email": null,
+      "pmh": "Referred for a raised creatinine. Nothing else recorded.", "fh": null, "sh": null,
+      "allergy_status": "unknown", "stage": null, "allergies": [], "conditions": [], "medications": [], "encounters": []
+    },
+    {
+      "mrn": "PT-000109", "first_name": "Aditya", "last_name": "Singh", "dob": "1973-02-19", "sex": "M",
+      "phone": "+91 98200 10109", "email": "aditya.singh@example.test",
+      "pmh": "End-stage kidney disease, on haemodialysis.", "fh": "Not documented.", "sh": "Businessman.",
+      "allergy_status": "unknown", "stage": "G5",
+      "allergies": [{"allergen": "Latex", "reaction": "Contact dermatitis", "severity": "moderate"}],
+      "conditions": [
+        {"icd10": "N18.5", "description": "Chronic kidney disease, stage 5", "category": "nephrology", "primary": true, "onset_days_ago": 800},
+        {"icd10": "I12.0", "description": "Hypertensive chronic kidney disease with stage 5 CKD", "category": "nephrology", "onset_days_ago": 2200}
+      ],
+      "medications": [
+        {"name": "Sevelamer", "dose": "800 mg", "frequency": "Three times daily with meals", "start_days_ago": 500},
+        {"name": "Calcium acetate", "dose": "667 mg", "frequency": "With meals", "start_days_ago": 450}
+      ],
+      "encounters": [
+        {"days_ago": 6, "type": "follow_up", "doc": "rao", "cc": "Dialysis access review", "assessment": "Stage 5 disease on dialysis. Access functioning well.", "plan": "Continue dialysis three times weekly.", "follow_up_in_days": 7, "vitals": {"systolic_bp": 144, "diastolic_bp": 88, "heart_rate": 80, "weight_kg": 66.0}}
+      ]
+    },
+    {
+      "mrn": "PT-000110", "first_name": "Kavita", "last_name": "Joshi", "dob": "1992-04-20", "sex": "F",
+      "phone": "+91 98200 10110", "email": "kavita.joshi@example.test",
+      "pmh": "Systemic lupus with kidney involvement.", "fh": "Mother had lupus.", "sh": "Graduate student.",
+      "allergy_status": "nka", "stage": null, "allergies": [],
+      "conditions": [
+        {"icd10": "M32.14", "description": "Glomerular disease in systemic lupus erythematosus", "category": "nephrology", "primary": true, "onset_days_ago": 700}
+      ],
+      "medications": [
+        {"name": "Hydroxychloroquine", "dose": "200 mg", "frequency": "Twice daily", "start_days_ago": 600, "end_days_ago": 40},
+        {"name": "Mycophenolate", "dose": "500 mg", "frequency": "Twice daily", "start_days_ago": 500},
+        {"name": "Prednisolone", "dose": "10 mg", "frequency": "Once daily", "start_days_ago": 650}
+      ],
+      "encounters": [
+        {"days_ago": 75, "type": "follow_up", "doc": "malhotra", "cc": "Lupus nephritis review", "assessment": "Partial response to induction therapy.", "plan": "Continue immunosuppression. Review in 2 months.", "vitals": {"systolic_bp": 122, "diastolic_bp": 76, "heart_rate": 84}}
+      ]
+    }
+  ]
+}

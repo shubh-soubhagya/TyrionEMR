@@ -116,14 +116,18 @@ async def drafts(session: AsyncSession, limit: int) -> tuple[list[dict[str, Any]
     return [dict(r) for r in rows], int(total)
 
 
+# The LLD sketch used DISTINCT ON over every final encounter (~200k rows, measured > 1 s). Probing the
+# encounters_patient_final index once per patient for its newest final encounter gives the same rows.
 _LATEST_FINAL = """
-    SELECT DISTINCT ON (e.patient_id)
-           e.id AS encounter_id, e.patient_id, p.mrn, p.first_name || ' ' || p.last_name AS patient_name,
+    SELECT e.id AS encounter_id, e.patient_id, p.mrn, p.first_name || ' ' || p.last_name AS patient_name,
            e.encounter_date, e.encounter_type, e.chief_complaint, e.plan, e.follow_up_date
-    FROM encounters e
-    JOIN patients p ON p.id = e.patient_id AND p.deleted_at IS NULL
-    WHERE e.status = 'final' AND e.deleted_at IS NULL
-    ORDER BY e.patient_id, e.encounter_date DESC, e.created_at DESC"""
+    FROM patients p
+    JOIN LATERAL (
+      SELECT x.* FROM encounters x
+      WHERE x.patient_id = p.id AND x.status = 'final' AND x.deleted_at IS NULL
+      ORDER BY x.encounter_date DESC, x.created_at DESC LIMIT 1
+    ) e ON true
+    WHERE p.deleted_at IS NULL"""
 
 
 async def upcoming_followups(session: AsyncSession, today: Any, limit: int) -> tuple[list[dict[str, Any]], int]:

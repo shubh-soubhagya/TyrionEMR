@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.search import SearchSpec, order_by_sql
 from app.models import Patient
 
+PAGE_FIRST_SORTS = frozenset({"name", "mrn", "age"})
+
 
 async def lock_active(session: AsyncSession, pid: uuid.UUID) -> Patient | None:
     """The patient row is the aggregate lock (P-01). Lock order: patients -> encounters -> the rest (§16.1)."""
@@ -133,18 +135,32 @@ async def list_patients(session: AsyncSession, *, sex: str | None, stage: str | 
     if relevance_q:                                              # name search with no explicit sort (§15.1)
         order = "similarity(f.search_name, :relevance_q) DESC, " + order
         params["relevance_q"] = relevance_q
-    sql = f"""
-        WITH filtered AS (
+    filtered = f"""
           SELECT p.id, p.mrn, p.first_name, p.last_name, p.date_of_birth, p.sex, p.phone,
                  p.established_ckd_stage, p.allergy_status, p.search_name
-          FROM patients p WHERE {where}
-        )
+          FROM patients p WHERE {where}"""
+    if sort in PAGE_FIRST_SORTS:
+        # name/mrn/age do not depend on the lateral joins, so slice the page first and probe the two lateral
+        # indexes for at most `size` rows instead of for every filtered patient (measured: ~470 ms -> ms)
+        head = f"""WITH filtered AS ({filtered}),
+        paged AS (SELECT f.*, count(*) OVER () AS total FROM filtered f ORDER BY {order} LIMIT :size OFFSET :offset)
         SELECT f.id, f.mrn, f.first_name, f.last_name, f.sex, f.phone, f.established_ckd_stage, f.allergy_status,
                date_part('year', age(CAST(:today AS date), f.date_of_birth))::int AS age,
                pc.icd10_code AS primary_icd10, pc.description AS primary_description,
-               lv.last_visit,
-               count(*) OVER () AS total
-        FROM filtered f
+               lv.last_visit, f.total
+        FROM paged f"""
+        tail = f"ORDER BY {order}"
+    else:
+        # dx/visit sort by a lateral value, so it must be computed for every filtered row before LIMIT
+        head = f"""WITH filtered AS ({filtered})
+        SELECT f.id, f.mrn, f.first_name, f.last_name, f.sex, f.phone, f.established_ckd_stage, f.allergy_status,
+               date_part('year', age(CAST(:today AS date), f.date_of_birth))::int AS age,
+               pc.icd10_code AS primary_icd10, pc.description AS primary_description,
+               lv.last_visit, count(*) OVER () AS total
+        FROM filtered f"""
+        tail = f"ORDER BY {order} LIMIT :size OFFSET :offset"
+    sql = f"""
+        {head}
         LEFT JOIN LATERAL (
           SELECT c.icd10_code, c.description FROM patient_conditions c
           WHERE c.patient_id = f.id AND c.is_primary AND c.status = 'active' AND c.deleted_at IS NULL LIMIT 1
@@ -153,8 +169,7 @@ async def list_patients(session: AsyncSession, *, sex: str | None, stage: str | 
           SELECT max(e.encounter_date) AS last_visit FROM encounters e
           WHERE e.patient_id = f.id AND e.status = 'final' AND e.deleted_at IS NULL
         ) lv ON true
-        ORDER BY {order}
-        LIMIT :size OFFSET :offset
+        {tail}
     """
     rows = (await session.execute(text(sql), {**params, "today": today, "size": size,
                                               "offset": (page - 1) * size})).mappings().all()

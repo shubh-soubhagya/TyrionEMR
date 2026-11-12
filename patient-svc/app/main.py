@@ -15,6 +15,7 @@ from app.api.routes import conditions as routes_conditions
 from app.api.routes import encounter_queries as routes_encounter_queries
 from app.api.routes import encounters as routes_encounters
 from app.api.routes import health as routes_health
+from app.api.routes import internal as routes_internal
 from app.api.routes import medications as routes_medications
 from app.api.routes import patients as routes_patients
 from app.core.common_setup import install_common_middleware
@@ -79,6 +80,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
     app.include_router(routes_allergies.router)
     app.include_router(routes_encounters.router)
     app.include_router(routes_encounter_queries.router)
+    app.include_router(routes_internal.router)
     mount_metrics(app)
     logging.getLogger("patient").debug("app.created")
     return app

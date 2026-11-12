@@ -68,3 +68,13 @@ def get_encounter_service(request: Request, session: SessionDep) -> EncounterSer
 
 
 EncounterSvc = Annotated[EncounterService, Depends(get_encounter_service)]
+
+
+from app.services.internal import InternalService  # noqa: E402
+
+
+def get_internal_service(request: Request, session: SessionDep) -> InternalService:
+    return InternalService(session, request.app.state.settings, request.app.state.clock)
+
+
+InternalSvc = Annotated[InternalService, Depends(get_internal_service)]

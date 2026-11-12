@@ -21,7 +21,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "python-dotenv", "ruff", "mypy"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "python-dotenv", "jsonschema>=4.20", "ruff", "mypy"]
+
+[tool.setuptools.package-data]
+app = ["domain/data/*.json"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

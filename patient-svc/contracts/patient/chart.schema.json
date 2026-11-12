@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "patient/chart.schema.json",
+  "title": "GET /internal/patients/{id}/chart",
+  "description": "Baseline clinical context for ai-svc. The patient object deliberately has NO name, MRN or contact fields (P-12); additionalProperties=false makes adding one a breaking contract change.",
+  "type": "object",
+  "required": ["patient", "conditions", "medications", "allergies", "recent_encounters", "encounter_index", "counts"],
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "nullableString": {"type": ["string", "null"]}
+  },
+  "properties": {
+    "patient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "age", "sex", "date_of_birth", "allergy_status", "established_ckd_stage",
+                   "past_medical_history", "family_history", "social_history"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "age": {"type": "integer", "minimum": 0, "maximum": 120},
+        "sex": {"enum": ["M", "F", "O"]},
+        "date_of_birth": {"type": "string", "format": "date"},
+        "allergy_status": {"enum": ["unknown", "nka", "has_allergies"]},
+        "established_ckd_stage": {"enum": ["G1", "G2", "G3a", "G3b", "G4", "G5", null]},
+        "past_medical_history": {"$ref": "#/$defs/nullableString"},
+        "family_history": {"$ref": "#/$defs/nullableString"},
+        "social_history": {"$ref": "#/$defs/nullableString"}
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "icd10_code", "description", "category", "is_primary", "status", "onset_date"],
+        "properties": {
+          "id": {"$ref": "#/$defs/uuid"},
+          "icd10_code": {"$ref": "#/$defs/nullableString"},
+          "description": {"type": "string"},
+          "category": {"enum": ["nephrology", "comorbidity"]},
+          "is_primary": {"type": "boolean"},
+          "status": {"enum": ["active", "resolved"]},
+          "onset_date": {"$ref": "#/$defs/nullableString"}
+        }
+      }
+    },
+    "medications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "dose", "route", "frequency", "start_date", "end_date", "status"],
+        "properties": {
+          "id": {"$ref": "#/$defs/uuid"},
+          "name": {"type": "string"},
+          "dose": {"type": "string"},
+          "route": {"enum": ["oral", "sc", "iv", "topical", "inhaled", "other"]},
+          "frequency": {"type": "string"},
+          "start_date": {"$ref": "#/$defs/nullableString"},
+          "end_date": {"$ref": "#/$defs/nullableString"},
+          "status": {"enum": ["active", "discontinued"]}
+        }
+      }
+    },
+    "allergies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "allergen", "reaction", "severity"],
+        "properties": {
+          "id": {"$ref": "#/$defs/uuid"},
+          "allergen": {"type": "string"},
+          "reaction": {"$ref": "#/$defs/nullableString"},
+          "severity": {"enum": ["mild", "moderate", "severe"]}
+        }
+      }
+    },
+    "recent_encounters": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["id", "encounter_date", "encounter_type", "status", "chief_complaint", "symptoms",
+                     "examination_notes", "assessment", "plan", "follow_up_date", "vitals", "diagnoses"],
+        "properties": {
+          "id": {"$ref": "#/$defs/uuid"},
+          "encounter_date": {"type": "string"},
+          "encounter_type": {"enum": ["new", "follow_up", "emergency"]},
+          "status": {"enum": ["draft", "final"]},
+          "symptoms": {"type": "array", "items": {"type": "string"}},
+          "vitals": {"type": ["object", "null"]},
+          "diagnoses": {
+            "type": "array",
+            "items": {"type": "object", "required": ["icd10_code", "description"]}
+          }
+        }
+      }
+    },
+    "encounter_index": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "encounter_date", "status", "has_vitals", "has_assessment_and_plan"],
+        "properties": {
+          "id": {"$ref": "#/$defs/uuid"},
+          "status": {"enum": ["draft", "final"]},
+          "has_vitals": {"type": "boolean"},
+          "has_assessment_and_plan": {"type": "boolean"}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["encounters", "final_encounters", "drafts"],
+      "properties": {
+        "encounters": {"type": "integer"},
+        "final_encounters": {"type": "integer"},
+        "drafts": {"type": "integer"}
+      }
+    }
+  }
+}

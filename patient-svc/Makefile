@@ -11,7 +11,7 @@ export
 
 PYTHON_IMAGE := $(shell sed -n 's/^ARG PYTHON_IMAGE=//p' Dockerfile)
 
-.PHONY: lock venv install init-db init-test-db migrate revision run test test-unit test-api lint fmt build up down logs
+.PHONY: lock venv install init-db init-test-db migrate revision seed seed-reset openapi explain run test test-unit test-api lint fmt build up down logs
 
 # Regenerate the hash-locked requirements inside the SAME pinned Linux image the Dockerfile uses, so
 # platform-specific packages (uvloop, ...) resolve for production, not for the developer's OS.
@@ -36,6 +36,16 @@ migrate:
 	$(PY) -m alembic upgrade head
 revision:
 	$(PY) -m alembic revision -m "$(m)"
+
+seed:
+	$(PY) -m app.cli.seed_patients
+seed-reset:
+	$(PY) -m app.cli.seed_patients --reset
+openapi:
+	$(PY) -m app.cli.export_openapi
+# Plans at the LLD 26 scale: fill the TEST database (PATIENT_DATABASE_URL=$$PATIENT_TEST_DATABASE_URL), then explain
+explain:
+	$(PY) -m app.cli.seed_patients --reset --scale 10000 && $(PY) -m app.cli.explain
 
 run:
 	$(PY) -m uvicorn app.main:app --reload --port 8002

@@ -7,6 +7,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import audit
 from app.core.config import Settings
 from app.core.errors import ConditionNotActive, NotFound, ValidationFailed
 from app.core.security import User
@@ -36,8 +37,12 @@ class ConditionService:
             await self._lock(pid)
             if body.is_primary:
                 await repo.clear_primary(self.session, pid)
-            return await repo.insert(self.session, {
+            cond = await repo.insert(self.session, {
                 **body.model_dump(), "patient_id": pid, "created_by": user.id, "updated_by": user.id})
+            await audit.record(self.session, actor_id=user.id, action="condition.add", resource="condition",
+                               patient_id=pid, resource_id=cond.id,
+                               details=audit.fields(k for k, v in body.model_dump().items() if v not in (None, False)))
+            return cond
 
     async def patch(self, pid: uuid.UUID, cid: uuid.UUID, body: ConditionPatch,
                     user: User) -> tuple[PatientCondition, bool]:
@@ -66,7 +71,11 @@ class ConditionService:
                     raise ConditionNotActive()
                 await repo.clear_primary(self.session, pid, except_id=cid)
                 values["is_primary"] = True
-            return await repo.apply(self.session, cond, values), primary_cleared
+            cond = await repo.apply(self.session, cond, values)
+            touched = {*changes, *(["status"] if new_status else []), *(["is_primary"] if make_primary else [])}
+            await audit.record(self.session, actor_id=user.id, action="condition.update", resource="condition",
+                               patient_id=pid, resource_id=cid, details=audit.fields(touched))
+            return cond, primary_cleared
 
     async def delete(self, pid: uuid.UUID, cid: uuid.UUID, user: User) -> None:
         from sqlalchemy import func
@@ -77,6 +86,8 @@ class ConditionService:
                 raise NotFound()
             # A deleted primary leaves the patient with none: the gap rule will show it (§13.3)
             await repo.apply(self.session, cond, {"deleted_at": func.now(), "is_primary": False, "updated_by": user.id})
+            await audit.record(self.session, actor_id=user.id, action="condition.delete", resource="condition",
+                               patient_id=pid, resource_id=cid)
 
     # ---- used by the encounter finalize transaction (same transaction, lock already held) -------------
     async def link_or_create(self, *, patient_id: uuid.UUID, icd10: str | None, description: str,

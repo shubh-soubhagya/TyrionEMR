@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     jwt_issuer: str = "nephro-auth"
     jwt_audience: str = "nephro-api"
 
+    internal_bulk_max_limit: int = 200          # /internal/patients/charts page cap
+    internal_note_max_chars: int = 1500         # tool endpoint note truncation
     clinic_tz: str = "Asia/Kolkata"             # "today" for date-only rules (P-09)
     list_default_page_size: int = 20
     list_max_page_size: int = 100

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "patient/basic.schema.json",
+  "title": "GET /internal/patients/{id}/basic",
+  "description": "What lab-svc needs to choose reference ranges: sex and date of birth only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "sex", "date_of_birth"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "sex": {"enum": ["M", "F", "O"]},
+    "date_of_birth": {"type": "string", "format": "date"}
+  }
+}

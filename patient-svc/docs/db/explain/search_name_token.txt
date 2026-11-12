@@ -1,0 +1,39 @@
+Sort  (cost=125.20..125.22 rows=8 width=194) (actual time=14.330..14.336 rows=8 loops=1)
+  Sort Key: (lower(p.last_name)), (lower(p.first_name)), p.id
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=10119
+  ->  Nested Loop Left Join  (cost=7.07..125.08 rows=8 width=194) (actual time=13.382..14.263 rows=8 loops=1)
+        Buffers: shared hit=10119
+        ->  Nested Loop Left Join  (cost=6.43..119.66 rows=8 width=122) (actual time=13.228..13.709 rows=8 loops=1)
+              Buffers: shared hit=10094
+              ->  Limit  (cost=6.15..53.08 rows=8 width=193) (actual time=13.062..13.069 rows=8 loops=1)
+                    Buffers: shared hit=10070
+                    ->  Incremental Sort  (cost=6.15..1191.19 rows=202 width=193) (actual time=13.059..13.064 rows=8 loops=1)
+                          Sort Key: (lower(p.last_name)), (lower(p.first_name)), p.id
+                          Presorted Key: (lower(p.last_name)), (lower(p.first_name))
+                          Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 26kB  Peak Memory: 26kB
+                          Buffers: shared hit=10070
+                          ->  WindowAgg  (cost=0.29..1182.10 rows=202 width=193) (actual time=12.933..12.946 rows=9 loops=1)
+                                Buffers: shared hit=10070
+                                ->  Index Scan using patients_name_sort on patients p  (cost=0.29..1178.57 rows=202 width=89) (actual time=4.663..12.715 rows=110 loops=1)
+                                      Filter: ((search_name ~~ '%last42%'::text) AND (search_name ~~ '%first%'::text))
+                                      Rows Removed by Filter: 9890
+                                      Buffers: shared hit=10070
+              ->  Limit  (cost=0.29..8.30 rows=1 width=25) (actual time=0.076..0.076 rows=1 loops=8)
+                    Buffers: shared hit=24
+                    ->  Index Scan using conditions_one_primary on patient_conditions c  (cost=0.29..8.30 rows=1 width=25) (actual time=0.074..0.074 rows=1 loops=8)
+                          Index Cond: (patient_id = p.id)
+                          Buffers: shared hit=24
+        ->  Result  (cost=0.64..0.65 rows=1 width=8) (actual time=0.038..0.038 rows=1 loops=8)
+              Buffers: shared hit=25
+              InitPlan 1 (returns $2)
+                ->  Limit  (cost=0.42..0.64 rows=1 width=8) (actual time=0.029..0.029 rows=1 loops=8)
+                      Buffers: shared hit=25
+                      ->  Index Only Scan using encounters_patient_final on encounters e  (cost=0.42..4.82 rows=20 width=8) (actual time=0.027..0.027 rows=1 loops=8)
+                            Index Cond: ((patient_id = p.id) AND (encounter_date IS NOT NULL))
+                            Heap Fetches: 0
+                            Buffers: shared hit=25
+Planning:
+  Buffers: shared hit=15
+Planning Time: 2.761 ms
+Execution Time: 14.880 ms

@@ -42,8 +42,8 @@ async def create_encounter(pid: uuid.UUID, body: EncounterCreate, svc: Encounter
 
 
 @router.get("/{eid}", response_model=EncounterDetail)
-async def get_encounter(pid: uuid.UUID, eid: uuid.UUID, svc: EncounterSvc, _: Clinician):
-    return await svc.get(pid, eid)
+async def get_encounter(pid: uuid.UUID, eid: uuid.UUID, svc: EncounterSvc, user: Clinician):
+    return await svc.get(pid, eid, user)
 
 
 @router.patch("/{eid}", response_model=EncounterResult)

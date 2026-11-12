@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import audit
 from app.core.config import Settings
 from app.core.errors import MedicationAlreadyDiscontinued, NotFound, ValidationFailed
 from app.core.security import User
@@ -44,6 +45,9 @@ class MedicationService:
             self.session.add(med)
             await self.session.flush()
             await self.session.refresh(med)
+            await audit.record(self.session, actor_id=user.id, action="medication.add", resource="medication",
+                               patient_id=pid, resource_id=med.id,
+                               details=audit.fields(k for k, v in body.model_dump().items() if v is not None))
             return med
 
     async def patch(self, pid: uuid.UUID, mid: uuid.UUID, body: MedicationPatch, user: User) -> Medication:
@@ -68,6 +72,10 @@ class MedicationService:
                 setattr(med, k, v)
             await self.session.flush()
             await self.session.refresh(med)
+            await audit.record(self.session, actor_id=user.id,
+                               action="medication.discontinue" if action else "medication.update",
+                               resource="medication", patient_id=pid, resource_id=mid,
+                               details=audit.fields(values))
             return med
 
     async def _lock(self, pid: uuid.UUID) -> None:

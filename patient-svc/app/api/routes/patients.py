@@ -52,8 +52,8 @@ async def create_patient(body: PatientCreate, svc: PatientSvc, user: Clinician, 
 
 
 @router.get("/{pid}", response_model=PatientDetail)
-async def get_patient(pid: uuid.UUID, svc: PatientSvc, _: Clinician) -> dict:
-    return await svc.get(pid)
+async def get_patient(pid: uuid.UUID, svc: PatientSvc, user: Clinician) -> dict:
+    return await svc.get(pid, user)
 
 
 @router.patch("/{pid}", response_model=PatientDetail)

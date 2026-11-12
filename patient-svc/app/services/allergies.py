@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import audit
 from app.core.errors import DuplicateAllergy, NotFound
 from app.core.security import User
 from app.domain.patient_rules import allergy_status_after_removal
@@ -44,6 +45,9 @@ class AllergyService:
             version = patient.version
             if patient.allergy_status != "has_allergies":
                 version = await patients_repo.bump_version(self.session, pid, user.id, allergy_status="has_allergies")
+            await audit.record(self.session, actor_id=user.id, action="allergy.add", resource="allergy",
+                               patient_id=pid, resource_id=allergy.id,
+                               details=audit.fields(["allergen", "severity", *(["reaction"] if body.reaction else [])]))
             return {"allergy": allergy, "allergy_status": "has_allergies", "patient_version": version}
 
     async def remove(self, pid: uuid.UUID, aid: uuid.UUID, user: User) -> dict[str, Any]:
@@ -64,4 +68,6 @@ class AllergyService:
             version = patient.version
             if status != patient.allergy_status:
                 version = await patients_repo.bump_version(self.session, pid, user.id, allergy_status=status)
+            await audit.record(self.session, actor_id=user.id, action="allergy.remove", resource="allergy",
+                               patient_id=pid, resource_id=aid)
             return {"allergy_status": status, "patient_version": version}

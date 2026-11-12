@@ -20,8 +20,27 @@ make up                         # Docker, on nephro-net, no published port
 
 ## Status
 
-Phase 0 (scaffold), 1 (database provisioning) and 2 (skeleton: config, JWT/JWKS auth, error envelope,
-`/health`, `/ready`, `/metrics`) are implemented. No business routes yet.
+All ten phases of [PHASES.md](PHASES.md) are implemented: schema and immutability triggers, patients, conditions,
+medications, allergies, encounters (draft, edit, finalize, delete, problem-list linkage), dashboard queries,
+internal endpoints with JSON Schema contracts (`contracts/patient/`), audit trail, metrics, seed data,
+OpenAPI export (`docs/api/patient-svc.json`) and measured query plans (`docs/db/explain/`).
+
+```bash
+make migrate      # alembic upgrade head on the dev database
+make seed         # the ten synthetic demo patients (idempotent); make seed-reset wipes first (dev only)
+make openapi      # docs/api/patient-svc.json
+```
+
+Not verified yet: the Docker image build and `docker compose up` (see "Open items").
+
+## Open items
+
+| # | Item |
+|---|---|
+| O1 | Seed namespace: this service uses `9b3f6a52-...` (its design doc); lab-svc's doc lists `6f1c2d3e-...`, and auth-svc seeds users with random ids. All three must share one namespace (`app/domain/seed_ids.py`) before lab-svc is seeded, or lab results will point at patients that do not exist. |
+| O2 | List sorted by last visit or primary diagnosis takes about 270 ms at 10,000 patients / 200,000 encounters (target 150 ms). The design's upgrade path is a `last_visit` column maintained at finalize. Everything else meets its target; see `docs/db/explain/README.txt`. |
+| O3 | Dockerfile and compose file are copied from auth-svc but not yet built or run. |
+| O4 | `requirements-dev.lock` is not generated yet (`make lock` kept timing out on the package index); `requirements.lock` and `requirements-build.lock` are. |
 
 ## Deviations from the design document
 
@@ -35,5 +54,3 @@ Phase 0 (scaffold), 1 (database provisioning) and 2 (skeleton: config, JWT/JWKS 
 | D6 | JWT `name` claim | Optional; falls back to "Unknown clinician" | auth-svc does not issue `name` yet (LLD §27.1 #1) |
 | D7 | `encounter_diagnoses` as in §9.2 | + `category` column (migration 0002) | A draft's explicit diagnosis category must survive until finalize, when the problem-list entry is created |
 
-Phases 3-7 (schema and triggers, patients, conditions/medications/allergies, encounters, dashboard queries) are implemented.
-Audit rows (Phase 9) are not written yet. `requirements.lock` / `requirements-dev.lock` are still to be generated with `make lock`.

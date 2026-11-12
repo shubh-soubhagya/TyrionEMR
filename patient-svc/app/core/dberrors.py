@@ -20,6 +20,7 @@ from app.core.errors import (
     PrimaryConflict,
     error_response,
 )
+from app.core.metrics import DB_TRIGGER_REJECTIONS
 
 log = logging.getLogger("patient.db")
 
@@ -58,6 +59,8 @@ def map_db_error(exc: BaseException) -> AppError | None:
         return DuplicateAllergy()
     if state == "23503":
         return NotFound()
+    if state == "P0001" and hint:
+        DB_TRIGGER_REJECTIONS.labels(hint=str(hint)).inc()
     if state == "P0001" and hint == "ENCOUNTER_FINAL":
         log.error("db.encounter_final_trigger")      # the service should have refused first
         return EncounterFinal()

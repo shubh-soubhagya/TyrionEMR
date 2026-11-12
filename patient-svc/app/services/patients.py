@@ -1,15 +1,18 @@
 """Patient use cases (LLD §13.1, §13.2, §15). Services own the transaction; repositories never commit."""
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import audit
 from app.core.config import Settings
 from app.core.dberrors import _pg_exc
 from app.core.errors import AllergiesPresent, NotFound, ValidationFailed, VersionConflict
+from app.core.metrics import OPTIMISTIC_CONFLICTS
 from app.core.security import User
 from app.domain import patient_rules
 from app.domain.clock import Clock, today_in
@@ -18,6 +21,7 @@ from app.repositories import patients as repo
 from app.schemas.patient import ListQuery, PatientCreate, PatientPatch
 
 MAX_IDS = 500
+log = logging.getLogger("patient.patients")
 
 
 def _brief_primary(row: dict[str, Any]) -> dict[str, Any] | None:
@@ -48,11 +52,15 @@ class PatientService:
         items = [{**r, "primary_diagnosis": _brief_primary(r)} for r in rows]
         return {"items": items, "page": q.page, "size": q.size, "total": total}
 
-    async def get(self, pid: uuid.UUID) -> dict[str, Any]:
-        patient = await repo.get_active(self.session, pid)
-        if patient is None:
-            raise NotFound()
-        return await self._detail(patient)
+    async def get(self, pid: uuid.UUID, user: User) -> dict[str, Any]:
+        # A chart read is audited in the same short transaction: if the audit insert fails, the read fails (§19.3)
+        async with self.session.begin():
+            patient = await repo.get_active(self.session, pid)
+            if patient is None:
+                raise NotFound()
+            await audit.record(self.session, actor_id=user.id, action="patient.view", resource="patient",
+                               patient_id=pid, resource_id=pid)
+            return await self._detail(patient)
 
     async def _detail(self, patient) -> dict[str, Any]:
         today = self.today()
@@ -79,6 +87,9 @@ class PatientService:
         values = {**body.model_dump(), "created_by": user.id, "updated_by": user.id}
         async with self.session.begin():
             patient = await self._insert_with_mrn_retry(values)
+            await audit.record(self.session, actor_id=user.id, action="patient.create", resource="patient",
+                               patient_id=patient.id, resource_id=patient.id,
+                               details=audit.fields(k for k, v in body.model_dump().items() if v is not None))
             detail = await self._detail(patient)
         return detail
 
@@ -110,10 +121,14 @@ class PatientService:
                 if not patient_rules.can_set_allergy_status(changes["allergy_status"], active):
                     raise AllergiesPresent()
             if current.version != body.version:
+                OPTIMISTIC_CONFLICTS.labels(resource="patient").inc()
+                log.info("version_conflict", extra={"resource": "patient"})
                 raise VersionConflict()
             new_version = await repo.update_versioned(self.session, pid, body.version, changes, user.id)
             if new_version is None:                               # cannot happen under the row lock; stay safe
                 raise VersionConflict()
+            await audit.record(self.session, actor_id=user.id, action="patient.update", resource="patient",
+                               patient_id=pid, resource_id=pid, details=audit.fields(changes))
             await self.session.refresh(current)
             return await self._detail(current)
 
@@ -130,3 +145,5 @@ class PatientService:
             if await repo.lock_active(self.session, pid) is None:
                 raise NotFound()
             await repo.soft_delete(self.session, pid, user.id)
+            await audit.record(self.session, actor_id=user.id, action="patient.delete", resource="patient",
+                               patient_id=pid, resource_id=pid)
