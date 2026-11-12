@@ -7,6 +7,7 @@ from alembic import context
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.db.migration_url import resolve_migration_url
 from app.db.session import build_ssl
 from app.models import Base
 
@@ -15,11 +16,8 @@ MIGRATION_LOCK_ID = 727_001  # unique per service: auth=727001, patient=727002, 
 
 
 def _url() -> str:
-    # DDL needs the schema owner; the runtime role (AUTH_DATABASE_URL) can only read and write rows
-    url = os.environ.get("AUTH_MIGRATION_DATABASE_URL") or os.environ.get("AUTH_DATABASE_URL")
-    if not url:
-        raise RuntimeError("AUTH_MIGRATION_DATABASE_URL (or AUTH_DATABASE_URL) is not set")
-    return url
+    # DDL needs the schema owner. No fallback to AUTH_DATABASE_URL (the runtime role): see migration_url.py
+    return resolve_migration_url(os.environ)
 
 
 def do_run_migrations(connection) -> None:

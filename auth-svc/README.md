@@ -118,6 +118,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D20 | `POST /auth/password`; CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions`; `password_changed` revoke reason (migration 0003) | Password lifecycle without raw SQL. LLD §17.7b, §26 |
 | D21 | `auth_events` audit table (migration 0004), 365-day retention | Durable, PII-free audit trail. LLD §15.4b |
 | D24 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through `purge_auth_events(days)` (migration 0005, `SECURITY DEFINER`, 30-day floor, database clock); `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The runtime role could rewrite or erase login history. LLD §15.4b |
+| D25 | No fallback to the legacy `auth_svc` role: compose requires the four `AUTH_APP_DB_*` / `AUTH_MIGRATOR_DB_*` variables; `env.py` needs `AUTH_MIGRATION_DATABASE_URL`; production refuses a runtime URL using `auth_svc` or `auth_migrator` (dev warns). Implemented in `app/db/migration_url.py`, `build_state` and the guard rather than in `config.py`, so nothing is logged while settings are still loading | A missing variable used to break startup quietly. LLD §16.3b |
 | D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
 | D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
 

@@ -23,6 +23,7 @@ from app.core.guard import ConfigurationError, enforce_production
 from app.core.logging import configure_logging
 from app.core.metrics import bind_pool_gauges, mount_metrics
 from app.core.ratelimit import TokenBucketLimiter
+from app.db.migration_url import runtime_role_problem
 from app.db.session import create_engine, create_sessionmaker
 from app.domain.clock import Clock, utcnow
 from app.domain.password_policy import load_common_passwords
@@ -38,6 +39,9 @@ from app.services.token_service import TokenService
 def build_state(app: FastAPI, settings: Settings, clock: Clock, keystore: KeyStore | None = None) -> None:
     """Creates everything the app needs. Separate from the lifespan so tests can call it directly."""
     enforce_production(settings)               # refuses to start on an unsafe production config
+    role_problem = runtime_role_problem(settings.auth_database_url)
+    if role_problem:                           # production already refused above; elsewhere it is a warning
+        logging.getLogger("auth").warning("config.runtime_role_not_least_privilege", extra={"detail": role_problem})
     app.state.settings = settings
     app.state.rate_limiter = TokenBucketLimiter(
         settings.rate_limit_login_per_min, settings.rate_limit_login_burst, clock)

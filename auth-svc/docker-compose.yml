@@ -8,12 +8,13 @@ services:
     image: nephro/auth-svc
     env_file: .env
     environment:
-      # Defined here (not in .env) because compose interpolates ${...} in `environment:` reliably
-      # Runtime login. Defaults to the legacy single role so the current setup keeps working; set
-      # AUTH_APP_DB_USER=auth_app and AUTH_APP_DB_PW once the least-privilege roles exist (setup/init-auth-db.sh).
-      AUTH_DATABASE_URL: postgresql+asyncpg://${AUTH_APP_DB_USER:-auth_svc}:${AUTH_APP_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      # Defined here (not in .env) because compose interpolates ${...} in `environment:` reliably.
+      # The roles are REQUIRED: there is no fallback to the legacy auth_svc role (it owns nothing any more),
+      # so a missing variable stops `docker compose` with a clear message instead of failing quietly at runtime.
+      # Create the roles with setup/init-auth-db.sh, then put their names and passwords in .env.
+      AUTH_DATABASE_URL: postgresql+asyncpg://${AUTH_APP_DB_USER:?set AUTH_APP_DB_USER (auth_app)}:${AUTH_APP_DB_PW:?set AUTH_APP_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
       RUN_MIGRATIONS_ON_START: ${RUN_MIGRATIONS_ON_START:-false}
-      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:-auth_svc}:${AUTH_MIGRATOR_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:?set AUTH_MIGRATOR_DB_USER (auth_migrator)}:${AUTH_MIGRATOR_DB_PW:?set AUTH_MIGRATOR_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private
       # Everything else (SEED_DEMO_USERS, ENABLE_PUBLIC_SIGNUP, COOKIE_SECURE, ...) comes from .env
     secrets:
@@ -33,7 +34,7 @@ services:
     profiles: [tools]              # never started by `docker compose up`
     env_file: .env
     environment:
-      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:-auth_svc}:${AUTH_MIGRATOR_DB_PW:-${AUTH_DB_PW}}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
+      AUTH_MIGRATION_DATABASE_URL: postgresql+asyncpg://${AUTH_MIGRATOR_DB_USER:?set AUTH_MIGRATOR_DB_USER (auth_migrator)}:${AUTH_MIGRATOR_DB_PW:?set AUTH_MIGRATOR_DB_PW}@postgres:5432/${AUTH_DB_NAME:-nephro_auth_db}
       AUTH_DB_SSLMODE: ${AUTH_DB_SSLMODE:-disable}
     entrypoint: ["alembic", "upgrade", "head"]
     networks: [nephro-net]

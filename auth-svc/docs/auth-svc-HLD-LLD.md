@@ -311,6 +311,7 @@ These are additions made at LLD level. None changes the HLD contract seen by oth
 | R11 | In-process per-IP token bucket on login and signup; hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S`, then `503 SERVICE_BUSY` | Defense in depth until the gateway exists; overload must shed load, not queue forever | §8, §10, §18, §21 |
 | R12 | `ENVIRONMENT=production` startup guard; docs and schema disabled in production | Unsafe settings (seed users, insecure cookies, localhost CORS, readable key, open signup) must not reach production | §21, §28 |
 | R14 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through the `SECURITY DEFINER` function `purge_auth_events(retention_days)` (migration 0005), which refuses anything under 30 days and uses the database clock; `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The default privileges gave the runtime role UPDATE and DELETE on the audit trail, so the service, or anyone with its credentials, could rewrite or erase login history | §15.4b, §21, §28 |
+| R15 | No fallback to the legacy `auth_svc` role: compose requires `AUTH_APP_DB_USER/PW` and `AUTH_MIGRATOR_DB_USER/PW`; `env.py` refuses to migrate without `AUTH_MIGRATION_DATABASE_URL`; production refuses a runtime URL that connects as `auth_svc` or `auth_migrator` (development logs a warning) | After the role split `auth_svc` owns nothing, so a missing variable used to break startup quietly instead of failing with a clear message | §16.3b, §21, §28 |
 | R13 | Hash-locked dependencies, base image pinned by digest, CI with audit and image scan | Reproducible, verifiable builds | §23, §28 |
 
 ---
@@ -764,7 +765,17 @@ This touches nothing that already exists in the container. Existing databases an
 `auth_svc` role** (database and tables) if it finds it, and sets
 `ALTER DEFAULT PRIVILEGES FOR ROLE auth_migrator ... GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO auth_app`
 so tables created by a future migration need no extra grant. It refuses to touch a database owned by anyone else.
-`auth_svc` is left in place; retire it with `ALTER ROLE auth_svc NOLOGIN` once every environment has switched.
+`auth_svc` is left in place; retire it with `setup/retire-legacy-role.sh` (`make retire-legacy-role`) once every
+environment has switched.
+
+**No fallback to the legacy role.** `docker-compose.yml` requires `AUTH_APP_DB_USER`, `AUTH_APP_DB_PW`,
+`AUTH_MIGRATOR_DB_USER` and `AUTH_MIGRATOR_DB_PW` (`${VAR:?message}`) for both the `auth-svc` and `migrate`
+services, and nothing falls back to `AUTH_DB_PW` or `auth_svc`: a missing variable stops `docker compose` with a
+message naming it. `migrations/env.py` uses `app.db.migration_url.resolve_migration_url`, which raises when
+`AUTH_MIGRATION_DATABASE_URL` is unset and never falls back to `AUTH_DATABASE_URL` (the runtime role). If
+`AUTH_DATABASE_URL` connects as `auth_svc` or `auth_migrator`, development logs a warning
+(`config.runtime_role_not_least_privilege`) and `ENVIRONMENT=production` refuses to start ("runtime must use the
+least-privilege role").
 
 URLs: `AUTH_DATABASE_URL` (runtime, `auth_app`) and `AUTH_MIGRATION_DATABASE_URL` (`auth_migrator`; falls back to
 the runtime URL for single-role setups). Migrations no longer run in the entrypoint unless
@@ -2015,6 +2026,7 @@ Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATA
 | Roles and TLS | as `auth_app`: `DROP`, `CREATE`, `ALTER`, `TRUNCATE` are denied and DML works; tables made later by the migrator are usable; `auth_migrator` can do DDL; the whole service runs as `auth_app` over TLS |
 | Timeouts | a held row lock gives `503 SERVICE_BUSY` in about 2 s and consumes nothing; statement timeout gives `503`; other database errors are a `500` envelope with no SQL |
 | Key rotation | tokens signed by k1 verify while both keys are published, new tokens carry k2's `kid`, retiring k1 rejects its tokens; refresh tokens are unaffected |
+| No role fallback | the production guard refuses a runtime URL using `auth_migrator` or `auth_svc` and accepts `auth_app`; development warns; `resolve_migration_url` raises without `AUTH_MIGRATION_DATABASE_URL`, never returns the runtime URL, treats an empty value as missing, and a real `alembic` process fails before connecting; compose has no `auth_svc`/`AUTH_DB_PW` and requires the four role variables |
 | Audit integrity | as `auth_app`: `UPDATE`, `DELETE`, `TRUNCATE` on `auth_events` are denied and `INSERT`/`SELECT` work; the grants are exactly `{INSERT, SELECT}`; `purge_auth_events(365)` deletes only rows older than 365 days, `purge_auth_events(7)` (or NULL, 0, 29) raises and deletes nothing, 30 is the exact floor; the cleanup job purges through the function; a faked application clock cannot widen the purge; downgrade restores the old grants and upgrade locks them again; startup fails with `AUTH_EVENTS_RETENTION_DAYS=10` |
 | Production guard | each forbidden setting fails startup (and the process exits non-zero); a valid production config starts; `/docs`, `/redoc` and `/openapi.json` return `404` in production; `seed_users` refuses |
 | Concurrency | two parallel refreshes with the same cookie → exactly one `200`, one `409`, family still active |
@@ -2155,6 +2167,7 @@ database on it. Production should use a dedicated instance or managed Postgres w
 | Database least privilege | `auth_app` (DML only) at runtime, `auth_migrator` owns the schema (section 16.3b). Migrations are a separate job |
 | Database TLS | `AUTH_DB_SSLMODE` / `AUTH_DB_SSLROOTCERT` apply to the app, the CLI and Alembic; production refuses `disable` |
 | Database timeouts | `statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout` set on every connection; lock/statement/deadlock errors answer `503 SERVICE_BUSY` |
+| Runtime role | Production refuses a runtime URL that connects as `auth_svc` or `auth_migrator`; compose and Alembic have no fallback to the legacy role (section 16.3b) |
 | Audit trail | `auth_events` (section 15.4b): durable, PII-free, transactional, 365-day retention, **append-only for the runtime role** (retention only via `purge_auth_events()`, minimum 30 days) |
 | Password lifecycle | `POST /auth/password` (section 17.7b); operator CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions` (section 26) |
 | Logs | Unhandled exceptions log the type, the cause chain, the call stack (file, line, function) and the stack of the original cause. Exception messages and frame locals are never logged. The request id is stamped on the record when it is created |

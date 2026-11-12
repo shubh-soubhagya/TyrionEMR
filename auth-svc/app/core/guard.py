@@ -5,6 +5,7 @@ import os
 from collections.abc import Callable
 
 from app.core.config import MIN_AUDIT_RETENTION_DAYS, Settings
+from app.db.migration_url import runtime_role_problem
 
 
 class ConfigurationError(RuntimeError):
@@ -34,6 +35,9 @@ def production_problems(s: Settings, file_mode: Callable[[str], int | None] | No
     mode = file_mode(s.jwt_private_key_path)
     if mode is not None and mode & 0o077:
         problems.append(f"JWT private key must not be group/world readable (mode is {mode:04o}, expected 0600)")
+    role_problem = runtime_role_problem(s.auth_database_url)
+    if role_problem:
+        problems.append(role_problem)
     if s.auth_db_sslmode == "disable":
         problems.append("AUTH_DB_SSLMODE must be require or verify-full (database traffic must be encrypted)")
     if s.auth_events_retention_days < MIN_AUDIT_RETENTION_DAYS:
