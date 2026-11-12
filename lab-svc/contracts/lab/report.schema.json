@@ -60,7 +60,10 @@
           "ref_low",
           "ref_high",
           "flag",
-          "supersedes_id"
+          "supersedes_id",
+          "crit_low",
+          "crit_high",
+          "correction_reason"
         ],
         "properties": {
           "id": {
@@ -125,6 +128,24 @@
               {
                 "type": "null"
               }
+            ]
+          },
+          "crit_low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "crit_high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "correction_reason": {
+            "type": [
+              "string",
+              "null"
             ]
           }
         }

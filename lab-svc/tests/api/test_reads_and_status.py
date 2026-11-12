@@ -63,7 +63,7 @@ async def test_critical_only_counts_the_latest_result_per_test(api, patients) ->
 async def test_correction_updates_the_read_model(api, patients) -> None:
     pid = patients.add()
     res = (await add(api, pid, 0, K=6.8))["results"][0]
-    await api.post(f"/labs/results/{res['id']}/correct", json={"value": 4.2, "unit": "mmol/L"})
+    await api.post(f"/labs/results/{res['id']}/correct", json={"value": 4.2, "unit": "mmol/L", "reason": "re-checked against report"})
     body = (await api.get(f"/labs/patients/{pid}/latest")).json()
     assert body["latest"]["K"]["value"] == 4.2 and body["has_critical"] is False
 
@@ -246,7 +246,7 @@ async def test_responses_match_json_schema_contracts(api, patients, name) -> Non
 async def test_every_write_and_read_is_audited_without_values(api, patients, db_engine) -> None:
     pid = patients.add()
     res = (await add(api, pid, 0, K=6.8))["results"][0]
-    await api.post(f"/labs/results/{res['id']}/correct", json={"value": 4.2, "unit": "mmol/L"})
+    await api.post(f"/labs/results/{res['id']}/correct", json={"value": 4.2, "unit": "mmol/L", "reason": "re-checked against report"})
     await api.get(f"/labs/patients/{pid}/results")
     await api.get(f"/labs/patients/{pid}/trends")
     await api.get(f"/labs/patients/{pid}/latest")

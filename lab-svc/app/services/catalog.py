@@ -43,7 +43,7 @@ class CatalogService:
             out.append(LabTestOut(
                 code=t.code, name=t.name, canonical_unit=t.canonical_unit,
                 allowed_units=[AllowedUnit(unit=u, factor=float(f)) for u, f in t.allowed_units.items()],
-                decimals=t.decimals, max_value=float(t.max_value),
+                decimals=t.decimals, max_value=float(t.plausible_max),
                 reference_range=None if r is None else ReferenceRangeOut(
                     low=_f(r.low), high=_f(r.high), critical_low=_f(r.critical_low),
                     critical_high=_f(r.critical_high), text=range_text(r)),

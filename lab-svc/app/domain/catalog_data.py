@@ -31,6 +31,7 @@ class RangeSeed(NamedTuple):
 
 
 RANGES_EFFECTIVE_FROM: Final = date(2020, 1, 1)
+RANGES_SOURCE: Final = "reference/emr-ui.html prototype (placeholder until the supplied ranges file is loaded)"
 
 CATALOG: Final[tuple[CatalogTest, ...]] = (
     {"code": "CREAT", "name": "Serum creatinine", "canonical_unit": "mg/dL", "decimals": 2, "max_value": "30",

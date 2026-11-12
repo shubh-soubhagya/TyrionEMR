@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import Any, Final
 
 from app.domain.ckd import egfr_category, uacr_category
+from app.domain.constants import RULES_VERSION
 from app.domain.trends import DEFAULT_CONFIG, TrendConfig, compute_stats
 
 SPARK_POINTS: Final = 12
@@ -52,5 +53,7 @@ def build_status(points: Sequence[ResultPoint], config: TrendConfig = DEFAULT_CO
         "egfr_spark": [{"t": p.collected_at.isoformat(), "v": float(p.value)} for p in egfr[-SPARK_POINTS:]],
         "has_critical": any(p.flag.startswith("critical") for p in latest_pts.values()),
         "rapid_decline": bool(stats_egfr and stats_egfr["rapid_decline"]),
+        "result_count": len(points),
         "last_result_at": max((p.collected_at for p in points), default=None),
+        "rules_version": RULES_VERSION,
     }

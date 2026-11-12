@@ -17,21 +17,27 @@ NOW = datetime(2026, 11, 11, 12, 0, tzinfo=UTC)
 async def _report(conn, collected_at: datetime = NOW, created_at: datetime = NOW) -> uuid.UUID:
     rid = uuid.uuid4()
     await conn.execute(text(
-        "INSERT INTO lab_reports (id, patient_id, collected_at, entered_by, created_at) "
-        "VALUES (:id, :p, :c, :u, :cr)"),
+        "INSERT INTO lab_reports (id, patient_id, collected_at, lab_name, entered_by, created_at) "
+        "VALUES (:id, :p, :c, 'Test lab', :u, :cr)"),
         {"id": rid, "p": uuid.uuid4(), "c": collected_at, "u": uuid.uuid4(), "cr": created_at})
     return rid
 
 
 async def _result(conn, report_id: uuid.UUID, value: float = 1.0, flag: str = "normal",
-                  supersedes: uuid.UUID | None = None) -> uuid.UUID:
-    rid = uuid.uuid4()
+                  supersedes: uuid.UUID | None = None, test: str = "CREAT", reason: str | None = "auto",
+                  with_range: bool | None = None, collected_at=None, rid: uuid.UUID | None = None) -> uuid.UUID:
+    """Inserts one result row. ``reason="auto"`` supplies a reason exactly when ``supersedes`` is set."""
+    rid = rid or uuid.uuid4()
+    has_range = (flag != "unknown") if with_range is None else with_range
+    why = ("test correction" if supersedes is not None else None) if reason == "auto" else reason
     await conn.execute(text(
         "INSERT INTO lab_results (id, report_id, patient_id, collected_at, test_code, value, unit, "
-        "value_original, unit_original, flag, supersedes_id, created_at) "
-        "SELECT :id, :r, patient_id, collected_at, 'CREAT', :v, 'mg/dL', :v, 'mg/dL', :f, :s, :cr "
-        "FROM lab_reports WHERE id = :r"),
-        {"id": rid, "r": report_id, "v": value, "f": flag, "s": supersedes, "cr": NOW})
+        "value_original, unit_original, range_id, flag, supersedes_id, correction_reason, entered_by, created_at) "
+        "SELECT :id, :r, patient_id, COALESCE(:col, collected_at), :t, :v, 'u', :v, 'u', "
+        "(CASE WHEN :hr THEN (SELECT id FROM lab_reference_ranges WHERE test_code = 'CREAT' AND sex = 'M') END), "
+        ":f, :s, :why, entered_by, :cr FROM lab_reports WHERE id = :r"),
+        {"id": rid, "r": report_id, "v": value, "f": flag, "s": supersedes, "cr": NOW, "t": test,
+         "why": why, "hr": has_range, "col": collected_at})
     return rid
 
 
@@ -68,20 +74,34 @@ async def test_negative_value_rejected(db_engine) -> None:
             await _result(conn, await _report(conn), value=-1)
 
 
-async def test_unknown_flag_value_rejected_but_unknown_allowed(db_engine) -> None:
+async def test_flag_vocabulary_and_unknown_iff_no_range(db_engine) -> None:
     async with db_engine.connect() as conn:
-        rep = await _report(conn)
-        await _result(conn, rep, flag="unknown")           # an unmatched range is a legal flag
-    async with db_engine.connect() as conn:
-        rep = await _report(conn)
-        with pytest.raises(IntegrityError):
-            await _result(conn, rep, flag="severe")
+        await _result(conn, await _report(conn), flag="unknown")               # no range, unknown: legal
+    for kwargs in ({"flag": "severe"},                                          # not in the vocabulary
+                   {"flag": "normal", "with_range": False},                      # never silently normal
+                   {"flag": "unknown", "with_range": True}):
+        async with db_engine.connect() as conn:
+            with pytest.raises(IntegrityError):
+                await _result(conn, await _report(conn), **kwargs)
 
 
-async def test_future_collection_date_rejected(db_engine) -> None:
+async def test_collection_date_must_be_plausible(db_engine) -> None:
     async with db_engine.connect() as conn:
         with pytest.raises(IntegrityError):
-            await _report(conn, collected_at=NOW + timedelta(days=1))
+            await _report(conn, collected_at=datetime(1850, 1, 1, tzinfo=UTC))
+
+
+async def test_report_text_limits(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await conn.execute(text(
+                "INSERT INTO lab_reports (patient_id, collected_at, lab_name, entered_by, created_at) "
+                "VALUES (gen_random_uuid(), :c, NULL, gen_random_uuid(), :c)"), {"c": NOW})
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await conn.execute(text(
+                "INSERT INTO lab_reports (patient_id, collected_at, lab_name, notes, entered_by, created_at) "
+                "VALUES (gen_random_uuid(), :c, 'x', :n, gen_random_uuid(), :c)"), {"c": NOW, "n": "n" * 501})
 
 
 async def test_a_result_can_be_corrected_only_once(db_engine) -> None:
@@ -93,15 +113,72 @@ async def test_a_result_can_be_corrected_only_once(db_engine) -> None:
             await _result(conn, rep, value=3, supersedes=first)
 
 
+async def test_correction_needs_a_reason_and_only_corrections_have_one(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep = await _report(conn)
+        first = await _result(conn, rep)
+        await conn.commit()
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep, supersedes=first, reason=None)
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep, test="K", reason="not a correction")
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep, supersedes=first, reason="no")                # shorter than 3 characters
+
+
+async def test_correction_must_match_report_and_test(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep_a, rep_b = await _report(conn), await _report(conn)
+        creat = await _result(conn, rep_a)
+        await conn.commit()
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):                                          # other test
+            await _result(conn, rep_a, test="K", supersedes=creat)
+    async with db_engine.connect() as conn:
+        with pytest.raises(IntegrityError):                                          # other report
+            await _result(conn, rep_b, supersedes=creat)
+
+
+async def test_self_supersede_rejected(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep = await _report(conn)
+        rid = uuid.uuid4()
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep, supersedes=rid, rid=rid)
+
+
+async def test_one_original_per_test_per_report(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep = await _report(conn)
+        await _result(conn, rep)
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep)
+
+
+async def test_result_cannot_drift_from_its_report(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep = await _report(conn)
+        with pytest.raises(IntegrityError):
+            await _result(conn, rep, collected_at=NOW - timedelta(days=3))           # other collected_at than the report
+
+
+async def test_current_view_excludes_superseded_rows(db_engine) -> None:
+    async with db_engine.connect() as conn:
+        rep = await _report(conn)
+        first = await _result(conn, rep, value=1.0)
+        second = await _result(conn, rep, value=2.0, supersedes=first)
+        ids = {r[0] for r in await conn.execute(text("SELECT id FROM lab_results_current"))}
+        assert ids == {second}
+
+
 async def test_unknown_test_code_rejected(db_engine) -> None:
     async with db_engine.connect() as conn:
         rep = await _report(conn)
         with pytest.raises(IntegrityError):
-            await conn.execute(text(
-                "INSERT INTO lab_results (report_id, patient_id, collected_at, test_code, value, unit, "
-                "value_original, unit_original, flag, created_at) "
-                "SELECT :r, patient_id, collected_at, 'NOPE', 1, 'x', 1, 'x', 'normal', :cr "
-                "FROM lab_reports WHERE id = :r"), {"r": rep, "cr": NOW})
+            await _result(conn, rep, test="NOPE")
 
 
 async def test_trigger_rejection_maps_to_nothing_leaky(db_engine) -> None:

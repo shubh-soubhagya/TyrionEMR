@@ -49,7 +49,7 @@ def map_db_error(exc: BaseException) -> AppError | None:
     hint = getattr(pg, "hint", None)
     if state in BUSY_SQLSTATES:
         return DbUnavailable()
-    if state == "23505" and getattr(pg, "constraint_name", None) == "lab_results_one_correction":
+    if state == "23505" and getattr(pg, "constraint_name", None) == "ux_results_supersedes":
         return AlreadyCorrected()      # two corrections raced; the unique index decided
     if state == "23503":
         return NotFound()

@@ -21,8 +21,10 @@ class LabTest(Base):
     canonical_unit: Mapped[str]
     allowed_units: Mapped[dict[str, Any]] = mapped_column(JSONB)
     decimals: Mapped[int]
-    max_value: Mapped[Decimal]
-    sort_order: Mapped[int]
+    plausible_max: Mapped[Decimal]
+    display_order: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
 
 
 class LabReferenceRange(Base):
@@ -38,6 +40,8 @@ class LabReferenceRange(Base):
     critical_low: Mapped[Decimal | None]
     critical_high: Mapped[Decimal | None]
     effective_from: Mapped[date]
+    source: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
 
 
 class LabReport(Base):
@@ -46,9 +50,10 @@ class LabReport(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
     patient_id: Mapped[uuid.UUID]
     collected_at: Mapped[datetime]
-    lab_name: Mapped[str | None]
+    lab_name: Mapped[str]
     notes: Mapped[str | None]
     entered_by: Mapped[uuid.UUID]
+    request_id: Mapped[str | None]
     created_at: Mapped[datetime]
 
 
@@ -64,10 +69,15 @@ class LabResult(Base):
     unit: Mapped[str]
     value_original: Mapped[Decimal]
     unit_original: Mapped[str]
+    range_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("lab_reference_ranges.id"))
     ref_low: Mapped[Decimal | None]
     ref_high: Mapped[Decimal | None]
+    crit_low: Mapped[Decimal | None]
+    crit_high: Mapped[Decimal | None]
     flag: Mapped[str]
     supersedes_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("lab_results.id"))
+    correction_reason: Mapped[str | None]
+    entered_by: Mapped[uuid.UUID]
     created_at: Mapped[datetime]
 
 
@@ -83,5 +93,8 @@ class PatientLabStatus(Base):
     egfr_spark: Mapped[list[Any]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
     has_critical: Mapped[bool] = mapped_column(server_default=text("false"))
     rapid_decline: Mapped[bool] = mapped_column(server_default=text("false"))
+    result_count: Mapped[int] = mapped_column(server_default=text("0"))
     last_result_at: Mapped[datetime | None]
+    version: Mapped[int] = mapped_column(server_default=text("1"))
+    rules_version: Mapped[str]
     updated_at: Mapped[datetime] = mapped_column(server_default=text("clock_timestamp()"))

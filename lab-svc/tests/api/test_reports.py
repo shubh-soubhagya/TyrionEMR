@@ -70,8 +70,8 @@ async def test_ranges_revised_later_do_not_change_stored_flag(patients, post_rep
     pid = patients.add("M")
     rid = (await post_report(pid, [r("K", 5.5, "mmol/L")])).json()["results"][0]["id"]
     async with db_engine.begin() as c:
-        await c.execute(text("INSERT INTO lab_reference_ranges (test_code, low, high, effective_from) "
-                             "VALUES ('K', 3.5, 6.0, '2026-06-01')"))
+        await c.execute(text("INSERT INTO lab_reference_ranges (test_code, low, high, effective_from, source) "
+                             "VALUES ('K', 3.5, 6.0, '2026-06-01', 'test')"))
     try:
         got = (await api.get(f"/labs/patients/{pid}/results")).json()["items"][0]
         assert got["id"] == rid and got["flag"] == "high" and got["ref_high"] == 5.0     # snapshot kept
@@ -79,6 +79,7 @@ async def test_ranges_revised_later_do_not_change_stored_flag(patients, post_rep
         assert newer["flag"] == "normal" and newer["ref_high"] == 6.0                    # new rule applies
     finally:
         async with db_engine.begin() as c:
+            await c.execute(text("TRUNCATE patient_lab_status, lab_results, lab_reports, audit_events"))
             await c.execute(text("DELETE FROM lab_reference_ranges WHERE effective_from = '2026-06-01'"))
 
 
@@ -148,7 +149,7 @@ async def test_requires_auth(client, patients) -> None:
 async def test_correction_supersedes_and_original_is_kept(patients, post_report, api, db_engine) -> None:
     pid = patients.add("M")
     orig = (await post_report(pid, [r("K", 6.5, "mmol/L")])).json()["results"][0]
-    resp = await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4.5, "unit": "mmol/L"})
+    resp = await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4.5, "unit": "mmol/L", "reason": "re-checked against report"})
     assert resp.status_code == 201, resp.text
     new = resp.json()
     assert new["supersedes_id"] == orig["id"] and new["flag"] == "normal" and new["report_id"] == orig["report_id"]
@@ -163,12 +164,12 @@ async def test_correction_supersedes_and_original_is_kept(patients, post_report,
 
 async def test_correcting_twice_is_409(patients, post_report, api) -> None:
     orig = (await post_report(patients.add(), [r("K", 6.5, "mmol/L")])).json()["results"][0]
-    assert (await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4, "unit": "mmol/L"})).status_code == 201
-    again = await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 5, "unit": "mmol/L"})
+    assert (await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4, "unit": "mmol/L", "reason": "re-checked against report"})).status_code == 201
+    again = await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 5, "unit": "mmol/L", "reason": "re-checked against report"})
     assert again.status_code == 409 and again.json()["error"]["code"] == "ALREADY_CORRECTED"
 
 
 async def test_correction_validates_unit_and_missing_result(patients, post_report, api) -> None:
     orig = (await post_report(patients.add(), [r("K", 6.5, "mmol/L")])).json()["results"][0]
-    assert (await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4, "unit": "mg/dL"})).status_code == 422
-    assert (await api.post(f"/labs/results/{uuid.uuid4()}/correct", json={"value": 4, "unit": "mmol/L"})).status_code == 404
+    assert (await api.post(f"/labs/results/{orig['id']}/correct", json={"value": 4, "unit": "mg/dL", "reason": "re-checked against report"})).status_code == 422
+    assert (await api.post(f"/labs/results/{uuid.uuid4()}/correct", json={"value": 4, "unit": "mmol/L", "reason": "re-checked against report"})).status_code == 404

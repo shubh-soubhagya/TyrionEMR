@@ -33,21 +33,23 @@ PAGE1: dict[str, Any] = {"test": None, "date_from": None, "date_to": None, "incl
 
 LOAD = """
 WITH p AS MATERIALIZED (SELECT gen_random_uuid() AS id FROM generate_series(1, :n))
-INSERT INTO lab_reports (id, patient_id, collected_at, entered_by, created_at)
-SELECT gen_random_uuid(), p.id, now() - (g * interval '20 days'), p.id, now()
+INSERT INTO lab_reports (id, patient_id, collected_at, lab_name, entered_by, created_at)
+SELECT gen_random_uuid(), p.id, now() - (g * interval '20 days'), 'Synthetic lab', p.id, now()
 FROM p, generate_series(1, :k) g
 """
 LOAD_RESULTS = """
 INSERT INTO lab_results (report_id, patient_id, collected_at, test_code, value, unit, value_original,
-                         unit_original, flag, created_at)
+                         unit_original, range_id, flag, entered_by, created_at)
 SELECT r.id, r.patient_id, r.collected_at, 'EGFR', 40 + (random() * 40)::numeric(6,1), 'mL/min/1.73m2',
-       50, 'mL/min/1.73m2', CASE WHEN random() < 0.7 THEN 'low' ELSE 'normal' END, now()
+       50, 'mL/min/1.73m2', (SELECT id FROM lab_reference_ranges WHERE test_code = 'EGFR'),
+       CASE WHEN random() < 0.7 THEN 'low' ELSE 'normal' END, r.entered_by, now()
 FROM lab_reports r
 """
 LOAD_STATUS = """
 INSERT INTO patient_lab_status (patient_id, latest, egfr_category, egfr_spark, has_critical, rapid_decline,
-                               last_result_at)
-SELECT DISTINCT patient_id, '{}'::jsonb, 'G3b', '[]'::jsonb, false, false, now() FROM lab_results
+                               result_count, last_result_at, rules_version)
+SELECT patient_id, '{}'::jsonb, 'G3b', '[]'::jsonb, false, false, count(*), now(), 'lab-rules-1'
+FROM lab_results GROUP BY patient_id
 """
 
 

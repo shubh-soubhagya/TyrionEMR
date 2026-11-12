@@ -32,7 +32,7 @@ async def test_two_simultaneous_corrections_one_wins(api, patients) -> None:
     rid = (await api.post(f"/labs/patients/{pid}/reports", json={
         "collected_at": "2026-10-01T09:00:00Z", "results": [{"test_code": "K", "value": 6.5, "unit": "mmol/L"}]})
     ).json()["results"][0]["id"]
-    body = {"value": 4.0, "unit": "mmol/L"}
+    body = {"value": 4.0, "unit": "mmol/L", "reason": "re-checked against report"}
     a, b = await asyncio.gather(api.post(f"/labs/results/{rid}/correct", json=body),
                                 api.post(f"/labs/results/{rid}/correct", json=body))
     assert sorted([a.status_code, b.status_code]) == [201, 409]

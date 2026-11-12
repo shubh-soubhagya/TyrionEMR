@@ -1,6 +1,7 @@
 """Reference-range selection and abnormal flagging (HLD §6.2). Pure: no I/O."""
 from __future__ import annotations
 
+import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
@@ -22,6 +23,7 @@ class RangeRow:
     critical_low: Decimal | None
     critical_high: Decimal | None
     effective_from: date
+    range_id: uuid.UUID | None = None      # the catalog row, kept in the result snapshot
 
 
 def select_range(ranges: Iterable[RangeRow], test_code: str, sex: str | None, age: int | None,

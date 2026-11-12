@@ -32,13 +32,26 @@ from app.services.patient_client import PatientBasic, PatientDirectory
 FUTURE_TOLERANCE = timedelta(minutes=5)       # clock skew between the browser and the server; matches the DB CHECK
 
 
+DEFAULT_LAB_NAME = "Unspecified laboratory"
+
+
+def _snapshot(rng) -> dict:
+    """The interpretation context frozen into a result: which range applied and its limits."""
+    if rng is None:
+        return {"range_id": None, "ref_low": None, "ref_high": None, "crit_low": None, "crit_high": None}
+    return {"range_id": rng.range_id, "ref_low": rng.low, "ref_high": rng.high, "crit_low": rng.critical_low,
+            "crit_high": rng.critical_high}
+
+
 def result_out(r: LabResult) -> ResultOut:
     return ResultOut(
         id=r.id, report_id=r.report_id, patient_id=r.patient_id, test_code=r.test_code, collected_at=r.collected_at,
         value=float(r.value), unit=r.unit, value_original=float(r.value_original), unit_original=r.unit_original,
         ref_low=None if r.ref_low is None else float(r.ref_low),
         ref_high=None if r.ref_high is None else float(r.ref_high),
-        flag=r.flag, supersedes_id=r.supersedes_id)
+        crit_low=None if r.crit_low is None else float(r.crit_low),
+        crit_high=None if r.crit_high is None else float(r.crit_high),
+        flag=r.flag, supersedes_id=r.supersedes_id, correction_reason=r.correction_reason)
 
 
 async def refresh_status(repo: LabRepository, patient_id: uuid.UUID) -> None:
@@ -69,7 +82,7 @@ class ReportService:
         except UnknownUnit:
             allowed = ", ".join(test.allowed_units)
             raise ValidationFailed([(f"{field}.unit", f"Unit must be one of: {allowed}.")]) from None
-        if canon > test.max_value:
+        if canon > test.plausible_max:
             raise ValidationFailed([(f"{field}.value", f"Value is above the plausible limit for {test.name}.")])
         age = age_on(patient.date_of_birth, collected_on)
         rng = select_range(ranges, test_code, patient.sex, age, collected_on)
@@ -94,7 +107,8 @@ class ReportService:
             tests = {t.code: t for t in await self._catalog.tests()}
             ranges = await self._catalog.ranges()
             report = LabReport(id=uuid.uuid4(), patient_id=patient_id, collected_at=body.collected_at,
-                               lab_name=body.lab_name, notes=body.notes, entered_by=user.id, created_at=now)
+                               lab_name=body.lab_name or DEFAULT_LAB_NAME, notes=body.notes, entered_by=user.id,
+                               request_id=None if get_request_id() == "-" else get_request_id(), created_at=now)
             rows: list[LabResult] = []
             issues: list[tuple[str, str]] = []
             for i, item in enumerate(body.results):
@@ -109,8 +123,7 @@ class ReportService:
                     id=uuid.uuid4(), report_id=report.id, patient_id=patient_id, collected_at=body.collected_at,
                     test_code=item.test_code, value=canon, unit=tests[item.test_code].canonical_unit,
                     value_original=item.value, unit_original=item.unit,
-                    ref_low=rng.low if rng else None, ref_high=rng.high if rng else None, flag=flag,
-                    created_at=now))
+                    **_snapshot(rng), flag=flag, entered_by=user.id, created_at=now))
             if issues:
                 raise ValidationFailed(issues)          # nothing was written: the transaction rolls back
             self._repo.add(report)
@@ -150,8 +163,8 @@ class ReportService:
                 id=uuid.uuid4(), report_id=original.report_id, patient_id=patient_id,
                 collected_at=original.collected_at, test_code=original.test_code, value=canon,
                 unit=tests[original.test_code].canonical_unit, value_original=body.value, unit_original=body.unit,
-                ref_low=rng.low if rng else None, ref_high=rng.high if rng else None, flag=flag,
-                supersedes_id=original.id, created_at=now)
+                **_snapshot(rng), flag=flag, supersedes_id=original.id, correction_reason=body.reason.strip(),
+                entered_by=user.id, created_at=now)
             self._repo.add(corrected)
             await refresh_status(self._repo, patient_id)
             await audit.record(self._session, actor_id=user.id, action="lab.result.correct", resource="lab_result",

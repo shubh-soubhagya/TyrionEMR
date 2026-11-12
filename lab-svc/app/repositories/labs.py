@@ -57,7 +57,7 @@ class LabRepository:
         stmt = pg_insert(PatientLabStatus).values(patient_id=patient_id, **status)
         stmt = stmt.on_conflict_do_update(
             index_elements=[PatientLabStatus.patient_id],
-            set_={**status, "updated_at": func.clock_timestamp()})
+            set_={**status, "version": PatientLabStatus.version + 1, "updated_at": func.clock_timestamp()})
         await self._s.execute(stmt)
 
     # ---- reads ---------------------------------------------------------------------------------------

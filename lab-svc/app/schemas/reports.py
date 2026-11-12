@@ -31,6 +31,7 @@ class ReportIn(BaseModel):
 class CorrectionIn(BaseModel):
     value: Value
     unit: Annotated[str, Field(min_length=1, max_length=32)]
+    reason: Annotated[str, Field(min_length=3, max_length=300)]
 
 
 class ResultOut(BaseModel):
@@ -45,8 +46,11 @@ class ResultOut(BaseModel):
     unit_original: str
     ref_low: float | None              # snapshot at write time
     ref_high: float | None
+    crit_low: float | None
+    crit_high: float | None
     flag: str
     supersedes_id: uuid.UUID | None
+    correction_reason: str | None
 
 
 class ReportOut(BaseModel):
