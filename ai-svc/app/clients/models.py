@@ -36,20 +36,42 @@ class ChartPatient(Up):
     date_of_birth: date
     allergy_status: Literal["unknown", "nka", "has_allergies"]
     established_ckd_stage: str | None = None
+    past_medical_history: str | None = None
+    family_history: str | None = None
+    social_history: str | None = None
 
 
 class ChartCondition(Up):
     id: UUID
     is_primary: bool
     status: str
+    icd10_code: str | None = None
+    description: str = ""
+    category: str = "comorbidity"
+    onset_date: str | None = None
 
 
 class ChartMedication(Up):
     id: UUID
     name: str
+    dose: str = ""
+    route: str = "other"
+    frequency: str = ""
     start_date: date | None = None
     end_date: date | None = None
     status: str
+
+
+class ChartAllergy(Up):
+    id: UUID
+    allergen: str
+    reaction: str | None = None
+    severity: str = "mild"
+
+
+class ChartDiagnosis(Up):
+    icd10_code: str | None = None
+    description: str = ""
 
 
 class ChartEncounter(Up):
@@ -57,6 +79,14 @@ class ChartEncounter(Up):
     encounter_date: datetime
     status: str
     vitals: dict[str, Any] | None = None
+    encounter_type: str = "follow_up"
+    chief_complaint: str | None = None
+    symptoms: list[str] = []
+    examination_notes: str | None = None
+    assessment: str | None = None
+    plan: str | None = None
+    follow_up_date: str | None = None
+    diagnoses: list[ChartDiagnosis] = []
 
 
 class EncounterIndex(Up):
@@ -71,6 +101,8 @@ class Chart(Up):
     patient: ChartPatient
     conditions: list[ChartCondition] = []
     medications: list[ChartMedication] = []
+    allergies: list[ChartAllergy] = []
+    counts: dict[str, int] = {}
     recent_encounters: list[ChartEncounter] = []
     encounter_index: list[EncounterIndex] = []
 
@@ -117,6 +149,8 @@ class LatestEntry(Up):
     unit: str
     flag: str
     collected_at: datetime
+    ref_low: Decimal | None = None
+    ref_high: Decimal | None = None
 
 
 class RunIn(Up):
@@ -127,6 +161,11 @@ class RunIn(Up):
 class TrendStatsIn(Up):
     n: int
     direction: str
+    first: float | None = None
+    last: float | None = None
+    abs_change: float | None = None
+    pct_change: float | None = None
+    span_days: int | None = None
     slope_per_year: float | None = None
     rapid_decline: bool = False
     first_at: datetime | None = None

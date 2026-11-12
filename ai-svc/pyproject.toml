@@ -23,6 +23,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "python-dotenv", "respx>=0.21", "ruff", "mypy"]
 
+[tool.setuptools.package-data]
+app = ["prompts/*/*.md", "prompts/*/*.json"]
+
 [tool.setuptools.packages.find]
 include = ["app*"]
 

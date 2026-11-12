@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "FollowUp": {
+      "additionalProperties": false,
+      "properties": {
+        "consideration": {
+          "maxLength": 300,
+          "minLength": 3,
+          "title": "Consideration",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 400,
+          "minLength": 3,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "maxLength": 48,
+            "pattern": "^(?:pt:(?:pmh|fh|sh|allergy_status|stage)|ckd:latest|(?:cond|med|alg|enc):[1-9][0-9]{0,2}|lab:[A-Z]{1,10}:\\d{4}-\\d{2}-\\d{2}(?:#[2-9])?|trend:[A-Z]{1,10}|gap:[A-Z_]{3,40}(?:#[2-9])?)$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "consideration",
+        "rationale",
+        "source_refs"
+      ],
+      "title": "FollowUp",
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 1200,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "maxLength": 48,
+            "pattern": "^(?:pt:(?:pmh|fh|sh|allergy_status|stage)|ckd:latest|(?:cond|med|alg|enc):[1-9][0-9]{0,2}|lab:[A-Z]{1,10}:\\d{4}-\\d{2}-\\d{2}(?:#[2-9])?|trend:[A-Z]{1,10}|gap:[A-Z_]{3,40}(?:#[2-9])?)$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Section",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "history_summary": {
+      "$ref": "#/$defs/Section"
+    },
+    "comorbidity_summary": {
+      "$ref": "#/$defs/Section"
+    },
+    "trend_commentary": {
+      "$ref": "#/$defs/Section"
+    },
+    "abnormal_commentary": {
+      "$ref": "#/$defs/Section"
+    },
+    "follow_up_considerations": {
+      "items": {
+        "$ref": "#/$defs/FollowUp"
+      },
+      "maxItems": 6,
+      "title": "Follow Up Considerations",
+      "type": "array"
+    },
+    "not_documented": {
+      "items": {
+        "maxLength": 80,
+        "minLength": 2,
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Not Documented",
+      "type": "array"
+    }
+  },
+  "required": [
+    "history_summary",
+    "comorbidity_summary",
+    "trend_commentary",
+    "abnormal_commentary"
+  ],
+  "title": "SummaryOutput",
+  "type": "object"
+}
