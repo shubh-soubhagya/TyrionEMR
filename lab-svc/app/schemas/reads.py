@@ -33,6 +33,13 @@ class ResultsPage(BaseModel):
     total: int
 
 
+class InternalResultsPage(ResultsPage):
+    """The internal mirror (LLD B7.8): capped by ``limit`` instead of paged, and told when the cap cut rows, so an
+    AI tool can say the data was truncated instead of presenting a partial list as complete."""
+
+    truncated: bool
+
+
 # ---- trends (B7.4) -------------------------------------------------------------------------------
 class TrendPoint(BaseModel):
     result_id: uuid.UUID

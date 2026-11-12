@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lab/results-internal.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items",
+    "page",
+    "size",
+    "total",
+    "truncated"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "report_id",
+          "test_code",
+          "test_name",
+          "collected_at",
+          "value",
+          "unit",
+          "value_original",
+          "unit_original",
+          "ref_low",
+          "ref_high",
+          "flag",
+          "lab_name",
+          "is_correction",
+          "superseded"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "report_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "test_code": {
+            "type": "string"
+          },
+          "test_name": {
+            "type": "string"
+          },
+          "collected_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "value_original": {
+            "type": "number"
+          },
+          "unit_original": {
+            "type": "string"
+          },
+          "ref_low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ref_high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "flag": {
+            "enum": [
+              "normal",
+              "low",
+              "high",
+              "critical_low",
+              "critical_high",
+              "unknown"
+            ]
+          },
+          "lab_name": {
+            "type": "string"
+          },
+          "is_correction": {
+            "type": "boolean"
+          },
+          "superseded": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "integer"
+    },
+    "size": {
+      "type": "integer"
+    },
+    "total": {
+      "type": "integer"
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  }
+}

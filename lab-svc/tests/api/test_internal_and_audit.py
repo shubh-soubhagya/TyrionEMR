@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -36,12 +37,32 @@ async def decline(api: httpx.AsyncClient, patients, sex: str = "M"):
 
 
 # ---- internal ------------------------------------------------------------------------------------------
-async def test_internal_twins_match_public(api, patients) -> None:
+async def test_internal_trends_and_latest_are_the_public_contracts(api, patients) -> None:
     pid = await decline(api, patients)
-    for path in ("results", "trends", "latest"):
-        pub = (await api.get(f"/labs/patients/{pid}/{path}")).json()
-        internal = (await api.get(f"/internal/labs/patients/{pid}/{path}")).json()
-        assert pub == internal
+    for path in ("trends", "latest"):
+        assert (await api.get(f"/labs/patients/{pid}/{path}")).json() == (
+            await api.get(f"/internal/labs/patients/{pid}/{path}")).json()
+
+
+async def test_internal_results_use_limit_and_say_when_the_cap_cut_rows(api, patients) -> None:
+    pid = await decline(api, patients)                                     # 10 current results
+    cut = (await api.get(f"/internal/labs/patients/{pid}/results", params={"limit": 4})).json()
+    assert len(cut["items"]) == 4 and cut["total"] == 10 and cut["truncated"] is True
+    full = (await api.get(f"/internal/labs/patients/{pid}/results", params={"limit": 50})).json()
+    assert len(full["items"]) == 10 and full["truncated"] is False
+    default = (await api.get(f"/internal/labs/patients/{pid}/results")).json()
+    assert default["size"] == 50
+    pub = (await api.get(f"/labs/patients/{pid}/results", params={"size": 100})).json()
+    assert [i["id"] for i in pub["items"]] == [i["id"] for i in full["items"]]      # same data, same order
+
+
+async def test_internal_results_cap_and_filters(api, patients) -> None:
+    pid = await decline(api, patients)
+    url = f"/internal/labs/patients/{pid}/results"
+    assert (await api.get(url, params={"limit": 51})).status_code == 422
+    assert (await api.get(url, params={"limit": 0})).status_code == 422
+    only = (await api.get(url, params={"test": "EGFR"})).json()
+    assert only["total"] == 5 and {i["test_code"] for i in only["items"]} == {"EGFR"}
 
 
 async def test_internal_requires_a_token(client) -> None:
@@ -64,23 +85,46 @@ async def test_bulk_status_pages_cover_every_patient_exactly_once(api, patients)
     assert sorted(seen) == sorted(ids) and len(seen) == len(set(seen))
 
 
-async def test_bulk_limit_is_capped(api) -> None:
-    assert (await api.get("/internal/labs/status", params={"limit": 5000})).status_code == 422
+async def test_bulk_limit_is_capped_at_200_and_a_bad_cursor_is_400(api) -> None:
+    assert (await api.get("/internal/labs/status", params={"limit": 201})).status_code == 422
+    assert (await api.get("/internal/labs/status", params={"limit": 200})).status_code == 200
+    bad = await api.get("/internal/labs/status", params={"cursor": "not-a-uuid"})
+    assert bad.status_code == 400 and bad.json()["error"]["code"] == "INVALID_CURSOR"
+
+
+async def test_bulk_status_item_shape_has_no_sparkline_and_a_count(api, patients) -> None:
+    pid = await decline(api, patients)
+    item = next(i for i in (await api.get("/internal/labs/status")).json()["items"] if i["patient_id"] == str(pid))
+    assert item["result_count"] == 10 and "egfr_spark" not in item and item["rapid_decline"] is True
+    assert item["egfr_stats"]["direction"] == "worsening" and item["latest"]["EGFR"]["value"] == 44
+
+
+async def test_status_pages_are_in_patient_id_order(api, patients) -> None:
+    for _ in range(4):
+        await add(api, patients.add(), 0, K=4.0)
+    ids = [i["patient_id"] for i in (await api.get("/internal/labs/status")).json()["items"]]
+    assert ids == sorted(ids)
 
 
 # ---- contracts -----------------------------------------------------------------------------------------
-@pytest.mark.parametrize("name", ["latest", "results", "trends", "summary", "status", "report"])
+@pytest.mark.parametrize("name", ["latest", "results", "results-internal", "trends", "summary", "status", "report",
+                                  "correction"])
 async def test_responses_match_json_schema_contracts(api, patients, name) -> None:
     pid = await decline(api, patients)
     urls = {
         "latest": f"/internal/labs/patients/{pid}/latest",
-        "results": f"/internal/labs/patients/{pid}/results",
+        "results": f"/labs/patients/{pid}/results",
+        "results-internal": f"/internal/labs/patients/{pid}/results",
         "trends": f"/internal/labs/patients/{pid}/trends",
         "summary": f"/labs/summary?patient_ids={pid}",
         "status": "/internal/labs/status",
     }
     if name == "report":
         data = await add(api, patients.add(), 0, K=4.0, CREAT=1.0)
+    elif name == "correction":
+        res = (await add(api, patients.add(), 0, K=6.5))["results"][0]
+        data = (await api.post(f"/labs/results/{res['id']}/correct",
+                               json={"value": 4.0, "unit": "mmol/L", "reason": "re-keyed"})).json()
     else:
         data = (await api.get(urls[name])).json()
     schema = json.loads((CONTRACTS / f"{name}.schema.json").read_text(encoding="utf-8"))
@@ -117,3 +161,25 @@ async def test_audit_rows_are_append_only(api, patients, db_engine) -> None:
     async with db_engine.connect() as c:
         with pytest.raises(Exception, match="append-only"):
             await c.execute(text("DELETE FROM audit_events"))
+
+
+def test_patient_basic_contract_is_what_the_client_consumes() -> None:
+    """Consumer side of GET /internal/patients/{id}/basic (LLD B13.4); patient-svc tests the provider side against
+    the same schema file."""
+    import asyncio
+
+    from app.services.patient_client import PatientClient
+    from tests.conftest import make_settings
+
+    schema_path = Path(__file__).resolve().parents[3] / "patient-svc" / "contracts" / "patient" / "basic.schema.json"
+    if not schema_path.exists():
+        pytest.skip("patient-svc contract not present in this checkout")
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    body = {"id": str(uuid.uuid4()), "sex": "F", "date_of_birth": "1980-02-29"}
+    jsonschema.validate(body, schema)                                          # the stub we test against is valid
+    assert set(schema["required"]) >= {"sex", "date_of_birth"}                 # everything the client reads is promised
+    got = asyncio.run(PatientClient(make_settings(), httpx.MockTransport(
+        lambda _: httpx.Response(200, json=body))).basic(uuid.UUID(body["id"]), "Bearer x", None))
+    assert (got.sex, str(got.date_of_birth)) == ("F", "1980-02-29")
+    for extra in ({"sex": "X", "date_of_birth": "1980-01-01", "id": body["id"]},):
+        assert not jsonschema.Draft202012Validator(schema).is_valid(extra)       # patient-svc cannot send other sexes
