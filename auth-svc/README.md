@@ -231,6 +231,18 @@ make retire-legacy-role         # REVOKE CONNECT on both databases, then ALTER R
 the undo commands (`ALTER ROLE auth_svc LOGIN`, `GRANT CONNECT ...`). Existing `auth_svc` sessions keep running
 until they close; the script does not terminate them.
 
+### Watch the audit table (unknown-email logins)
+
+Every login with an unknown email writes an `auth_events` row (`unknown_user`, no email stored). The per-IP rate limit
+caps that per address and retention purges old rows (`AUTH_EVENTS_RETENTION_DAYS`, 365 by default, **never below 30**),
+but a distributed password-spraying attack grows the table fast, and its rows cannot be purged for at least 30 days.
+Monitor the **table size** and **row count**, their growth rate, the share of `unknown_user` outcomes, and
+`auth_rate_limited_total`. Queries and the reasoning are in LLD §24.3.
+
+```sql
+SELECT pg_size_pretty(pg_total_relation_size('auth_events')) AS size, (SELECT count(*) FROM auth_events) AS rows;
+```
+
 ### Backups, and the risk of sharing a Postgres
 
 ```bash

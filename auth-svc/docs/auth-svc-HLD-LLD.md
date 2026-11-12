@@ -1998,6 +1998,36 @@ Alert suggestions: any `auth_refresh_reuse_detected_total` increase; login failu
 
 ---
 
+### 24.3 Audit-table growth from unknown-email logins
+
+**Every login with an unknown email writes an `auth_events` row** (`event='login'`, `outcome='unknown_user'`,
+`user_id` NULL, no email). That is deliberate: a spray of guesses against addresses that do not exist is exactly
+what an investigator wants to see. It also means an attacker controls how fast the table grows.
+
+What limits it, and what does not:
+
+| Control | Effect |
+|---|---|
+| Per-IP rate limit (`RATE_LIMIT_LOGIN_PER_MIN`, default 10 per minute, burst 5, **per worker process**) | Caps rows per source address: about 14,000 per IP per day per process |
+| Gateway rate limit (when it exists) | The real per-IP limiter; same effect, enforced earlier |
+| Retention (`AUTH_EVENTS_RETENTION_DAYS`, default 365, **minimum 30**) | Purges old rows through `purge_auth_events()` |
+| **Not covered:** distributed password spraying | Many source addresses each stay under their own limit, so total growth scales with the number of addresses. 1,000 addresses at the default limit is on the order of 14 million rows a day |
+
+The 30-day floor is intentional (nobody can delete recent history, even with the service's credentials), so rows from
+an attack cannot be purged for at least 30 days: size the database for that, and use the rate limits, not a shorter
+retention, to control growth.
+
+**Monitor** (alert on a sudden change, not on an absolute number; row size depends on your data, so measure it):
+
+| What | How |
+|---|---|
+| Table size (data + indexes) | `SELECT pg_size_pretty(pg_total_relation_size('auth_events'));` |
+| Row count | `SELECT count(*) FROM auth_events;` (or the planner estimate: `SELECT reltuples::bigint FROM pg_class WHERE relname = 'auth_events';`) |
+| Growth rate | row count or size sampled hourly; alert when the daily growth is several times the usual |
+| Mix of outcomes | `SELECT date_trunc('hour', at) h, outcome, count(*) FROM auth_events WHERE at > now() - interval '24 hours' GROUP BY 1, 2 ORDER BY 1 DESC;` and the share of `unknown_user` |
+| Failed purges | the `auth.cleanup.failed` log line, and `events_deleted` in `auth.cleanup.done` staying at 0 while the table grows |
+| Rate-limit pressure | `auth_rate_limited_total` (Prometheus) |
+
 ## 25. Testing
 
 Test settings: `ARGON2_MEMORY_KIB=1024`, `ARGON2_TIME_COST=1` (fast), `AUTH_DATABASE_URL` pointing at `auth_db_test` on the same container (§16.3), schema created with `alembic upgrade head` once per session, tables truncated between tests. A fake clock is injected so expiry and lockout can be tested without sleeping.
