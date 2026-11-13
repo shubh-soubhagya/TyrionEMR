@@ -1,0 +1,14 @@
+# Production override:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ENVIRONMENT=production makes the gateway refuse to start unless the config is safe (app/core/guard.py): real
+# https origins, no docs, metrics only with a token, rate limiting on, HSTS on.
+services:
+  gateway:
+    environment:
+      ENVIRONMENT: production
+      DOCS_ENABLED: "false"
+      METRICS_ENABLED: "true"
+      RATE_LIMIT_ENABLED: "true"
+      HSTS_ENABLED: "true"
+      # No defaults on purpose: starting without real values must fail, not fall back to localhost.
+      CORS_ALLOWED_ORIGINS: ${PROD_CORS_ALLOWED_ORIGINS:?set PROD_CORS_ALLOWED_ORIGINS to the real https origin(s)}
+      METRICS_TOKEN: ${PROD_METRICS_TOKEN:?set PROD_METRICS_TOKEN}

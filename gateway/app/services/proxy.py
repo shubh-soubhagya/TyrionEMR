@@ -34,8 +34,10 @@ _RETRYABLE = (httpx.ConnectError, httpx.ConnectTimeout)    # the request never r
 
 
 class ProxyService:
-    def __init__(self, registry: UpstreamRegistry) -> None:
+    def __init__(self, registry: UpstreamRegistry, *, allow_mock_scenario: bool = False) -> None:
         self._reg = registry
+        # X-Mock-Scenario reaches ai-svc only when the gateway is not in production (G7)
+        self._mock_scenario = allow_mock_scenario
 
     async def forward(self, request: Request, match: RouteMatch, body: bytes, client_ip: str) -> Response:
         name = match.route.upstream
@@ -51,7 +53,8 @@ class ProxyService:
             url,
             headers=upstream_request_headers(request.headers, client_ip=client_ip, request_id=get_request_id(),
                                              scheme=request.url.scheme,
-                                             forward_cookies=match.route.forward_cookies),
+                                             forward_cookies=match.route.forward_cookies,
+                                             forward_mock_scenario=self._mock_scenario and name == "ai"),
             content=body or None,
             # per-route idle read timeout; connect and pool limits come from the client defaults
             timeout=httpx.Timeout(connect=client.timeout.connect, read=match.route.timeout_s,

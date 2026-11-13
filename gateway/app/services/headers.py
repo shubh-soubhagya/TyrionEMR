@@ -12,6 +12,8 @@ FORWARD_REQUEST_HEADERS = frozenset({
     "accept", "accept-language", "authorization", "cache-control", "content-type",
     "if-match", "if-none-match", "if-modified-since", "idempotency-key", "origin", "user-agent",
 })
+# Dev-only demo header (ai-svc LLD B7.5): selects a MockProvider scenario. See ``upstream_request_headers``.
+MOCK_SCENARIO_HEADER = "x-mock-scenario"
 HOP_BY_HOP = frozenset({
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "te", "trailer", "transfer-encoding", "upgrade",
@@ -22,9 +24,15 @@ DROP_RESPONSE = HOP_BY_HOP | {"server", "x-powered-by", "x-request-id", "date"}
 
 
 def upstream_request_headers(incoming: Headers, *, client_ip: str, request_id: str, scheme: str,
-                             forward_cookies: bool) -> list[tuple[str, str]]:
-    """Allow-list (ADR-G5): anything a client invents (X-User-Id, X-Forwarded-*, Forwarded...) is dropped."""
+                             forward_cookies: bool, forward_mock_scenario: bool = False) -> list[tuple[str, str]]:
+    """Allow-list (ADR-G5): anything a client invents (X-User-Id, X-Forwarded-*, Forwarded...) is dropped.
+
+    ``forward_mock_scenario`` is True only outside production and only for the ai route (the caller decides); in every
+    other case X-Mock-Scenario is dropped like any unknown header.
+    """
     out = [(k, v) for k, v in incoming.items() if k in FORWARD_REQUEST_HEADERS]
+    if forward_mock_scenario and MOCK_SCENARIO_HEADER in incoming:
+        out.append((MOCK_SCENARIO_HEADER, incoming[MOCK_SCENARIO_HEADER]))
     if forward_cookies and "cookie" in incoming:
         out.append(("cookie", incoming["cookie"]))
     out += [

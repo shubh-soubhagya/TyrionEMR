@@ -16,7 +16,7 @@ def proxy_settings():
     def factory(**kw):
         base = {"auth_svc_url": "http://auth-svc:8000", "patient_svc_url": "http://patient-svc:8000",
                 "lab_svc_url": "http://lab-svc:8000", "ai_svc_url": "http://ai-svc:8000"}
-        return Settings(_env_file=None, environment="test", **{**base, **kw})
+        return Settings(_env_file=None, **{"environment": "test", **base, **kw})
 
     return factory
 

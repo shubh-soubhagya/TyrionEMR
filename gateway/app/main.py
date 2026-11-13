@@ -56,7 +56,8 @@ def build_state(app: FastAPI, s: Settings, clock: Clock,
     app.state.prober = HealthProber(app.state.upstreams, s)
     app.state.pipeline = GatewayPipeline(
         s, build_routes(s), app.state.upstreams, limiter,
-        AuthGate(app.state.jwks, s, clock), ProxyService(app.state.upstreams))
+        AuthGate(app.state.jwks, s, clock), ProxyService(app.state.upstreams,
+                                                  allow_mock_scenario=s.environment != "production"))
 
 
 def create_app(settings: Settings | None = None, *, clock: Clock | None = None,

@@ -44,3 +44,17 @@ fmt:
 
 routes:
 	$(PY) -m app.cli.print_routes
+
+# ---- container (needs Docker; the network is created by setup/network.sh) ---------------------------------------
+build:
+	docker build -t nephro/gateway .
+up:
+	bash setup/network.sh
+	docker compose up --build -d
+down:
+	docker compose down
+logs:
+	docker compose logs -f gateway
+# End-to-end check of the running gateway against the real services (see setup/smoke-test.sh)
+smoke:
+	PY=$(PY) bash setup/smoke-test.sh

@@ -16,12 +16,15 @@ from app.core.context import get_request_id, set_route
 ALLOWED_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 ALLOWED_HEADERS = "Authorization, Content-Type, X-Request-ID, If-None-Match, If-Match, Cache-Control, Idempotency-Key"
 EXPOSED_HEADERS = "X-Request-ID, Retry-After, ETag, Location, Content-Disposition"
+MOCK_SCENARIO_HEADER = "X-Mock-Scenario"     # dev-only, added to the allowed request headers outside production (G7)
 UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 class CorsMiddleware:
-    def __init__(self, app: ASGIApp, allowed_origins: list[str], max_age_s: int) -> None:
+    def __init__(self, app: ASGIApp, allowed_origins: list[str], max_age_s: int,
+                 allow_mock_scenario: bool = False) -> None:
         self.app, self.allowed, self.max_age = app, frozenset(allowed_origins), str(max_age_s)
+        self.allow_headers = ALLOWED_HEADERS + (f", {MOCK_SCENARIO_HEADER}" if allow_mock_scenario else "")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -43,7 +46,7 @@ class CorsMiddleware:
                 (b"access-control-allow-origin", origin.encode("latin-1")),
                 (b"access-control-allow-credentials", b"true"),
                 (b"access-control-allow-methods", ", ".join(ALLOWED_METHODS).encode()),
-                (b"access-control-allow-headers", ALLOWED_HEADERS.encode()),
+                (b"access-control-allow-headers", self.allow_headers.encode()),
                 (b"access-control-max-age", self.max_age.encode()),
                 (b"vary", b"Origin"),
             ]})

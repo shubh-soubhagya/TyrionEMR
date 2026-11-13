@@ -1,0 +1,30 @@
+# Runs the gateway on nephro-net and publishes the ONLY host port of the system: ${GATEWAY_PORT:-8080} -> 8000.
+# The network is external (created by `make network` or setup/network.sh); the services it proxies must be on it.
+services:
+  gateway:
+    build:
+      context: .
+    image: nephro/gateway
+    container_name: gateway
+    env_file:
+      - path: .env
+        required: false          # every value below has a default, so a fresh checkout starts without a .env
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      AUTH_SVC_URL: http://auth-svc:8000
+      PATIENT_SVC_URL: http://patient-svc:8000
+      LAB_SVC_URL: http://lab-svc:8000
+      AI_SVC_URL: http://ai-svc:8000
+      DOCS_ENABLED: "true"
+    ports:
+      - "${GATEWAY_PORT:-8080}:8000"
+    networks: [nephro-net]
+    mem_limit: 256m
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    stop_grace_period: 15s       # > uvicorn --timeout-graceful-shutdown 10
+
+networks:
+  nephro-net:
+    external: true
