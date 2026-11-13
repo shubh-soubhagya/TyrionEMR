@@ -18,8 +18,19 @@ import { EmrIcon } from '../icon/icon';
   imports: [EmrIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="backdrop" (mousedown)="onBackdrop($event)" (keydown.escape)="closed.emit()">
-      <div class="modal" [class]="size()" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+    <div
+      class="backdrop"
+      tabindex="-1"
+      (mousedown)="onBackdrop($event)"
+      (keydown.escape)="closed.emit()"
+    >
+      <div
+        class="modal"
+        [class]="size()"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="title()"
+      >
         <div class="modal-h">
           <div>
             <h2>{{ title() }}</h2>

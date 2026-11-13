@@ -534,3 +534,11 @@ The HLD is the contract; Phase 4's "proposed" endpoints and models must be repla
 - Whether `GET /labs/tests` returns critical limits (HTML needs them for the live preview).
 - Pagination for encounters (`?page&size` shown in HTML as `size=20`).
 - The "supplied" reference ranges and CKD criteria.
+
+## 8. Differences found while wiring the real backend
+
+| Screen | Reference HTML | Here | Why |
+|---|---|---|---|
+| Sign in, demo box | Two buttons: "Use clinician account" and "Use admin account", plus a sentence about admins | "Use clinician account" and "Use second clinician"; the admin sentence is dropped. The box is shown only outside production builds | ADR-018: one role (clinician); `admin@nephrocare.demo` is not seeded; a demo password must not ship in a production bundle |
+| Sign in, after success | `#/system` for admins, `#/patients` otherwise | `returnUrl` if it is a path inside the app, else `/patients` | Guards send people to `/login?returnUrl=`; only in-app paths are honoured (no open redirect) |
+| Sign in, notice | None | A warning line when the server ended the session (for example refresh-token reuse) | auth-svc `REFRESH_REUSED` carries a message for the person |

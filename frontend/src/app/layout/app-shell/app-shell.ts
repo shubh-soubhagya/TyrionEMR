@@ -2,14 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { AuthService } from '@core/auth/auth.service';
 import { EmrHeader } from '../header/header';
 import { NAV_ITEMS } from '../nav-items';
-import { PLACEHOLDER_USER } from '../placeholder-user';
 import { EmrSidebar } from '../sidebar/sidebar';
 import { ModalHost } from '../../features/modals/modal-host';
 import { EmrTooltip } from '../../shared/ui/tooltip/tooltip';
@@ -32,9 +33,9 @@ export class EmrAppShell {
   protected readonly navItems = NAV_ITEMS;
   protected readonly navOpen = signal(false);
 
-  // TODO(phase-5): replace with the signed-in user from AuthService and delete placeholder-user.ts.
-  protected readonly userName = PLACEHOLDER_USER.name;
-  protected readonly userRole = PLACEHOLDER_USER.role;
+  private readonly auth = inject(AuthService);
+  protected readonly userName = computed(() => this.auth.user()?.fullName ?? '');
+  protected readonly userRole = computed(() => this.auth.user()?.roleLabel ?? '');
 
   protected toggleNav(): void {
     const opening = !this.navOpen();
@@ -61,7 +62,8 @@ export class EmrAppShell {
   }
 
   protected signOut(): void {
-    // Wired in Phase 5 (auth). Intentionally a no-op for now.
+    // Tell the server to drop the refresh cookie, forget the session, then show the sign-in page.
+    this.auth.logout().subscribe(() => void this.router.navigate(['/login']));
   }
 
   protected skipToMain(event: Event): void {

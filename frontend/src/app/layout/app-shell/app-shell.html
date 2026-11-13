@@ -9,8 +9,8 @@
 
   <div class="main">
     <emr-header
-      [userName]="userName"
-      [userRole]="userRole"
+      [userName]="userName()"
+      [userRole]="userRole()"
       [navOpen]="navOpen()"
       (navToggle)="toggleNav()"
       (searchSubmit)="search($event)"

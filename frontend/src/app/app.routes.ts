@@ -1,23 +1,27 @@
 import { Routes } from '@angular/router';
 import { environment } from '@env/environment';
+import { authGuard, guestGuard } from '@core/auth/auth.guard';
 import { EmrAppShell } from '@layout/app-shell/app-shell';
 
 // Route map from docs/ui-inventory.md section 8 (HLD 15.1). Every page is lazy-loaded; the shell
 // is eager because it is the frame around all signed-in pages.
-// Guards (authGuard / guestGuard) arrive with Phase 5.
+// Every app page is behind authGuard; /login and /signup are behind guestGuard.
 
 export const routes: Routes = [
   {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () => import('@features/auth/login-page').then((m) => m.LoginPage),
   },
   {
     path: 'signup',
+    canActivate: [guestGuard],
     loadComponent: () => import('@features/auth/signup-page').then((m) => m.SignupPage),
   },
   {
     path: '',
     component: EmrAppShell,
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       // Dev-only component catalogue: not registered in production builds.
@@ -47,11 +51,13 @@ export const routes: Routes = [
           { path: '', pathMatch: 'full', redirectTo: 'overview' },
           {
             path: 'overview',
-            loadComponent: () => import('@features/patients/tabs/overview-tab').then((m) => m.OverviewTab),
+            loadComponent: () =>
+              import('@features/patients/tabs/overview-tab').then((m) => m.OverviewTab),
           },
           {
             path: 'conditions',
-            loadComponent: () => import('@features/patients/tabs/conditions-tab').then((m) => m.ConditionsTab),
+            loadComponent: () =>
+              import('@features/patients/tabs/conditions-tab').then((m) => m.ConditionsTab),
           },
           {
             path: 'meds',
@@ -59,7 +65,8 @@ export const routes: Routes = [
           },
           {
             path: 'encounters',
-            loadComponent: () => import('@features/patients/tabs/encounters-tab').then((m) => m.EncountersTab),
+            loadComponent: () =>
+              import('@features/patients/tabs/encounters-tab').then((m) => m.EncountersTab),
           },
           {
             path: 'labs',
@@ -78,4 +85,3 @@ export const routes: Routes = [
     loadComponent: () => import('@features/not-found/not-found-page').then((m) => m.NotFoundPage),
   },
 ];
-

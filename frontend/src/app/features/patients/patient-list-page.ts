@@ -6,7 +6,6 @@ import {
   effect,
   inject,
   input,
-  signal,
   untracked,
 } from '@angular/core';
 import { Router } from '@angular/router';

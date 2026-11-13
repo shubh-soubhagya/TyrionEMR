@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter, Router } from '@angular/router';
 import { EmrAppShell } from './app-shell';
 
@@ -9,7 +10,7 @@ describe('EmrAppShell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [EmrAppShell],
-      providers: [provideRouter([{ path: 'patients', children: [] }])],
+      providers: [provideHttpClient(), provideRouter([{ path: 'patients', children: [] }])],
     }).compileComponents();
     fixture = TestBed.createComponent(EmrAppShell);
     el = fixture.nativeElement as HTMLElement;

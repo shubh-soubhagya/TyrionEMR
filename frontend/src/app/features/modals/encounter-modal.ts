@@ -1,6 +1,20 @@
 // html:925-979
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { typeLabel } from '../../core/data/analysis';
 import { DbService } from '../../core/data/db.service';
 import { Encounter, EncounterType, Vitals } from '../../core/data/models';
@@ -11,16 +25,35 @@ import { EmrModalShell } from '../../shared/ui/modal-shell/modal-shell';
 import { ToastService } from '../../shared/ui/toast/toast.service';
 
 type VitalKey = keyof Vitals;
-type DxGroup = FormGroup<{ icd: FormControl<string>; desc: FormControl<string>; prob: FormControl<boolean> }>;
+type DxGroup = FormGroup<{
+  icd: FormControl<string>;
+  desc: FormControl<string>;
+  prob: FormControl<boolean>;
+}>;
 /** Blocking plausibility limits (docs/decisions.md D1). Out-of-normal but plausible values only warn. */
-const VIT: readonly { key: VitalKey; label: string; unit: string; min: number; max: number; step: string }[] = [
+const VIT: readonly {
+  key: VitalKey;
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: string;
+}[] = [
   { key: 'sys', label: 'Systolic BP', unit: 'mmHg', min: 60, max: 260, step: 'any' },
   { key: 'dia', label: 'Diastolic BP', unit: 'mmHg', min: 30, max: 160, step: 'any' },
   { key: 'hr', label: 'Heart rate', unit: 'bpm', min: 30, max: 220, step: 'any' },
   { key: 'temp', label: 'Temperature', unit: '°C', min: 34, max: 42, step: '0.1' },
   { key: 'wt', label: 'Weight', unit: 'kg', min: 2, max: 300, step: 'any' },
 ];
-const SYMPTOM_SUGGESTIONS = ['Fatigue', 'Ankle swelling', 'Reduced urine output', 'Nausea', 'Itching', 'Breathlessness', 'Foamy urine'];
+const SYMPTOM_SUGGESTIONS = [
+  'Fatigue',
+  'Ankle swelling',
+  'Reduced urine output',
+  'Nausea',
+  'Itching',
+  'Breathlessness',
+  'Foamy urine',
+];
 
 /** Read-only view of a final encounter (html `encView`, html:925). */
 @Component({
@@ -29,37 +62,94 @@ const SYMPTOM_SUGGESTIONS = ['Fatigue', 'Ankle swelling', 'Reduced urine output'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (e(); as enc) {
-      <emr-modal-shell [title]="'Encounter on ' + fmtDate(enc.date)" [sub]="sub()" size="lg" (closed)="closed.emit()">
+      <emr-modal-shell
+        [title]="'Encounter on ' + fmtDate(enc.date)"
+        [sub]="sub()"
+        size="lg"
+        (closed)="closed.emit()"
+      >
         <div class="vit" style="margin-bottom: 16px">
           @for (x of vit; track x.key) {
             <div class="vit-tile">
               <div class="t">{{ x.label }}</div>
               <div class="v">
-                @if (enc.vitals && enc.vitals[x.key] != null) { {{ enc.vitals[x.key] }} } @else { - }
+                @if (enc.vitals && enc.vitals[x.key] !== null && enc.vitals[x.key] !== undefined) {
+                  {{ enc.vitals[x.key] }}
+                } @else {
+                  -
+                }
                 <span class="muted small">{{ x.unit }}</span>
               </div>
             </div>
           }
         </div>
         <dl class="dl" style="grid-template-columns: 150px 1fr">
-          <dt>Visit</dt><dd>{{ fmtDT(enc.date) }}, {{ typeLabel(enc.type) }} with {{ enc.clinician }}</dd>
-          <dt>Chief complaint</dt><dd>@if (enc.cc) { {{ enc.cc }} } @else { <span class="nd">Not documented</span> }</dd>
+          <dt>Visit</dt>
+          <dd>{{ fmtDT(enc.date) }}, {{ typeLabel(enc.type) }} with {{ enc.clinician }}</dd>
+          <dt>Chief complaint</dt>
+          <dd>
+            @if (enc.cc) {
+              {{ enc.cc }}
+            } @else {
+              <span class="nd">Not documented</span>
+            }
+          </dd>
           <dt>Symptoms</dt>
           <dd>
-            @for (s of enc.symptoms; track s) { <span class="chip">{{ s }}</span>&ngsp; } @empty { <span class="nd">Not documented</span> }
+            @for (s of enc.symptoms; track s) {
+              <span class="chip">{{ s }}</span>&ngsp;
+            } @empty {
+              <span class="nd">Not documented</span>
+            }
           </dd>
-          <dt>Examination</dt><dd>@if (enc.exam) { {{ enc.exam }} } @else { <span class="nd">Not documented</span> }</dd>
-          <dt>Assessment</dt><dd>@if (enc.assessment) { {{ enc.assessment }} } @else { <span class="nd">Not documented</span> }</dd>
+          <dt>Examination</dt>
+          <dd>
+            @if (enc.exam) {
+              {{ enc.exam }}
+            } @else {
+              <span class="nd">Not documented</span>
+            }
+          </dd>
+          <dt>Assessment</dt>
+          <dd>
+            @if (enc.assessment) {
+              {{ enc.assessment }}
+            } @else {
+              <span class="nd">Not documented</span>
+            }
+          </dd>
           <dt>Diagnoses</dt>
           <dd>
-            @for (d of enc.diagnoses; track $index) { <div><span class="mono">{{ d.icd }}</span> {{ d.desc }}</div> } @empty { <span class="nd">None recorded</span> }
+            @for (d of enc.diagnoses; track $index) {
+              <div>
+                <span class="mono">{{ d.icd }}</span> {{ d.desc }}
+              </div>
+            } @empty {
+              <span class="nd">None recorded</span>
+            }
           </dd>
-          <dt>Plan</dt><dd>@if (enc.plan) { {{ enc.plan }} } @else { <span class="nd">Not documented</span> }</dd>
-          <dt>Follow-up</dt><dd>@if (enc.followUp) { {{ fmtDate(enc.followUp) }} } @else { <span class="nd">Not set</span> }</dd>
+          <dt>Plan</dt>
+          <dd>
+            @if (enc.plan) {
+              {{ enc.plan }}
+            } @else {
+              <span class="nd">Not documented</span>
+            }
+          </dd>
+          <dt>Follow-up</dt>
+          <dd>
+            @if (enc.followUp) {
+              {{ fmtDate(enc.followUp) }}
+            } @else {
+              <span class="nd">Not set</span>
+            }
+          </dd>
         </dl>
         <div class="alert info" style="margin-top: 14px">
           <emr-icon name="lock" [size]="16" />
-          <div>This encounter is final and read-only. Corrections are recorded as a new encounter.</div>
+          <div>
+            This encounter is final and read-only. Corrections are recorded as a new encounter.
+          </div>
         </div>
       </emr-modal-shell>
     }
@@ -171,7 +261,8 @@ export class EncounterModal {
     event?.preventDefault();
     const s = this.symptomText().trim();
     if (!s) return;
-    if (!this.symptoms().some((x) => x.toLowerCase() === s.toLowerCase())) this.symptoms.update((l) => [...l, s]);
+    if (!this.symptoms().some((x) => x.toLowerCase() === s.toLowerCase()))
+      this.symptoms.update((l) => [...l, s]);
     this.symptomText.set('');
     const el = document.getElementById('sym-in') as HTMLInputElement | null;
     if (el) {
@@ -192,8 +283,10 @@ export class EncounterModal {
     const hr = parseFloat(v.hr);
     const temp = parseFloat(v.temp);
     const out: string[] = [];
-    if (sys >= 140 || dia >= 90) out.push(`Blood pressure ${v.sys || '?'}/${v.dia || '?'} is above the usual range.`);
-    else if (sys < 90 || dia < 60) out.push(`Blood pressure ${v.sys || '?'}/${v.dia || '?'} is below the usual range.`);
+    if (sys >= 140 || dia >= 90)
+      out.push(`Blood pressure ${v.sys || '?'}/${v.dia || '?'} is above the usual range.`);
+    else if (sys < 90 || dia < 60)
+      out.push(`Blood pressure ${v.sys || '?'}/${v.dia || '?'} is below the usual range.`);
     if (hr < 50 || hr > 100) out.push(`Heart rate ${hr} bpm is outside 50 to 100.`);
     if (temp >= 38 || temp < 36) out.push(`Temperature ${temp} °C is outside 36 to 38.`);
     return out;
@@ -204,7 +297,8 @@ export class EncounterModal {
     const errs: Record<string, string> = {};
     const t = (s: string) => s.trim();
     if (!v.date) errs['date'] = 'Visit date is required.';
-    else if (new Date(v.date).getTime() > Date.now() + 60000) errs['date'] = 'Visit date cannot be in the future.';
+    else if (new Date(v.date).getTime() > Date.now() + 60000)
+      errs['date'] = 'Visit date cannot be in the future.';
 
     const vitals: Vitals = { sys: null, dia: null, hr: null, temp: null, wt: null };
     VIT.forEach((x) => {
@@ -214,9 +308,16 @@ export class EncounterModal {
       if (isNaN(n) || n < x.min || n > x.max) errs[x.key] = `Enter ${x.min} to ${x.max} ${x.unit}.`;
       else vitals[x.key] = n;
     });
-    if (vitals.sys != null && vitals.dia != null && !errs['sys'] && !errs['dia'] && vitals.sys <= vitals.dia)
+    if (
+      vitals.sys != null &&
+      vitals.dia != null &&
+      !errs['sys'] &&
+      !errs['dia'] &&
+      vitals.sys <= vitals.dia
+    )
       errs['sys'] = 'Systolic must be higher than diastolic.';
-    if (v.followUp && v.date && v.followUp < v.date.slice(0, 10)) errs['followUp'] = 'Follow-up cannot be before the visit.';
+    if (v.followUp && v.date && v.followUp < v.date.slice(0, 10))
+      errs['followUp'] = 'Follow-up cannot be before the visit.';
     const dx = v.dx
       .map((d) => ({ icd: t(d.icd).toUpperCase(), desc: t(d.desc), prob: d.prob }))
       .filter((d) => d.icd || d.desc);
