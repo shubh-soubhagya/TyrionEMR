@@ -94,16 +94,6 @@ export interface Encounter {
   finalizedAt?: string;
 }
 
-export interface LabReport {
-  id: string;
-  patientId: string;
-  collectedAt: string;
-  labName: string;
-  notes: string;
-  enteredBy: string;
-  createdAt: string;
-}
-
 export interface LabResult {
   id: string;
   reportId: string;
@@ -119,74 +109,4 @@ export interface LabResult {
   flag: Flag;
   /** The laboratory that reported it (lab-svc `lab_name`). */
   labName?: string;
-}
-
-export interface Db {
-  patients: Patient[];
-  conditions: Condition[];
-  meds: Med[];
-  allergies: Allergy[];
-  encounters: Encounter[];
-  labReports: LabReport[];
-  labResults: LabResult[];
-  aiSummaries: AiSummaryRecord[];
-  config: { toolsEnabled: boolean; maxToolIterations: number; dailyQuota: number };
-}
-
-export interface GapFinding {
-  code: string;
-  sev: 'high' | 'medium' | 'low';
-  kind: 'missing' | 'inconsistent';
-  message: string;
-  refs: string[];
-}
-
-export interface FollowUpItem {
-  consideration: string;
-  rationale: string;
-  source_refs: string[];
-}
-
-export interface Narrative {
-  history_summary: { text: string; source_refs: string[] };
-  comorbidity_summary: { text: string; source_refs: string[] };
-  trend_commentary: { text: string; source_refs: string[] };
-  abnormal_commentary: { text: string; source_refs: string[] };
-  follow_up_considerations: FollowUpItem[];
-  not_documented: string[];
-}
-
-export interface AiSummaryRecord {
-  id: string;
-  patientId: string;
-  status: 'completed' | 'degraded';
-  provider: string;
-  model: string;
-  contextHash: string;
-  contextSnapshot: unknown;
-  output: Narrative | null;
-  facts: {
-    ckd: {
-      established: CkdStage | null;
-      egfrCat: EgfrCat | null;
-      uacrCat: string | null;
-    };
-    abnormal: { test: TestCode; value: number; unit: string; flag: Flag; date: string }[];
-    trends: Record<'EGFR' | 'CREAT', TrendLite>;
-  };
-  gaps: GapFinding[];
-  attempts: number;
-  validation: { refsTotal: number; refsOk: number; lint: number } | null;
-  errorCode: string | null;
-  createdAt: string;
-}
-
-export interface TrendLite {
-  n: number;
-  first?: number;
-  last?: number;
-  pctChange?: number;
-  slopePerYear?: number | null;
-  direction?: string;
-  rapidDecline?: boolean;
 }

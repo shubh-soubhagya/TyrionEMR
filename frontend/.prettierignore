@@ -4,3 +4,4 @@ node_modules
 coverage
 package-lock.json
 *.html.bak
+src/styles/_reference.scss

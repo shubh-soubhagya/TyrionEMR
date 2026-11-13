@@ -14,7 +14,8 @@ describe('passwordChecks', () => {
       letterAndDigit: false,
       notCommon: false,
     });
-    expect(passwordChecks('Password123').notCommon).toBe(true);
+    expect(passwordChecks('Password123').notCommon).toBe(false); // the check ignores case
+    expect(passwordChecks('Nephro#2026').notCommon).toBe(true);
     expect(passwordChecks('PASSWORD123').notCommon).toBe(false);
     expect(passwordChecks('').notCommon).toBe(false);
   });

@@ -34,7 +34,6 @@ export type ButtonVariant = 'default' | 'primary' | 'ai' | 'danger' | 'ghost';
     '[attr.aria-disabled]': 'blocked() ? "true" : null',
     '[attr.aria-busy]': 'loading() ? "true" : null',
     '[attr.tabindex]': 'blocked() && !isButton ? -1 : null',
-    '(click)': 'onClick($event)',
   },
 })
 export class EmrButton {
@@ -55,10 +54,18 @@ export class EmrButton {
       `btn ${this.variant()} ${this.size()}${this.block() ? ' block' : ''}${this.loading() ? ' loading' : ''}`,
   );
 
-  protected onClick(event: Event): void {
-    if (this.blocked()) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+  constructor() {
+    // A capture-phase listener on the element itself runs before the (click) handlers the parent template binds to it,
+    // whatever order Angular registers them in, so a disabled or loading button can never reach them.
+    inject<ElementRef<HTMLElement>>(ElementRef).nativeElement.addEventListener(
+      'click',
+      (event: Event) => {
+        if (this.blocked()) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      },
+      true,
+    );
   }
 }

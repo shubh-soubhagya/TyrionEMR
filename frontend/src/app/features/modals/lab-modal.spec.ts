@@ -109,19 +109,17 @@ describe('LabModal', () => {
     set(egfr.querySelector('input[aria-label=Value]') as HTMLInputElement, '38'); // row 0 (creatinine) stays blank
     fixture.detectChanges();
     el.querySelector<HTMLFormElement>('form')?.dispatchEvent(new Event('submit'));
-    ctrl
-      .expectOne(`${API_BASE}/labs/patients/p1/reports`)
-      .flush(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid.',
-            request_id: 'req-3',
-            details: [{ field: 'results[0].unit', issue: 'Unit not accepted' }],
-          },
+    ctrl.expectOne(`${API_BASE}/labs/patients/p1/reports`).flush(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid.',
+          request_id: 'req-3',
+          details: [{ field: 'results[0].unit', issue: 'Unit not accepted' }],
         },
-        { status: 422, statusText: 'x' },
-      );
+      },
+      { status: 422, statusText: 'x' },
+    );
     fixture.detectChanges();
     const errs = Array.from(el.querySelectorAll('.lab-row .err')).map((e) => e.textContent?.trim());
     expect(errs).toEqual(['Unit not accepted']);

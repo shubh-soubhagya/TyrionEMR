@@ -7,23 +7,23 @@ Each one says what was decided, why, and where it applies.
 
 **Decision.** The plausibility limits from PROMPTS.md Phase 8 block typos (validation error, form cannot be saved). Values that are outside the normal range but still plausible are accepted and show a soft warning only.
 
-| Vital | Blocking limit (error) | Notes |
-|---|---|---|
-| BP systolic | 60–260 mmHg | |
-| BP diastolic | 30–160 mmHg | and must be lower than systolic (group validator) |
-| Heart rate | 30–220 bpm | |
-| Temperature | 34.0–42.0 °C | stored and shown in °C (the HTML uses °C) |
-| Weight | 2–300 kg | 1 decimal |
-| SpO2 | not collected | The HTML form and the HLD vitals model (`sys, dia, hr, temp, wt`) have no SpO2. Phase 8 says "only if the HTML includes it", so it is omitted. |
+| Vital        | Blocking limit (error) | Notes                                                                                                                                          |
+| ------------ | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| BP systolic  | 60–260 mmHg            |                                                                                                                                                |
+| BP diastolic | 30–160 mmHg            | and must be lower than systolic (group validator)                                                                                              |
+| Heart rate   | 30–220 bpm             |                                                                                                                                                |
+| Temperature  | 34.0–42.0 °C           | stored and shown in °C (the HTML uses °C)                                                                                                      |
+| Weight       | 2–300 kg               | 1 decimal                                                                                                                                      |
+| SpO2         | not collected          | The HTML form and the HLD vitals model (`sys, dia, hr, temp, wt`) have no SpO2. Phase 8 says "only if the HTML includes it", so it is omitted. |
 
 **Soft warnings (⚑ placeholder thresholds, need clinician sign-off).** Not errors; shown as a warning-toned hint under the field and never block saving. All thresholds live in one file (`shared/validators/vitals-limits.ts`, built in Phase 8) so a clinician can change them in one place.
 
-| Vital | Soft warning when |
-|---|---|
-| BP | systolic ≥ 140 or diastolic ≥ 90 (the example in PROMPTS.md), or systolic < 90 or diastolic < 60 |
-| Heart rate | < 50 or > 100 bpm |
-| Temperature | ≥ 38.0 or < 36.0 °C |
-| Weight | none |
+| Vital       | Soft warning when                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| BP          | systolic ≥ 140 or diastolic ≥ 90 (the example in PROMPTS.md), or systolic < 90 or diastolic < 60 |
+| Heart rate  | < 50 or > 100 bpm                                                                                |
+| Temperature | ≥ 38.0 or < 36.0 °C                                                                              |
+| Weight      | none                                                                                             |
 
 **Why.** The prototype's limits (BP 50–300, HR 20–300, T 30–45, weight 1–500) are so wide that most typos pass. Narrow blocking limits catch real mistakes (for example 1200 for 120). Clinically abnormal but real readings (a hypertensive patient at 190/110) must never be blocked, because refusing to record a true measurement is a patient-safety problem.
 
@@ -48,12 +48,14 @@ The text states all four required points: AI-generated, for clinician review, ma
 ## D3. Token storage: in-memory access token plus silent refresh (httpOnly cookie)
 
 **Evidence (read only from `auth-svc/`).**
+
 - `app/api/cookies.py`: the refresh token is set as an **HttpOnly, SameSite=Strict, Path=/api/auth** cookie named `nephro_rt` (`app/core/config.py`), `Secure` by default, no Domain.
 - `app/api/routes/auth.py`: `POST /auth/login` and `/auth/signup` return `{access_token, token_type: "Bearer", expires_in, user}` and set the cookie. `POST /auth/refresh` rotates it and returns the same shape. `POST /auth/logout` returns 204 and clears the cookie. `GET /auth/me` needs a valid access token.
 - `app/core/security.py`: `/auth/refresh` and `/auth/logout` reject any request whose `Origin` header is not in `cors_allowed_origins` (default `http://localhost:4200`). CORS itself is owned by the gateway.
 - `app/core/errors.py`: `409 REFRESH_RACE` ("two tabs refreshed at once") means retry and the cookie is NOT cleared. `401 REFRESH_REUSED` and the other refresh failures clear the cookie and mean the user must sign in again. `401 TOKEN_EXPIRED` and `401 UNAUTHENTICATED` are distinct codes.
 
 **Decision.** Do not use `sessionStorage` or `localStorage` for tokens.
+
 - Access token: kept only in a signal inside `AuthService` (memory).
 - App start (`provideAppInitializer`): call `POST /auth/refresh` with credentials. Success gives an access token and user, so a page reload keeps the session. A 401 or missing cookie means signed out, so no error toast.
 - On a 401 from an API call: one **single-flight** refresh (concurrent requests wait on the same promise), then retry the request once. If refresh fails, clear the session and go to `/login?returnUrl=`.
