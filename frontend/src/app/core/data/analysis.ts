@@ -12,16 +12,7 @@ import {
   UacrCat,
 } from '../clinical/lab-tests';
 import { ageOf, DAY, fmtDate, isoDate, sid } from '../format';
-import {
-  Allergy,
-  Condition,
-  Db,
-  Encounter,
-  GapFinding,
-  LabResult,
-  Med,
-  Patient,
-} from './models';
+import { Allergy, Condition, Db, Encounter, GapFinding, LabResult, Med, Patient } from './models';
 
 export const patientOf = (db: Db, id: string): Patient | undefined =>
   db.patients.find((x) => x.id === id && !x.deletedAt);
@@ -39,7 +30,8 @@ export const resultsOf = (db: Db, id: string): LabResult[] =>
     .filter((r) => r.patientId === id)
     .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime());
 export const fullName = (p: Patient): string => p.first + ' ' + p.last;
-export const sexLabel = (s: string): string => ({ M: 'Male', F: 'Female', O: 'Other' })[s as 'M'] ?? s;
+export const sexLabel = (s: string): string =>
+  ({ M: 'Male', F: 'Female', O: 'Other' })[s as 'M'] ?? s;
 export const typeLabel = (t: string): string =>
   ({ new: 'New visit', follow_up: 'Follow-up', emergency: 'Emergency' })[t as 'new'] ?? t;
 export const primaryOf = (db: Db, id: string): Condition | undefined =>
@@ -102,34 +94,70 @@ export function gapEngine(
   const now = Date.now();
 
   if (p.allergyStatus === 'unknown')
-    add('ALLERGY_STATUS_UNKNOWN', 'medium', 'missing', 'Allergy status has not been recorded. "Unknown" is not the same as "no known allergies".');
+    add(
+      'ALLERGY_STATUS_UNKNOWN',
+      'medium',
+      'missing',
+      'Allergy status has not been recorded. "Unknown" is not the same as "no known allergies".',
+    );
   if (!conds.some((c) => c.isPrimary && c.status === 'active'))
     add('NO_PRIMARY_DIAGNOSIS', 'medium', 'missing', 'No active primary diagnosis is recorded.');
   if (!meds.length)
-    add('NO_MEDICATIONS_DOCUMENTED', 'low', 'missing', 'No medications are documented, so "takes none" cannot be told apart from "not recorded".');
+    add(
+      'NO_MEDICATIONS_DOCUMENTED',
+      'low',
+      'missing',
+      'No medications are documented, so "takes none" cannot be told apart from "not recorded".',
+    );
   if (!res.length) {
-    add('NO_LABS_RECORDED', 'high', 'missing', 'No laboratory results are on record for this patient.');
+    add(
+      'NO_LABS_RECORDED',
+      'high',
+      'missing',
+      'No laboratory results are on record for this patient.',
+    );
   } else {
     const first = res[0] as LabResult;
     const days = Math.round((now - new Date(first.collectedAt).getTime()) / DAY);
     if (days > 180)
-      add('NO_RECENT_LABS', 'medium', 'missing', `The most recent lab result is ${days} days old (threshold 180 days).`, [
-        'lab:' + first.test + ':' + isoDate(first.collectedAt),
-      ]);
+      add(
+        'NO_RECENT_LABS',
+        'medium',
+        'missing',
+        `The most recent lab result is ${days} days old (threshold 180 days).`,
+        ['lab:' + first.test + ':' + isoDate(first.collectedAt)],
+      );
     (['CREAT', 'EGFR', 'UACR'] as TestCode[]).forEach((t) => {
       if (!latest[t])
         add('NO_LABS_FOR_TEST', 'low', 'missing', `${LAB_TESTS[t].name} has never been recorded.`);
     });
     if (trends.EGFR.n > 0 && trends.EGFR.n < 3)
-      add('INSUFFICIENT_TREND_DATA', 'low', 'missing', `Only ${trends.EGFR.n} eGFR result${trends.EGFR.n > 1 ? 's' : ''} on record; a trend needs at least 3.`);
+      add(
+        'INSUFFICIENT_TREND_DATA',
+        'low',
+        'missing',
+        `Only ${trends.EGFR.n} eGFR result${trends.EGFR.n > 1 ? 's' : ''} on record; a trend needs at least 3.`,
+      );
   }
   encs
     .filter((e) => e.status === 'final')
     .forEach((e) => {
       if (!hasVitals(e))
-        add('ENCOUNTER_NO_VITALS', 'low', 'missing', `Final encounter on ${fmtDate(e.date)} has no vitals recorded.`, ['enc:' + sid(e.id)]);
+        add(
+          'ENCOUNTER_NO_VITALS',
+          'low',
+          'missing',
+          `Final encounter on ${fmtDate(e.date)} has no vitals recorded.`,
+          ['enc:' + sid(e.id)],
+        );
       if (!e.assessment || !e.plan)
-        add('ENCOUNTER_NO_ASSESSMENT', 'medium', 'missing', `Final encounter on ${fmtDate(e.date)} is missing an assessment or plan.`, ['enc:' + sid(e.id)]);
+        add(
+          'ENCOUNTER_NO_ASSESSMENT',
+          'medium',
+          'missing',
+          `Final encounter on ${fmtDate(e.date)} is missing an assessment or plan.`,
+          ['enc:' + sid(e.id)],
+        );
     });
   const low = res
     .filter((r) => r.test === 'EGFR' && r.value < 60)
@@ -146,9 +174,13 @@ export function gapEngine(
     lowLast &&
     new Date(lowLast.collectedAt).getTime() - new Date(lowFirst.collectedAt).getTime() >= 90 * DAY
   )
-    add('NO_ESTABLISHED_CKD_STAGE', 'medium', 'missing', 'eGFR has been below 60 for over 3 months but no established CKD stage is recorded.', [
-      'lab:EGFR:' + isoDate(lowFirst.collectedAt),
-    ]);
+    add(
+      'NO_ESTABLISHED_CKD_STAGE',
+      'medium',
+      'missing',
+      'eGFR has been below 60 for over 3 months but no established CKD stage is recorded.',
+      ['lab:EGFR:' + isoDate(lowFirst.collectedAt)],
+    );
   if (ckd.mismatch && ckd.egfrVal != null && ckd.egfrDate)
     add(
       'CKD_STAGE_MISMATCH',
@@ -177,16 +209,32 @@ export function gapEngine(
     ((c.direction === 'improving' && e.direction === 'worsening') ||
       (c.direction === 'worsening' && e.direction === 'improving'))
   )
-    add('DIRECTION_CONTRADICTION', 'medium', 'inconsistent', 'Creatinine and eGFR are trending in clinically incompatible directions.');
+    add(
+      'DIRECTION_CONTRADICTION',
+      'medium',
+      'inconsistent',
+      'Creatinine and eGFR are trending in clinically incompatible directions.',
+    );
   meds
     .filter((m) => m.status === 'active' && m.end && new Date(m.end).getTime() < now)
     .forEach((m) =>
-      add('ACTIVE_MED_PAST_END_DATE', 'low', 'inconsistent', `${m.name} is marked active but its end date (${fmtDate(m.end)}) has passed.`, ['med:' + sid(m.id)]),
+      add(
+        'ACTIVE_MED_PAST_END_DATE',
+        'low',
+        'inconsistent',
+        `${m.name} is marked active but its end date (${fmtDate(m.end)}) has passed.`,
+        ['med:' + sid(m.id)],
+      ),
     );
   res.forEach((r) => {
     const t = new Date(r.collectedAt).getTime();
     if (t > now || t < new Date(p.dob).getTime())
-      add('LAB_DATE_INVALID', 'high', 'inconsistent', `A ${LAB_TESTS[r.test].name} result has an impossible collection date.`);
+      add(
+        'LAB_DATE_INVALID',
+        'high',
+        'inconsistent',
+        `A ${LAB_TESTS[r.test].name} result has an impossible collection date.`,
+      );
   });
   const o = { high: 0, medium: 1, low: 2 };
   return g.sort((a, b) => o[a.sev] - o[b.sev]);

@@ -5,12 +5,47 @@
   (closed)="closed.emit()"
 >
   <form [formGroup]="form" novalidate (ngSubmit)="submit('draft')">
-    <div>
+    <div aria-live="polite">
       @if (general()) {
-        <div class="alert danger" style="margin-bottom: 12px">
+        <div class="alert danger" style="margin-bottom: 12px" role="alert">
           <emr-icon name="alert" [size]="16" />
           <div>
             <b>{{ general() }}</b>
+            @if (problem().requestId; as rid) {
+              <div class="small muted">Reference: {{ rid }}</div>
+            }
+            @if (problem().conflict) {
+              <div style="margin-top: 8px">
+                <button type="button" class="btn sm" (click)="load()">Reload</button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+      @if (confirmingFinal()) {
+        <div
+          class="alert warn"
+          style="margin-bottom: 12px"
+          role="alertdialog"
+          aria-label="Finalize encounter"
+        >
+          <emr-icon name="lock" [size]="16" />
+          <div>
+            <b>Finalize this encounter?</b> Once finalized, it becomes read-only. Diagnoses marked
+            "Add to problem list" are added to the patient's conditions in the same step.
+            <div style="margin-top: 8px" class="row">
+              <button type="button" class="btn sm" (click)="confirmingFinal.set(false)">
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn sm primary"
+                [disabled]="busy()"
+                (click)="submit('final', true)"
+              >
+                Finalize
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -30,7 +65,7 @@
         ><span class="err"></span
       ></label>
       <label class="fld"
-        ><span class="fld-l">Clinician</span><input [value]="clinician" readonly /><span
+        ><span class="fld-l">Clinician</span><input [value]="clinician()" readonly /><span
           class="err"
         ></span
       ></label>
@@ -156,8 +191,13 @@
         </button>
       }
       <button type="button" class="btn" (click)="closed.emit()">Cancel</button>
-      <button class="btn" type="submit">Save draft</button>
-      <button class="btn primary" type="button" (click)="submit('final')">
+      <button class="btn" type="submit" [disabled]="busy() || loadFailed()">Save draft</button>
+      <button
+        class="btn primary"
+        type="button"
+        [disabled]="busy() || loadFailed()"
+        (click)="submit('final')"
+      >
         Finalize encounter
       </button>
     </div>

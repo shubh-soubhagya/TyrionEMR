@@ -102,6 +102,7 @@ export class AiTab {
       if (e)
         this.modals.open({
           kind: 'encounter-view',
+          patientId: id,
           encounterId: e.id,
           sub: 'Source record cited by the AI summary',
         });

@@ -41,6 +41,7 @@ import { AllergyModal, ConditionModal, ConfirmModal, MedModal } from './small-mo
     }
     @if (encounterView(); as m) {
       <emr-encounter-view-modal
+        [patientId]="m.patientId"
         [encounterId]="m.encounterId"
         [sub]="m.sub"
         (closed)="modals.close()"

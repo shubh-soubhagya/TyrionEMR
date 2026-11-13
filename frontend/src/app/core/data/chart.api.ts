@@ -72,14 +72,12 @@ export class ChartApi {
     conditionId: string,
     body: ConditionPatchDto,
   ): Observable<ConditionChange> {
-    return this.http
-      .patch<ConditionDto>(PATIENTS.condition(patientId, conditionId), body)
-      .pipe(
-        map((c) => ({
-          condition: conditionFromDto(c, patientId),
-          primaryCleared: c.primary_cleared === true,
-        })),
-      );
+    return this.http.patch<ConditionDto>(PATIENTS.condition(patientId, conditionId), body).pipe(
+      map((c) => ({
+        condition: conditionFromDto(c, patientId),
+        primaryCleared: c.primary_cleared === true,
+      })),
+    );
   }
 
   // ---- medications ----

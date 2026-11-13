@@ -1,12 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import {
-  flagFor,
-  LAB_TESTS,
-  rangeFor,
-  Sex,
-  TestCode,
-  toCanon,
-} from '../clinical/lab-tests';
+import { flagFor, LAB_TESTS, rangeFor, Sex, TestCode, toCanon } from '../clinical/lab-tests';
 import { ageOf, isoDate, uid } from '../format';
 import {
   allergiesOf,
@@ -205,7 +198,11 @@ export class DbService {
   updatePatient(id: string, version: number, v: PatientInput): void {
     const p = this.patient(id);
     if (p.version !== version)
-      throw new AppError(409, 'VERSION_CONFLICT', 'This record was changed by someone else. Reload and try again.');
+      throw new AppError(
+        409,
+        'VERSION_CONFLICT',
+        'This record was changed by someone else. Reload and try again.',
+      );
     Object.assign(p, {
       first: v.first,
       last: v.last,
@@ -231,7 +228,13 @@ export class DbService {
 
   addCondition(
     id: string,
-    v: { icd: string; desc: string; cat: 'nephrology' | 'comorbidity'; onset: string; primary: boolean },
+    v: {
+      icd: string;
+      desc: string;
+      cat: 'nephrology' | 'comorbidity';
+      onset: string;
+      primary: boolean;
+    },
   ): void {
     if (v.primary) condsOf(this.db, id).forEach((c) => (c.isPrimary = false));
     this.db.conditions.push({
@@ -264,7 +267,10 @@ export class DbService {
     this.commit();
   }
 
-  addMedication(id: string, v: { name: string; dose: string; route: string; freq: string; start: string }): void {
+  addMedication(
+    id: string,
+    v: { name: string; dose: string; route: string; freq: string; start: string },
+  ): void {
     this.db.meds.push({
       id: uid(),
       patientId: id,
@@ -287,7 +293,10 @@ export class DbService {
     this.commit();
   }
 
-  addAllergy(id: string, v: { allergen: string; reaction: string; severity: 'mild' | 'moderate' | 'severe' }): void {
+  addAllergy(
+    id: string,
+    v: { allergen: string; reaction: string; severity: 'mild' | 'moderate' | 'severe' },
+  ): void {
     this.db.allergies.push({ id: uid(), patientId: id, ...v });
     this.patient(id).allergyStatus = 'has';
     this.commit();
@@ -307,7 +316,8 @@ export class DbService {
   deleteDraft(encId: string): void {
     const e = this.db.encounters.find((x) => x.id === encId);
     if (!e) return;
-    if (e.status !== 'draft') throw new AppError(409, 'ENCOUNTER_FINAL', 'Final encounters cannot be deleted.');
+    if (e.status !== 'draft')
+      throw new AppError(409, 'ENCOUNTER_FINAL', 'Final encounters cannot be deleted.');
     e.deletedAt = new Date().toISOString();
     this.commit();
   }
@@ -320,8 +330,13 @@ export class DbService {
     mode: 'draft' | 'final',
   ): { e: Encounter; added: number } {
     let e = editId ? (this.db.encounters.find((x) => x.id === editId) ?? null) : null;
-    if (e && e.status === 'final') throw new AppError(409, 'ENCOUNTER_FINAL', 'Final encounters cannot be edited.');
-    const diagnoses: EncounterDx[] = v.diagnoses.map((d) => ({ icd: d.icd, desc: d.desc, condId: null }));
+    if (e && e.status === 'final')
+      throw new AppError(409, 'ENCOUNTER_FINAL', 'Final encounters cannot be edited.');
+    const diagnoses: EncounterDx[] = v.diagnoses.map((d) => ({
+      icd: d.icd,
+      desc: d.desc,
+      condId: null,
+    }));
     const data = {
       date: new Date(v.date).toISOString(),
       type: v.type,
@@ -355,7 +370,9 @@ export class DbService {
       const target = e;
       v.diagnoses.forEach((d, i) => {
         if (!d.prob) return;
-        let c = condsOf(this.db, patientId).find((x) => x.icd10 && x.icd10 === d.icd && x.status === 'active');
+        let c = condsOf(this.db, patientId).find(
+          (x) => x.icd10 && x.icd10 === d.icd && x.status === 'active',
+        );
         if (!c) {
           c = {
             id: uid(),

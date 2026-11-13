@@ -231,7 +231,7 @@ export function vitalsToDto(v: Vitals | null): VitalsInDto | null {
   };
 }
 
-export function diagnosisFromDto(d: DiagnosisDto): EncounterDx & { prob: boolean } {
+export function diagnosisFromDto(d: DiagnosisDto): EncounterDx {
   return {
     icd: orEmpty(d.icd10_code),
     desc: d.description,

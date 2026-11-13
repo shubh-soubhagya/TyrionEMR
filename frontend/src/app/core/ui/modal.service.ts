@@ -17,7 +17,7 @@ export type ModalState =
   | { kind: 'med'; patientId: string }
   | { kind: 'allergy'; patientId: string }
   | { kind: 'encounter-form'; patientId: string; encounterId: string | null }
-  | { kind: 'encounter-view'; encounterId: string; sub: string }
+  | { kind: 'encounter-view'; patientId: string; encounterId: string; sub: string }
   | { kind: 'lab'; patientId: string }
   | {
       kind: 'confirm';

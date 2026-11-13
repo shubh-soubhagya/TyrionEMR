@@ -68,6 +68,8 @@ export interface EncounterDx {
   icd: string;
   desc: string;
   condId: string | null;
+  /** "Add to problem list" (the server links or creates the condition when the encounter is finalized). */
+  prob?: boolean;
 }
 
 export type EncounterType = 'new' | 'follow_up' | 'emergency';
