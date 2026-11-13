@@ -119,3 +119,9 @@ async def test_seed_clinicians_use_deterministic_ids(api, seeded, db_engine):
     assert {(r.clinician_id, r.clinician_name) for r in rows} == {
         (user_id("dr.rao@nephrocare.demo"), "Dr. Anita Rao"),
         (user_id("dr.malhotra@nephrocare.demo"), "Dr. Karan Malhotra")}
+
+
+async def test_scenario_107_established_g2_matches_the_lab_category(api, seeded):
+    """HLD s18: Mohan Das is G2 with an eGFR of about 72 (G2). A G3a seed made ai-svc report a stage mismatch and put
+    him on the worklist, which the HLD's six do not include."""
+    assert (await detail(api, "PT-000107"))["established_ckd_stage"] == "G2"

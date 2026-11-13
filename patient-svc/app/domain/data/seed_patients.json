@@ -125,7 +125,7 @@
       "mrn": "PT-000107", "first_name": "Mohan", "last_name": "Das", "dob": "1962-06-14", "sex": "M",
       "phone": "+91 98200 10107", "email": "mohan.das@example.test",
       "pmh": "Polycystic kidney disease.", "fh": "Father and brother with PKD.", "sh": "Farmer.",
-      "allergy_status": "nka", "stage": "G3a", "allergies": [],
+      "allergy_status": "nka", "stage": "G2", "allergies": [],
       "conditions": [
         {"icd10": "Q61.2", "description": "Polycystic kidney disease, autosomal dominant", "category": "nephrology", "primary": true, "onset_days_ago": 3000},
         {"icd10": "I10", "description": "Essential hypertension", "category": "comorbidity", "onset_days_ago": 2500}
