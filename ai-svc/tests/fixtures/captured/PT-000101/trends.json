@@ -1,0 +1,176 @@
+{
+  "from": null,
+  "patient_id": "fc158cad-0a89-5611-9c8b-1a0b551453d0",
+  "series": [
+    {
+      "points": [
+        {
+          "collected_at": "2024-11-23T09:00:00Z",
+          "flag": "high",
+          "result_id": "39b41053-45bd-4fa3-b26e-1a67cd2d99ed",
+          "value": 1.44
+        },
+        {
+          "collected_at": "2025-03-03T09:00:00Z",
+          "flag": "high",
+          "result_id": "190cdcc9-fa5f-4ab9-bb9b-c02ba4f7f3b6",
+          "value": 1.47
+        },
+        {
+          "collected_at": "2025-06-11T09:00:00Z",
+          "flag": "high",
+          "result_id": "b1a375de-8ca9-4b04-ace6-d141d0df990d",
+          "value": 1.56
+        },
+        {
+          "collected_at": "2025-09-19T09:00:00Z",
+          "flag": "high",
+          "result_id": "0c1a4052-9d32-47ee-b41d-c31e5b0160ec",
+          "value": 1.57
+        },
+        {
+          "collected_at": "2025-12-28T09:00:00Z",
+          "flag": "high",
+          "result_id": "0cdb38e2-f738-41ea-974f-2233201ec989",
+          "value": 1.64
+        },
+        {
+          "collected_at": "2026-04-07T09:00:00Z",
+          "flag": "high",
+          "result_id": "7a255988-9839-4207-9b83-df9220f2dacb",
+          "value": 1.71
+        },
+        {
+          "collected_at": "2026-07-16T09:00:00Z",
+          "flag": "high",
+          "result_id": "c7f19674-1ee7-42cf-a321-93451162a92f",
+          "value": 1.79
+        },
+        {
+          "collected_at": "2026-10-24T09:00:00Z",
+          "flag": "high",
+          "result_id": "82568a3b-3767-42e1-be7c-4958896819ab",
+          "value": 1.91
+        }
+      ],
+      "reference": {
+        "high": 1.3,
+        "low": 0.7
+      },
+      "stage_bands": null,
+      "stats": {
+        "abs_change": 0.47,
+        "direction": "worsening",
+        "first": 1.44,
+        "first_at": "2024-11-23T09:00:00+00:00",
+        "last": 1.91,
+        "last_at": "2026-10-24T09:00:00+00:00",
+        "n": 8,
+        "pct_change": 32.6,
+        "rapid_decline": false,
+        "slope_per_year": 0.24,
+        "span_days": 700
+      },
+      "test_code": "CREAT",
+      "unit": "mg/dL"
+    },
+    {
+      "points": [
+        {
+          "collected_at": "2024-11-23T09:00:00Z",
+          "flag": "low",
+          "result_id": "9098c4de-3148-4708-8c83-5828a1322985",
+          "value": 54.0
+        },
+        {
+          "collected_at": "2025-03-03T09:00:00Z",
+          "flag": "low",
+          "result_id": "60a1c077-3af1-4548-929f-deb266cc439b",
+          "value": 52.7
+        },
+        {
+          "collected_at": "2025-06-11T09:00:00Z",
+          "flag": "low",
+          "result_id": "c2179960-242c-446d-8848-234731108aa5",
+          "value": 48.8
+        },
+        {
+          "collected_at": "2025-09-19T09:00:00Z",
+          "flag": "low",
+          "result_id": "3801c361-edc4-429f-bd68-6a0e17eb1796",
+          "value": 48.3
+        },
+        {
+          "collected_at": "2025-12-28T09:00:00Z",
+          "flag": "low",
+          "result_id": "033ac38e-98b0-4a19-a108-b53871be3010",
+          "value": 45.9
+        },
+        {
+          "collected_at": "2026-04-07T09:00:00Z",
+          "flag": "low",
+          "result_id": "4f3f586c-4a4b-4a6e-8dfb-f1d368b4b673",
+          "value": 43.7
+        },
+        {
+          "collected_at": "2026-07-16T09:00:00Z",
+          "flag": "low",
+          "result_id": "749ccf19-4e9f-43a6-bf8d-358bb2271bb4",
+          "value": 41.0
+        },
+        {
+          "collected_at": "2026-10-24T09:00:00Z",
+          "flag": "low",
+          "result_id": "490474ba-c67c-43c2-90b7-f6bb6c4ddb06",
+          "value": 38.0
+        }
+      ],
+      "reference": {
+        "high": null,
+        "low": 90.0
+      },
+      "stage_bands": [
+        {
+          "code": "G1",
+          "lower": 90
+        },
+        {
+          "code": "G2",
+          "lower": 60
+        },
+        {
+          "code": "G3a",
+          "lower": 45
+        },
+        {
+          "code": "G3b",
+          "lower": 30
+        },
+        {
+          "code": "G4",
+          "lower": 15
+        },
+        {
+          "code": "G5",
+          "lower": 0
+        }
+      ],
+      "stats": {
+        "abs_change": -16.0,
+        "direction": "worsening",
+        "first": 54.0,
+        "first_at": "2024-11-23T09:00:00+00:00",
+        "last": 38.0,
+        "last_at": "2026-10-24T09:00:00+00:00",
+        "n": 8,
+        "pct_change": -29.6,
+        "rapid_decline": true,
+        "slope_per_year": -8.18,
+        "span_days": 700
+      },
+      "test_code": "EGFR",
+      "unit": "mL/min/1.73m²"
+    }
+  ],
+  "to": null
+}

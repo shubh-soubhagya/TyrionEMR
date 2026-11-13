@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.cli.capture_fixtures import ALL_MRNS, patient_id
+from app.cli.capture_fixtures import ALL_MRNS
 from app.clients.models import Chart, ChartItem, ChartsPage, Latest, StatusItem, StatusPage, Trends
 from app.insights.rules.adapters import from_bulk, from_chart
 from app.insights.rules.attention import attention
@@ -81,31 +81,32 @@ def codes(facts, now: datetime, today: date) -> list[tuple[str, str, str]]:
 
 def test_chart_path_and_bulk_path_agree_on_the_captured_data():
     now, today = asof()
-    items = {i["patient_id"]: i for page in pages("patients/charts.json") for i in page["items"]}
+    items = {i["mrn"]: i for page in pages("patients/charts.json") for i in page["items"]}
     status = {i["patient_id"]: i for page in pages("labs/status.json") for i in page["items"]}
     for mrn in captured_mrns():
-        pid = str(patient_id(mrn))
+        pid = str(items[mrn]["id"])
         single = from_chart(Chart.model_validate(load(f"{mrn}/chart.json")), Latest.model_validate(load(f"{mrn}/latest.json")),
                             Trends.model_validate(load(f"{mrn}/trends.json")), today=today)
-        bulk = from_bulk(ChartItem.model_validate(items[pid]),
+        bulk = from_bulk(ChartItem.model_validate(items[mrn]),
                          StatusItem.model_validate(status[pid]) if pid in status else None)
         assert codes(single, now, today) == codes(bulk, now, today), mrn
 
 
 # ---- HLD section 18: six need attention, four are rapid declines ---------------------------------------------
-NAMES = {s.mrn: f"{s.first} {s.last}" for s in seed.SPECS}
+NAMES = {s.mrn: f"{s.first} {s.last}" for s in seed.SPECS}      # names of the HLD, checked against the capture below
 EXPECTED_ATTENTION = {"Aditya Singh", "Ramesh Kulkarni", "Fatima Sheikh", "Kavita Joshi", "Lakshmi Iyer", "Priya Nair"}
 
 
 def test_the_ten_seeded_patients_give_the_worklist_of_hld_18():
     now, today = asof()
-    items = {i["patient_id"]: i for page in pages("patients/charts.json") for i in page["items"]}
+    items = {i["mrn"]: i for page in pages("patients/charts.json") for i in page["items"]}
     status = {i["patient_id"]: i for page in pages("labs/status.json") for i in page["items"]}
-    assert {str(patient_id(m)) for m in ALL_MRNS} <= set(items), "the ten seeded patients must all be present"
+    assert set(ALL_MRNS) <= set(items), "the ten seeded patients must all be present"
+    assert {m: f'{items[m]["first_name"]} {items[m]["last_name"]}' for m in ALL_MRNS} == NAMES
     need, per_patient, rapid = set(), {}, 0
     for mrn in ALL_MRNS:
-        pid = str(patient_id(mrn))
-        facts = from_bulk(ChartItem.model_validate(items[pid]),
+        pid = str(items[mrn]["id"])
+        facts = from_bulk(ChartItem.model_validate(items[mrn]),
                           StatusItem.model_validate(status[pid]) if pid in status else None)
         findings = evaluate(facts, today=today, now=now, tz=TZ)
         att = attention(facts, findings)

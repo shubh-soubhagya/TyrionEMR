@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "category": "nephrology",
+      "description": "Type 2 diabetes mellitus with diabetic nephropathy",
+      "icd10_code": "E11.21",
+      "id": "cb64dc45-ebee-4e62-81cf-1aaa2d6b4075",
+      "is_primary": true,
+      "onset_date": "2020-04-19",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "nephrology",
+      "description": "Chronic kidney disease, stage 3b",
+      "icd10_code": "N18.32",
+      "id": "7b563e84-9eef-435a-a1af-eb87ad7e4858",
+      "is_primary": false,
+      "onset_date": "2024-12-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Hyperlipidaemia",
+      "icd10_code": "E78.5",
+      "id": "bae29f8c-a235-4a97-a05a-32042c9fff47",
+      "is_primary": false,
+      "onset_date": "2018-08-28",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Essential hypertension",
+      "icd10_code": "I10",
+      "id": "0569a2dc-0b4c-4b93-8400-6d56d1cc98aa",
+      "is_primary": false,
+      "onset_date": "2015-02-05",
+      "resolved_date": null,
+      "status": "active"
+    }
+  ],
+  "truncated": false
+}

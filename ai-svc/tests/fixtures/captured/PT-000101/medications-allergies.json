@@ -1,0 +1,53 @@
+{
+  "allergies": [
+    {
+      "allergen": "Penicillin",
+      "id": "c1edf91f-9287-45da-a2d5-5e68ef5d1822",
+      "reaction": "Rash",
+      "severity": "moderate"
+    }
+  ],
+  "medications": [
+    {
+      "dose": "5 mg",
+      "end_date": null,
+      "frequency": "Once daily",
+      "id": "1bf42b8f-4600-483d-8403-1a5373a63f37",
+      "name": "Amlodipine",
+      "route": "oral",
+      "start_date": "2025-03-24",
+      "status": "active"
+    },
+    {
+      "dose": "50 mg",
+      "end_date": null,
+      "frequency": "Once daily",
+      "id": "998d5ce6-64f4-4b06-9bb9-6e745205af17",
+      "name": "Losartan",
+      "route": "oral",
+      "start_date": "2024-05-28",
+      "status": "active"
+    },
+    {
+      "dose": "20 mg",
+      "end_date": null,
+      "frequency": "At night",
+      "id": "ba126343-7333-42a5-b0e5-edb5173796b6",
+      "name": "Atorvastatin",
+      "route": "oral",
+      "start_date": "2022-10-06",
+      "status": "active"
+    },
+    {
+      "dose": "500 mg",
+      "end_date": null,
+      "frequency": "Twice daily",
+      "id": "4e6be562-d385-4108-b5bd-3bcfb00cbc02",
+      "name": "Metformin",
+      "route": "oral",
+      "start_date": "2021-05-24",
+      "status": "active"
+    }
+  ],
+  "truncated": false
+}

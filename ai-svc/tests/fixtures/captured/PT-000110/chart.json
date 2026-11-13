@@ -1,0 +1,94 @@
+{
+  "allergies": [],
+  "conditions": [
+    {
+      "category": "nephrology",
+      "description": "Glomerular disease in systemic lupus erythematosus",
+      "icd10_code": "M32.14",
+      "id": "4e1fd77f-6366-4308-bbc6-80339f12a3cc",
+      "is_primary": true,
+      "onset_date": "2024-12-14",
+      "resolved_date": null,
+      "status": "active"
+    }
+  ],
+  "counts": {
+    "drafts": 0,
+    "encounters": 1,
+    "final_encounters": 1
+  },
+  "encounter_index": [
+    {
+      "encounter_date": "2026-08-31T04:30:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": true,
+      "id": "c14dacb6-474a-4d1b-b511-5ead4f98d0dd",
+      "status": "final"
+    }
+  ],
+  "medications": [
+    {
+      "dose": "500 mg",
+      "end_date": null,
+      "frequency": "Twice daily",
+      "id": "f26be990-e115-40ca-bb20-e0910409ba90",
+      "name": "Mycophenolate",
+      "route": "oral",
+      "start_date": "2025-07-02",
+      "status": "active"
+    },
+    {
+      "dose": "200 mg",
+      "end_date": "2026-10-05",
+      "frequency": "Twice daily",
+      "id": "224cd0ee-c39a-4421-b88d-79ff09237eca",
+      "name": "Hydroxychloroquine",
+      "route": "oral",
+      "start_date": "2025-03-24",
+      "status": "active"
+    },
+    {
+      "dose": "10 mg",
+      "end_date": null,
+      "frequency": "Once daily",
+      "id": "cf7b2502-f6a6-4a38-ac30-9f984895b4e9",
+      "name": "Prednisolone",
+      "route": "oral",
+      "start_date": "2025-02-02",
+      "status": "active"
+    }
+  ],
+  "patient": {
+    "age": 34,
+    "allergy_status": "nka",
+    "date_of_birth": "1992-04-20",
+    "established_ckd_stage": null,
+    "family_history": "Mother had lupus.",
+    "id": "2740bd4c-820f-50a1-8cd1-8c86376b0a9e",
+    "past_medical_history": "Systemic lupus with kidney involvement.",
+    "sex": "F",
+    "social_history": "Graduate student."
+  },
+  "recent_encounters": [
+    {
+      "assessment": "Partial response to induction therapy.",
+      "chief_complaint": "Lupus nephritis review",
+      "diagnoses": [],
+      "encounter_date": "2026-08-31T04:30:00Z",
+      "encounter_type": "follow_up",
+      "examination_notes": null,
+      "follow_up_date": null,
+      "id": "c14dacb6-474a-4d1b-b511-5ead4f98d0dd",
+      "plan": "Continue immunosuppression. Review in 2 months.",
+      "status": "final",
+      "symptoms": [],
+      "vitals": {
+        "diastolic_bp": 76,
+        "heart_rate": 84,
+        "systolic_bp": 122,
+        "temperature_c": null,
+        "weight_kg": null
+      }
+    }
+  ]
+}

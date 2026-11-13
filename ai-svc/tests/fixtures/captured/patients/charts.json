@@ -1,0 +1,262 @@
+[
+  {
+    "items": [
+      {
+        "active_meds_past_end": [],
+        "age": 30,
+        "allergy_status": "unknown",
+        "date_of_birth": "1996-11-08",
+        "established_ckd_stage": null,
+        "final_encounters": [],
+        "first_name": "Priya",
+        "has_active_primary": false,
+        "id": "05f10bac-ec08-5600-a3a2-4f0a181793fd",
+        "last_name": "Nair",
+        "medication_count": 0,
+        "mrn": "PT-000108",
+        "sex": "F"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 36,
+        "allergy_status": "nka",
+        "date_of_birth": "1990-03-12",
+        "established_ckd_stage": null,
+        "final_encounters": [
+          {
+            "encounter_date": "2026-10-15T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "b23b22e2-ee2a-4fa2-84d7-f427dae90646"
+          }
+        ],
+        "first_name": "Vikram",
+        "has_active_primary": true,
+        "id": "16c4e918-25a1-572f-95b1-0c514740cd8d",
+        "last_name": "Rao",
+        "medication_count": 0,
+        "mrn": "PT-000105",
+        "sex": "M"
+      },
+      {
+        "active_meds_past_end": [
+          {
+            "end_date": "2026-10-05",
+            "id": "224cd0ee-c39a-4421-b88d-79ff09237eca",
+            "name": "Hydroxychloroquine"
+          }
+        ],
+        "age": 34,
+        "allergy_status": "nka",
+        "date_of_birth": "1992-04-20",
+        "established_ckd_stage": null,
+        "final_encounters": [
+          {
+            "encounter_date": "2026-08-31T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "c14dacb6-474a-4d1b-b511-5ead4f98d0dd"
+          }
+        ],
+        "first_name": "Kavita",
+        "has_active_primary": true,
+        "id": "2740bd4c-820f-50a1-8cd1-8c86376b0a9e",
+        "last_name": "Joshi",
+        "medication_count": 3,
+        "mrn": "PT-000110",
+        "sex": "F"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 41,
+        "allergy_status": "unknown",
+        "date_of_birth": "1985-07-30",
+        "established_ckd_stage": "G2",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-09-15T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "c2742839-e847-4527-8809-bd19f097a1d7"
+          }
+        ],
+        "first_name": "Arjun",
+        "has_active_primary": true,
+        "id": "7048ca48-bd2c-5b1c-8fca-39966a6ca1f7",
+        "last_name": "Mehta",
+        "medication_count": 1,
+        "mrn": "PT-000103",
+        "sex": "M"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 55,
+        "allergy_status": "nka",
+        "date_of_birth": "1971-01-05",
+        "established_ckd_stage": "G3a",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-09-30T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "37147f57-3222-4190-9329-cdc983367356"
+          },
+          {
+            "encounter_date": "2026-06-17T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "885f809c-8019-4797-a513-b8815a8e9974"
+          }
+        ],
+        "first_name": "Sunita",
+        "has_active_primary": true,
+        "id": "9850a961-f343-529b-9fbd-9cfc9ec8413e",
+        "last_name": "Verma",
+        "medication_count": 2,
+        "mrn": "PT-000102",
+        "sex": "F"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 53,
+        "allergy_status": "has_allergies",
+        "date_of_birth": "1973-02-19",
+        "established_ckd_stage": "G5",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-11-08T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "d1f7a640-192f-4bd2-9e1a-2f47a5aee198"
+          }
+        ],
+        "first_name": "Aditya",
+        "has_active_primary": true,
+        "id": "acc98a62-4dda-59d4-a75e-487809d11ecf",
+        "last_name": "Singh",
+        "medication_count": 2,
+        "mrn": "PT-000109",
+        "sex": "M"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 77,
+        "allergy_status": "has_allergies",
+        "date_of_birth": "1948-12-01",
+        "established_ckd_stage": "G4",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-10-31T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "9730659a-d71a-4b5a-b2a6-0ab037a1e228"
+          },
+          {
+            "encounter_date": "2026-08-16T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "ca21e83c-47a3-406b-8649-d135da03a416"
+          }
+        ],
+        "first_name": "Fatima",
+        "has_active_primary": true,
+        "id": "b7f2ecf1-4ae7-50ee-97c3-a911eddf5d1b",
+        "last_name": "Sheikh",
+        "medication_count": 3,
+        "mrn": "PT-000104",
+        "sex": "F"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 71,
+        "allergy_status": "nka",
+        "date_of_birth": "1955-09-23",
+        "established_ckd_stage": "G4",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-10-20T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "c866a6b5-db8d-42cb-83e7-9f44fadc0508"
+          },
+          {
+            "encounter_date": "2026-07-17T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "20282e0c-9e87-4399-ab66-48a41d9feab9"
+          }
+        ],
+        "first_name": "Lakshmi",
+        "has_active_primary": true,
+        "id": "e2e9ff92-1651-5de8-a3d4-c614320acfc3",
+        "last_name": "Iyer",
+        "medication_count": 2,
+        "mrn": "PT-000106",
+        "sex": "F"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 64,
+        "allergy_status": "nka",
+        "date_of_birth": "1962-06-14",
+        "established_ckd_stage": "G2",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-03-29T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "be52bb5c-349b-4a0f-81a1-2b2bfcd5c7b8"
+          },
+          {
+            "encounter_date": "2025-10-30T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "e890cd3b-366c-4f9f-ac3e-cd88e061c373"
+          }
+        ],
+        "first_name": "Mohan",
+        "has_active_primary": true,
+        "id": "e3d378eb-c349-57ef-8b34-005d86b1b23b",
+        "last_name": "Das",
+        "medication_count": 1,
+        "mrn": "PT-000107",
+        "sex": "M"
+      },
+      {
+        "active_meds_past_end": [],
+        "age": 67,
+        "allergy_status": "has_allergies",
+        "date_of_birth": "1959-04-17",
+        "established_ckd_stage": "G3b",
+        "final_encounters": [
+          {
+            "encounter_date": "2026-10-25T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "799bfa79-c0cf-46d6-8f85-195ec23eabef"
+          },
+          {
+            "encounter_date": "2026-08-06T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "6a27c390-b2cc-4399-896c-59424a7825fa"
+          },
+          {
+            "encounter_date": "2026-04-28T04:30:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "5c1d47af-a1ec-4fc4-9d24-a35d02ccc134"
+          }
+        ],
+        "first_name": "Ramesh",
+        "has_active_primary": true,
+        "id": "fc158cad-0a89-5611-9c8b-1a0b551453d0",
+        "last_name": "Kulkarni",
+        "medication_count": 4,
+        "mrn": "PT-000101",
+        "sex": "M"
+      }
+    ],
+    "next_cursor": null
+  }
+]

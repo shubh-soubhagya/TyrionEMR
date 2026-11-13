@@ -1,0 +1,136 @@
+{
+  "ckd": {
+    "egfr_category": "G3a",
+    "egfr_collected_at": "2026-10-19T09:00:00Z",
+    "egfr_label": "Mild to moderately decreased",
+    "egfr_value": 49.0,
+    "uacr_category": "A3",
+    "uacr_collected_at": "2026-10-19T09:00:00Z",
+    "uacr_label": "Severely increased",
+    "uacr_value": 333.0
+  },
+  "egfr_lt60_run": {
+    "n": 5,
+    "since": "2025-06-06T09:00:00Z"
+  },
+  "first_result_at": "2025-06-06T09:00:00Z",
+  "has_critical": false,
+  "last_result_at": "2026-10-19T09:00:00Z",
+  "patient_id": "2740bd4c-820f-50a1-8cd1-8c86376b0a9e",
+  "rapid_decline": true,
+  "status_version": 5,
+  "tests": [
+    {
+      "canonical_unit": "mg/dL",
+      "name": "Serum creatinine",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "high",
+        "ref_high": 1.1,
+        "ref_low": 0.6,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "c97ef760-a9d9-411a-ab01-407eb77d080e",
+        "value": 1.44
+      },
+      "test_code": "CREAT"
+    },
+    {
+      "canonical_unit": "mL/min/1.73m²",
+      "name": "eGFR",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "low",
+        "ref_high": null,
+        "ref_low": 90.0,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "dd35cebf-7693-4469-9646-01083f943dbc",
+        "value": 49.0
+      },
+      "test_code": "EGFR"
+    },
+    {
+      "canonical_unit": "mg/dL",
+      "name": "Blood urea nitrogen",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "high",
+        "ref_high": 20.0,
+        "ref_low": 7.0,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "fde04a78-b5b4-4ee4-853d-805caf057574",
+        "value": 20.6
+      },
+      "test_code": "BUN"
+    },
+    {
+      "canonical_unit": "mmol/L",
+      "name": "Potassium",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "normal",
+        "ref_high": 5.0,
+        "ref_low": 3.5,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "1eebfab6-baee-4343-a843-27031cd326bd",
+        "value": 4.2
+      },
+      "test_code": "K"
+    },
+    {
+      "canonical_unit": "g/dL",
+      "name": "Hemoglobin",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "low",
+        "ref_high": 15.5,
+        "ref_low": 12.0,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "a2bd3ceb-25b7-4a91-b8f2-e2940bd900b3",
+        "value": 11.4
+      },
+      "test_code": "HB"
+    },
+    {
+      "canonical_unit": "mg/dL",
+      "name": "Calcium",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "normal",
+        "ref_high": 10.5,
+        "ref_low": 8.5,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "a8dc9973-6a08-4868-8dd0-a8be7d0e5936",
+        "value": 8.9
+      },
+      "test_code": "CA"
+    },
+    {
+      "canonical_unit": "mg/dL",
+      "name": "Phosphorus",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "normal",
+        "ref_high": 4.5,
+        "ref_low": 2.5,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "443d372d-9ba8-4534-9b38-ba8ffbffc36f",
+        "value": 3.9
+      },
+      "test_code": "PHOS"
+    },
+    {
+      "canonical_unit": "mg/g",
+      "name": "Urine albumin-creatinine ratio",
+      "result": {
+        "collected_at": "2026-10-19T09:00:00Z",
+        "flag": "high",
+        "ref_high": 30.0,
+        "ref_low": null,
+        "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+        "result_id": "489c5c80-da23-4b2c-9ec0-c756e63a90d3",
+        "value": 333.0
+      },
+      "test_code": "UACR"
+    }
+  ]
+}

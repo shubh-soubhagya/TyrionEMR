@@ -1,0 +1,36 @@
+{
+  "allergies": [],
+  "medications": [
+    {
+      "dose": "500 mg",
+      "end_date": null,
+      "frequency": "Twice daily",
+      "id": "f26be990-e115-40ca-bb20-e0910409ba90",
+      "name": "Mycophenolate",
+      "route": "oral",
+      "start_date": "2025-07-02",
+      "status": "active"
+    },
+    {
+      "dose": "200 mg",
+      "end_date": "2026-10-05",
+      "frequency": "Twice daily",
+      "id": "224cd0ee-c39a-4421-b88d-79ff09237eca",
+      "name": "Hydroxychloroquine",
+      "route": "oral",
+      "start_date": "2025-03-24",
+      "status": "active"
+    },
+    {
+      "dose": "10 mg",
+      "end_date": null,
+      "frequency": "Once daily",
+      "id": "cf7b2502-f6a6-4a38-ac30-9f984895b4e9",
+      "name": "Prednisolone",
+      "route": "oral",
+      "start_date": "2025-02-02",
+      "status": "active"
+    }
+  ],
+  "truncated": false
+}

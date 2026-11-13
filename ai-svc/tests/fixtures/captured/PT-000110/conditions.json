@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "category": "nephrology",
+      "description": "Glomerular disease in systemic lupus erythematosus",
+      "icd10_code": "M32.14",
+      "id": "4e1fd77f-6366-4308-bbc6-80339f12a3cc",
+      "is_primary": true,
+      "onset_date": "2024-12-14",
+      "resolved_date": null,
+      "status": "active"
+    }
+  ],
+  "truncated": false
+}

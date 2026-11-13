@@ -1,0 +1,1096 @@
+[
+  {
+    "items": [
+      {
+        "creat_stats": {
+          "abs_change": -1.44,
+          "direction": "improving",
+          "first": 2.73,
+          "first_at": "2026-06-02T09:00:00+00:00",
+          "last": 1.29,
+          "last_at": "2026-10-30T09:00:00+00:00",
+          "n": 4,
+          "pct_change": -52.7,
+          "rapid_decline": false,
+          "slope_per_year": -3.47,
+          "span_days": 150
+        },
+        "egfr_category": "G2",
+        "egfr_lt60_run": null,
+        "egfr_stats": {
+          "abs_change": 44.0,
+          "direction": "improving",
+          "first": 30.0,
+          "first_at": "2026-06-02T09:00:00+00:00",
+          "last": 74.0,
+          "last_at": "2026-10-30T09:00:00+00:00",
+          "n": 4,
+          "pct_change": 146.7,
+          "rapid_decline": false,
+          "slope_per_year": 107.75,
+          "span_days": 150
+        },
+        "first_result_at": "2026-06-02T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-10-30T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "4577e9ca-3a4e-47db-aa58-636b673aa3b5",
+            "unit": "mg/dL",
+            "value": 20.9
+          },
+          "CA": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "7ca55e7a-50ed-479d-867f-118ecf37b6fa",
+            "unit": "mg/dL",
+            "value": 9.1
+          },
+          "CREAT": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 1.3,
+            "ref_low": 0.7,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "83cfe58c-e8e4-43bb-8c17-1f2fb99a7428",
+            "unit": "mg/dL",
+            "value": 1.29
+          },
+          "EGFR": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "9450b0e8-9b0a-4ca2-a295-86ceb2f3573c",
+            "unit": "mL/min/1.73m²",
+            "value": 74.0
+          },
+          "HB": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 17.5,
+            "ref_low": 13.5,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "ecc8f0fe-4aa1-4fe7-8146-1e8a0e8aa63c",
+            "unit": "g/dL",
+            "value": 14.1
+          },
+          "K": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "4b0b3227-edbd-4d8f-861d-1392d676e980",
+            "unit": "mmol/L",
+            "value": 4.2
+          },
+          "PHOS": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "4fb79f41-ea1b-4c06-9f34-f0ff11e88d42",
+            "unit": "mg/dL",
+            "value": 3.7
+          },
+          "UACR": {
+            "collected_at": "2026-10-30T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "f73486c9-169d-4f08-9ed5-f92f6a9803f6",
+            "result_id": "5c5ccf7e-9f15-4e22-aa82-01adaa6d5247",
+            "unit": "mg/g",
+            "value": 40.0
+          }
+        },
+        "patient_id": "16c4e918-25a1-572f-95b1-0c514740cd8d",
+        "rapid_decline": false,
+        "result_count": 30,
+        "uacr_category": "A2"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.2,
+          "direction": "worsening",
+          "first": 1.24,
+          "first_at": "2025-06-06T09:00:00+00:00",
+          "last": 1.44,
+          "last_at": "2026-10-19T09:00:00+00:00",
+          "n": 5,
+          "pct_change": 16.1,
+          "rapid_decline": false,
+          "slope_per_year": 0.15,
+          "span_days": 500
+        },
+        "egfr_category": "G3a",
+        "egfr_lt60_run": {
+          "n": 5,
+          "since": "2025-06-06T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -10.0,
+          "direction": "worsening",
+          "first": 59.0,
+          "first_at": "2025-06-06T09:00:00+00:00",
+          "last": 49.0,
+          "last_at": "2026-10-19T09:00:00+00:00",
+          "n": 5,
+          "pct_change": -16.9,
+          "rapid_decline": true,
+          "slope_per_year": -7.63,
+          "span_days": 500
+        },
+        "first_result_at": "2025-06-06T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-10-19T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "fde04a78-b5b4-4ee4-853d-805caf057574",
+            "unit": "mg/dL",
+            "value": 20.6
+          },
+          "CA": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "a8dc9973-6a08-4868-8dd0-a8be7d0e5936",
+            "unit": "mg/dL",
+            "value": 8.9
+          },
+          "CREAT": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.1,
+            "ref_low": 0.6,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "c97ef760-a9d9-411a-ab01-407eb77d080e",
+            "unit": "mg/dL",
+            "value": 1.44
+          },
+          "EGFR": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "dd35cebf-7693-4469-9646-01083f943dbc",
+            "unit": "mL/min/1.73m²",
+            "value": 49.0
+          },
+          "HB": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 15.5,
+            "ref_low": 12.0,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "a2bd3ceb-25b7-4a91-b8f2-e2940bd900b3",
+            "unit": "g/dL",
+            "value": 11.4
+          },
+          "K": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "1eebfab6-baee-4343-a843-27031cd326bd",
+            "unit": "mmol/L",
+            "value": 4.2
+          },
+          "PHOS": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "443d372d-9ba8-4534-9b38-ba8ffbffc36f",
+            "unit": "mg/dL",
+            "value": 3.9
+          },
+          "UACR": {
+            "collected_at": "2026-10-19T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "024900c0-5968-4e93-8ca4-53a335b91f2e",
+            "result_id": "489c5c80-da23-4b2c-9ec0-c756e63a90d3",
+            "unit": "mg/g",
+            "value": 333.0
+          }
+        },
+        "patient_id": "2740bd4c-820f-50a1-8cd1-8c86376b0a9e",
+        "rapid_decline": true,
+        "result_count": 38,
+        "uacr_category": "A3"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.04,
+          "direction": "stable",
+          "first": 1.16,
+          "first_at": "2025-02-01T09:00:00+00:00",
+          "last": 1.2,
+          "last_at": "2026-09-24T09:00:00+00:00",
+          "n": 6,
+          "pct_change": 3.4,
+          "rapid_decline": false,
+          "slope_per_year": 0.02,
+          "span_days": 600
+        },
+        "egfr_category": "G2",
+        "egfr_lt60_run": null,
+        "egfr_stats": {
+          "abs_change": -4.0,
+          "direction": "worsening",
+          "first": 82.0,
+          "first_at": "2025-02-01T09:00:00+00:00",
+          "last": 78.0,
+          "last_at": "2026-09-24T09:00:00+00:00",
+          "n": 6,
+          "pct_change": -4.9,
+          "rapid_decline": false,
+          "slope_per_year": -2.29,
+          "span_days": 600
+        },
+        "first_result_at": "2025-02-01T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-09-24T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "f62b16ba-fa07-4b0c-b308-fae91e11dbf5",
+            "unit": "mg/dL",
+            "value": 21.5
+          },
+          "CA": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "8bd2f905-56dd-4554-aad8-4899daa63cb5",
+            "unit": "mg/dL",
+            "value": 9.7
+          },
+          "CREAT": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 1.3,
+            "ref_low": 0.7,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "71f75783-4e31-4969-b9e3-decc60ca546e",
+            "unit": "mg/dL",
+            "value": 1.2
+          },
+          "EGFR": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "e8a28a8f-ea02-40c2-b482-aac39ea05688",
+            "unit": "mL/min/1.73m²",
+            "value": 78.0
+          },
+          "HB": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 17.5,
+            "ref_low": 13.5,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "8809d81a-be69-4772-8d57-6b741f209ee9",
+            "unit": "g/dL",
+            "value": 14.3
+          },
+          "K": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "b199c3b1-d59b-403c-875f-156fac44c3a0",
+            "unit": "mmol/L",
+            "value": 4.4
+          },
+          "PHOS": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "f796158b-16c5-44bc-9f10-d70f20f99cc4",
+            "unit": "mg/dL",
+            "value": 3.6
+          },
+          "UACR": {
+            "collected_at": "2026-09-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "3f33273c-2d80-4722-8749-e248a9a3b46b",
+            "result_id": "e6765dae-0d48-4729-9258-d110c5dc6538",
+            "unit": "mg/g",
+            "value": 213.0
+          }
+        },
+        "patient_id": "7048ca48-bd2c-5b1c-8fca-39966a6ca1f7",
+        "rapid_decline": false,
+        "result_count": 45,
+        "uacr_category": "A2"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.04,
+          "direction": "stable",
+          "first": 1.13,
+          "first_at": "2024-07-31T09:00:00+00:00",
+          "last": 1.17,
+          "last_at": "2026-10-09T09:00:00+00:00",
+          "n": 7,
+          "pct_change": 3.5,
+          "rapid_decline": false,
+          "slope_per_year": 0.02,
+          "span_days": 800
+        },
+        "egfr_category": "G3a",
+        "egfr_lt60_run": {
+          "n": 7,
+          "since": "2024-07-31T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -3.0,
+          "direction": "stable",
+          "first": 58.0,
+          "first_at": "2024-07-31T09:00:00+00:00",
+          "last": 55.0,
+          "last_at": "2026-10-09T09:00:00+00:00",
+          "n": 7,
+          "pct_change": -5.2,
+          "rapid_decline": false,
+          "slope_per_year": -1.48,
+          "span_days": 800
+        },
+        "first_result_at": "2024-07-31T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-10-09T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "7936269e-cf12-4318-87bb-c6a03f0022a9",
+            "unit": "mg/dL",
+            "value": 20.8
+          },
+          "CA": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "e7fc3ff3-4e57-49a0-92f2-890ba7dcdc48",
+            "unit": "mg/dL",
+            "value": 9.5
+          },
+          "CREAT": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.1,
+            "ref_low": 0.6,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "cc97a895-c64f-4d02-a57f-9cb2bf3b4911",
+            "unit": "mg/dL",
+            "value": 1.17
+          },
+          "EGFR": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "eccc013e-fafd-489d-aca5-4a7bed5035f4",
+            "unit": "mL/min/1.73m²",
+            "value": 55.0
+          },
+          "HB": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 15.5,
+            "ref_low": 12.0,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "9e9b0fe4-5386-4e79-9bac-6a64e9247d0b",
+            "unit": "g/dL",
+            "value": 12.5
+          },
+          "K": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "38c2361f-9c82-4547-9ec0-1cdf6f871bb6",
+            "unit": "mmol/L",
+            "value": 4.6
+          },
+          "PHOS": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "0081d4b2-d581-42fb-bba7-9fcb462c5cc6",
+            "unit": "mg/dL",
+            "value": 3.9
+          },
+          "UACR": {
+            "collected_at": "2026-10-09T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "61e2e91a-887b-4f2f-a36f-2bd980582998",
+            "result_id": "f59703bb-1f63-4381-b1c4-afce7c037df7",
+            "unit": "mg/g",
+            "value": 119.0
+          }
+        },
+        "patient_id": "9850a961-f343-529b-9fbd-9cfc9ec8413e",
+        "rapid_decline": false,
+        "result_count": 53,
+        "uacr_category": "A2"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 2.09,
+          "direction": "worsening",
+          "first": 3.67,
+          "first_at": "2025-10-03T09:00:00+00:00",
+          "last": 5.76,
+          "last_at": "2026-11-07T09:00:00+00:00",
+          "n": 6,
+          "pct_change": 56.9,
+          "rapid_decline": false,
+          "slope_per_year": 2.05,
+          "span_days": 400
+        },
+        "egfr_category": "G5",
+        "egfr_lt60_run": {
+          "n": 6,
+          "since": "2025-10-03T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -8.0,
+          "direction": "worsening",
+          "first": 19.0,
+          "first_at": "2025-10-03T09:00:00+00:00",
+          "last": 11.0,
+          "last_at": "2026-11-07T09:00:00+00:00",
+          "n": 6,
+          "pct_change": -42.1,
+          "rapid_decline": true,
+          "slope_per_year": -7.79,
+          "span_days": 400
+        },
+        "first_result_at": "2025-10-03T09:00:00Z",
+        "has_critical": true,
+        "last_result_at": "2026-11-07T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "5ef9689d-5d3c-47d0-8ccb-666e7ddd1799",
+            "unit": "mg/dL",
+            "value": 56.0
+          },
+          "CA": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "33f8951e-0c2b-4b0f-988f-c016733f8ac1",
+            "unit": "mg/dL",
+            "value": 7.9
+          },
+          "CREAT": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "critical_high",
+            "ref_high": 1.3,
+            "ref_low": 0.7,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "f87156d5-bc7f-40e9-8bc1-f35008a1ab13",
+            "unit": "mg/dL",
+            "value": 5.76
+          },
+          "EGFR": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "2169c060-ad01-465f-952f-0ae0c7e81403",
+            "unit": "mL/min/1.73m²",
+            "value": 11.0
+          },
+          "HB": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 17.5,
+            "ref_low": 13.5,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "5380419b-ecdf-4781-92b7-7ed1f1c0feea",
+            "unit": "g/dL",
+            "value": 9.4
+          },
+          "K": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "critical_high",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "f57715fc-ec90-48b0-9935-5a79d99ad9a6",
+            "unit": "mmol/L",
+            "value": 6.2
+          },
+          "PHOS": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "3d20cd66-54c9-4b74-b347-712238c43837",
+            "unit": "mg/dL",
+            "value": 6.3
+          },
+          "UACR": {
+            "collected_at": "2026-11-07T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "8856615b-9180-4002-a755-ce3605f2e4b3",
+            "result_id": "05d6d85c-0b3e-463d-898c-d6be18556cf9",
+            "unit": "mg/g",
+            "value": 941.0
+          }
+        },
+        "patient_id": "acc98a62-4dda-59d4-a75e-487809d11ecf",
+        "rapid_decline": true,
+        "result_count": 45,
+        "uacr_category": "A3"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.52,
+          "direction": "worsening",
+          "first": 1.57,
+          "first_at": "2025-05-10T09:00:00+00:00",
+          "last": 2.09,
+          "last_at": "2026-11-01T09:00:00+00:00",
+          "n": 7,
+          "pct_change": 33.1,
+          "rapid_decline": false,
+          "slope_per_year": 0.34,
+          "span_days": 540
+        },
+        "egfr_category": "G4",
+        "egfr_lt60_run": {
+          "n": 7,
+          "since": "2025-05-10T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -10.0,
+          "direction": "worsening",
+          "first": 34.0,
+          "first_at": "2025-05-10T09:00:00+00:00",
+          "last": 24.0,
+          "last_at": "2026-11-01T09:00:00+00:00",
+          "n": 7,
+          "pct_change": -29.4,
+          "rapid_decline": true,
+          "slope_per_year": -6.68,
+          "span_days": 540
+        },
+        "first_result_at": "2025-05-10T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-11-01T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "8982615c-6002-4084-9fb1-45564ccb3607",
+            "unit": "mg/dL",
+            "value": 27.2
+          },
+          "CA": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "f935c8c1-7674-4d9e-92db-aaaa97daf301",
+            "unit": "mg/dL",
+            "value": 8.1
+          },
+          "CREAT": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.1,
+            "ref_low": 0.6,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "a788c0d7-fd61-40fc-a242-e684d6512372",
+            "unit": "mg/dL",
+            "value": 2.09
+          },
+          "EGFR": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "b9a820d9-c9ae-4635-ac5e-05e40cab0324",
+            "unit": "mL/min/1.73m²",
+            "value": 24.0
+          },
+          "HB": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 15.5,
+            "ref_low": 12.0,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "d9e2c156-6055-47a8-adf9-bbccb5e3b38d",
+            "unit": "g/dL",
+            "value": 9.7
+          },
+          "K": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "1b40fbfe-4bc7-493c-9f0f-7ed61534e6e1",
+            "unit": "mmol/L",
+            "value": 5.5
+          },
+          "PHOS": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "d5b36dde-082a-489c-8ddc-78c1de60122e",
+            "unit": "mg/dL",
+            "value": 5.4
+          },
+          "UACR": {
+            "collected_at": "2026-11-01T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "4142b729-1f6d-463e-8946-3bc632368dc6",
+            "result_id": "9db284a8-ea5e-4c0d-9b56-ac020afc9bcf",
+            "unit": "mg/g",
+            "value": 681.0
+          }
+        },
+        "patient_id": "b7f2ecf1-4ae7-50ee-97c3-a911eddf5d1b",
+        "rapid_decline": true,
+        "result_count": 53,
+        "uacr_category": "A3"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.16,
+          "direction": "stable",
+          "first": 1.31,
+          "first_at": "2024-11-15T09:00:00+00:00",
+          "last": 1.47,
+          "last_at": "2026-10-16T09:00:00+00:00",
+          "n": 6,
+          "pct_change": 12.2,
+          "rapid_decline": false,
+          "slope_per_year": 0.09,
+          "span_days": 700
+        },
+        "egfr_category": "G3b",
+        "egfr_lt60_run": {
+          "n": 6,
+          "since": "2024-11-15T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -6.0,
+          "direction": "worsening",
+          "first": 44.0,
+          "first_at": "2024-11-15T09:00:00+00:00",
+          "last": 38.0,
+          "last_at": "2026-10-16T09:00:00+00:00",
+          "n": 6,
+          "pct_change": -13.6,
+          "rapid_decline": false,
+          "slope_per_year": -3.28,
+          "span_days": 700
+        },
+        "first_result_at": "2024-11-15T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-10-16T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "f70149d2-6866-42bc-b55f-b63b6d5f46d8",
+            "unit": "mg/dL",
+            "value": 20.4
+          },
+          "CA": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "02fc775d-fccd-4c48-ae41-60c187fd197c",
+            "unit": "mg/dL",
+            "value": 9.1
+          },
+          "CREAT": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.1,
+            "ref_low": 0.6,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "4052b4d4-b346-4d01-b53d-c06b7089a6b4",
+            "unit": "mg/dL",
+            "value": 1.47
+          },
+          "EGFR": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "da96e92c-d8fa-470f-bb94-de73a0ee9d86",
+            "unit": "mL/min/1.73m²",
+            "value": 38.0
+          },
+          "HB": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 15.5,
+            "ref_low": 12.0,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "17796208-68f5-4a68-9b57-9e630a595588",
+            "unit": "g/dL",
+            "value": 12.5
+          },
+          "K": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "c6c0c37f-b96c-4be8-8341-e7fafd200d09",
+            "unit": "mmol/L",
+            "value": 4.8
+          },
+          "PHOS": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "1e0ff595-39f1-415d-bf43-80b1de6acef5",
+            "unit": "mg/dL",
+            "value": 4.1
+          },
+          "UACR": {
+            "collected_at": "2026-10-16T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "77f22109-da31-4767-893b-51dfa990767e",
+            "result_id": "ad109212-36df-4179-b2ef-1022581bbbad",
+            "unit": "mg/g",
+            "value": 54.0
+          }
+        },
+        "patient_id": "e2e9ff92-1651-5de8-a3d4-c614320acfc3",
+        "rapid_decline": false,
+        "result_count": 45,
+        "uacr_category": "A2"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.31,
+          "direction": "worsening",
+          "first": 1.1,
+          "first_at": "2024-11-13T09:00:00+00:00",
+          "last": 1.41,
+          "last_at": "2026-03-28T09:00:00+00:00",
+          "n": 5,
+          "pct_change": 28.2,
+          "rapid_decline": false,
+          "slope_per_year": 0.19,
+          "span_days": 500
+        },
+        "egfr_category": "G2",
+        "egfr_lt60_run": null,
+        "egfr_stats": {
+          "abs_change": -4.0,
+          "direction": "worsening",
+          "first": 76.0,
+          "first_at": "2024-11-13T09:00:00+00:00",
+          "last": 72.0,
+          "last_at": "2026-03-28T09:00:00+00:00",
+          "n": 5,
+          "pct_change": -5.3,
+          "rapid_decline": false,
+          "slope_per_year": -3.18,
+          "span_days": 500
+        },
+        "first_result_at": "2024-11-13T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-03-28T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "c0b27ba9-3292-4265-9392-b2f8ca649144",
+            "unit": "mg/dL",
+            "value": 23.2
+          },
+          "CA": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "3abc1d94-300c-4efc-83a9-e9de2bedbc01",
+            "unit": "mg/dL",
+            "value": 9.6
+          },
+          "CREAT": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.3,
+            "ref_low": 0.7,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "ffea1a02-41f6-4f49-a862-b9f0c3114b9b",
+            "unit": "mg/dL",
+            "value": 1.41
+          },
+          "EGFR": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "c273d9d5-427b-448f-9776-241f33ce7f73",
+            "unit": "mL/min/1.73m²",
+            "value": 72.0
+          },
+          "HB": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 17.5,
+            "ref_low": 13.5,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "097bb50e-4074-4378-a7c2-84b88acc6db8",
+            "unit": "g/dL",
+            "value": 14.3
+          },
+          "K": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "d5a85fa6-846f-4662-bf12-2630c9be28c7",
+            "unit": "mmol/L",
+            "value": 4.6
+          },
+          "PHOS": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "d95161eb-2d43-4d71-b9cb-98160286f719",
+            "unit": "mg/dL",
+            "value": 3.6
+          },
+          "UACR": {
+            "collected_at": "2026-03-28T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "7cc53d2d-0bc5-4fed-ac41-097795c0e7fd",
+            "result_id": "d21012ad-6112-406d-952b-bbb016887e2b",
+            "unit": "mg/g",
+            "value": 85.0
+          }
+        },
+        "patient_id": "e3d378eb-c349-57ef-8b34-005d86b1b23b",
+        "rapid_decline": false,
+        "result_count": 38,
+        "uacr_category": "A2"
+      },
+      {
+        "creat_stats": {
+          "abs_change": 0.47,
+          "direction": "worsening",
+          "first": 1.44,
+          "first_at": "2024-11-23T09:00:00+00:00",
+          "last": 1.91,
+          "last_at": "2026-10-24T09:00:00+00:00",
+          "n": 8,
+          "pct_change": 32.6,
+          "rapid_decline": false,
+          "slope_per_year": 0.24,
+          "span_days": 700
+        },
+        "egfr_category": "G3b",
+        "egfr_lt60_run": {
+          "n": 8,
+          "since": "2024-11-23T09:00:00Z"
+        },
+        "egfr_stats": {
+          "abs_change": -16.0,
+          "direction": "worsening",
+          "first": 54.0,
+          "first_at": "2024-11-23T09:00:00+00:00",
+          "last": 38.0,
+          "last_at": "2026-10-24T09:00:00+00:00",
+          "n": 8,
+          "pct_change": -29.6,
+          "rapid_decline": true,
+          "slope_per_year": -8.18,
+          "span_days": 700
+        },
+        "first_result_at": "2024-11-23T09:00:00Z",
+        "has_critical": false,
+        "last_result_at": "2026-10-24T09:00:00Z",
+        "latest": {
+          "BUN": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 20.0,
+            "ref_low": 7.0,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "0c7237b2-cabd-4f40-abca-659c8921d3a7",
+            "unit": "mg/dL",
+            "value": 24.2
+          },
+          "CA": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 10.5,
+            "ref_low": 8.5,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "347d9193-86e4-4dae-91be-a829a7e507f2",
+            "unit": "mg/dL",
+            "value": 8.8
+          },
+          "CREAT": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 1.3,
+            "ref_low": 0.7,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "82568a3b-3767-42e1-be7c-4958896819ab",
+            "unit": "mg/dL",
+            "value": 1.91
+          },
+          "EGFR": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": null,
+            "ref_low": 90.0,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "490474ba-c67c-43c2-90b7-f6bb6c4ddb06",
+            "unit": "mL/min/1.73m²",
+            "value": 38.0
+          },
+          "HB": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "low",
+            "ref_high": 17.5,
+            "ref_low": 13.5,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "91dc0458-017c-44c3-bb80-1222f0458767",
+            "unit": "g/dL",
+            "value": 11.4
+          },
+          "K": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 5.0,
+            "ref_low": 3.5,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "c869a5c2-5313-4823-b05f-1f4aa7038a9f",
+            "unit": "mmol/L",
+            "value": 5.2
+          },
+          "PHOS": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "normal",
+            "ref_high": 4.5,
+            "ref_low": 2.5,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "715f237e-8417-4693-be0b-b913065675fd",
+            "unit": "mg/dL",
+            "value": 4.4
+          },
+          "UACR": {
+            "collected_at": "2026-10-24T09:00:00+00:00",
+            "flag": "high",
+            "ref_high": 30.0,
+            "ref_low": null,
+            "report_id": "1fd8c504-02bc-4e21-9692-a7a51e389869",
+            "result_id": "bebd6dd9-5f5d-4986-8b4a-fb3105539105",
+            "unit": "mg/g",
+            "value": 482.0
+          }
+        },
+        "patient_id": "fc158cad-0a89-5611-9c8b-1a0b551453d0",
+        "rapid_decline": true,
+        "result_count": 60,
+        "uacr_category": "A3"
+      }
+    ],
+    "next_cursor": null
+  }
+]

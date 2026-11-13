@@ -1,0 +1,72 @@
+{
+  "items": [
+    {
+      "chief_complaint": "Dietitian referral discussion",
+      "diagnoses": [],
+      "encounter_date": "2026-11-11T04:30:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "ce1cc26b-e6b6-4508-a026-b4d207cfe626",
+      "status": "draft",
+      "symptoms": [],
+      "vitals": null
+    },
+    {
+      "chief_complaint": "Review of recent laboratory results",
+      "diagnoses": [
+        {
+          "description": "Chronic kidney disease, stage 3b",
+          "icd10_code": "N18.32"
+        }
+      ],
+      "encounter_date": "2026-10-25T04:30:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": "2026-12-06",
+      "id": "799bfa79-c0cf-46d6-8f85-195ec23eabef",
+      "status": "final",
+      "symptoms": [],
+      "vitals": {
+        "diastolic_bp": 82,
+        "heart_rate": 74,
+        "systolic_bp": 138,
+        "temperature_c": 36.6,
+        "weight_kg": 72.9
+      }
+    },
+    {
+      "chief_complaint": "Swelling of both feet",
+      "diagnoses": [],
+      "encounter_date": "2026-08-06T04:30:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": "2026-10-05",
+      "id": "6a27c390-b2cc-4399-896c-59424a7825fa",
+      "status": "final",
+      "symptoms": [],
+      "vitals": {
+        "diastolic_bp": 90,
+        "heart_rate": 78,
+        "systolic_bp": 150,
+        "temperature_c": null,
+        "weight_kg": 74.2
+      }
+    },
+    {
+      "chief_complaint": "Routine kidney review",
+      "diagnoses": [],
+      "encounter_date": "2026-04-28T04:30:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "5c1d47af-a1ec-4fc4-9d24-a35d02ccc134",
+      "status": "final",
+      "symptoms": [],
+      "vitals": {
+        "diastolic_bp": 86,
+        "heart_rate": 76,
+        "systolic_bp": 142,
+        "temperature_c": null,
+        "weight_kg": null
+      }
+    }
+  ],
+  "truncated": false
+}

@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "chief_complaint": "Lupus nephritis review",
+      "diagnoses": [],
+      "encounter_date": "2026-08-31T04:30:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "c14dacb6-474a-4d1b-b511-5ead4f98d0dd",
+      "status": "final",
+      "symptoms": [],
+      "vitals": {
+        "diastolic_bp": 76,
+        "heart_rate": 84,
+        "systolic_bp": 122,
+        "temperature_c": null,
+        "weight_kg": null
+      }
+    }
+  ],
+  "truncated": false
+}
