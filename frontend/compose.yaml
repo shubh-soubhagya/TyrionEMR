@@ -13,6 +13,8 @@ services:
       - .:/app
       # lab-svc's shared test vectors (HLD ADR-019): the live preview must agree with the server on every case
       - ../lab-svc/tests/vectors:/lab-vectors:ro
+      # ai-svc's recorded responses: the disclaimer constant must equal the one ai-svc sends (decisions D2)
+      - ../ai-svc/docs/api/examples:/ai-examples:ro
     # The dev server proxies /api to the gateway on the host (proxy.conf.mjs).
     extra_hosts:
       - 'host.docker.internal:host-gateway'

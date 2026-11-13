@@ -85,8 +85,8 @@ export interface StepDto {
   readonly key: string;
   readonly label: string;
   readonly state: string;
-  readonly ms: number;
-  readonly note: string;
+  readonly ms: number | null;
+  readonly note: string | null;
 }
 
 export interface StartDto {
@@ -122,16 +122,61 @@ export interface NarrativeDto {
   readonly not_documented: readonly string[];
 }
 
+export interface TrendFactsDto {
+  readonly n: number;
+  readonly ref?: string;
+  readonly first?: number | null;
+  readonly last?: number | null;
+  readonly direction?: string;
+  readonly span_days?: number | null;
+  readonly abs_change?: number | null;
+  readonly pct_change?: number | null;
+  readonly slope_per_year?: number | null;
+  readonly rapid_decline?: boolean;
+}
+
+export interface FactsDto {
+  readonly ckd: {
+    readonly ref?: string;
+    readonly established: string | null;
+    readonly egfr_category: string | null;
+    readonly uacr_category: string | null;
+    readonly egfr_value?: number | null;
+    readonly mismatch: boolean;
+  };
+  readonly trends: Readonly<Record<string, TrendFactsDto>>;
+  readonly abnormal_results: readonly {
+    readonly ref: string;
+    readonly flag: string;
+    readonly name: string;
+    readonly test: string;
+    readonly unit: string;
+    readonly value: number;
+    readonly collected_at: string;
+  }[];
+}
+
+export type SummaryStatus = 'queued' | 'running' | 'completed' | 'degraded' | 'failed';
+
+export interface ValidationDto {
+  readonly attempts: number;
+  readonly repaired: boolean;
+  readonly refs_total: number;
+  readonly refs_resolved: number;
+  readonly safety_flags: number;
+}
+
 export interface SummaryDto {
   readonly summary_id: string;
   readonly patient_id: string;
-  readonly status: 'queued' | 'running' | 'completed' | 'degraded' | 'failed';
+  readonly status: SummaryStatus;
+  /** True when nothing changed since the last summary, so the saved one was returned. */
   readonly cached: boolean;
   readonly cached_from: string | null;
   readonly as_of: string | null;
   readonly generated_at: string | null;
-  readonly progress: readonly StepDto[];
-  readonly facts: Record<string, unknown> | null;
+  readonly progress: readonly StepDto[] | null;
+  readonly facts: FactsDto | null;
   readonly gaps: {
     readonly findings: readonly FindingDto[];
     readonly provenance: string;
@@ -146,13 +191,7 @@ export interface SummaryDto {
     readonly grounding_warnings: readonly unknown[];
   } | null;
   readonly sources: Readonly<Record<string, SourceDto>> | null;
-  readonly validation: {
-    readonly attempts: number;
-    readonly repaired: boolean;
-    readonly refs_total: number;
-    readonly refs_resolved: number;
-    readonly safety_flags: number;
-  } | null;
+  readonly validation: ValidationDto | null;
   readonly error_code: string | null;
   readonly error_message?: string | null;
   readonly disclaimer?: string;
@@ -160,7 +199,7 @@ export interface SummaryDto {
 }
 
 export interface HistoryDto {
-  readonly items: readonly Record<string, unknown>[];
+  readonly items: readonly SummaryDto[];
   readonly page: number;
   readonly size: number;
   readonly total: number;
