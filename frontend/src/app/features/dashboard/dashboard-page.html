@@ -1,131 +1,247 @@
 <div class="page-h">
   <div>
-    <h1 class="greet">{{ greeting }}, {{ doctor }}</h1>
+    <h1 class="greet">{{ greeting }}, {{ doctor() }}</h1>
     <p>{{ today }}</p>
   </div>
   <div class="row">
+    <button class="btn" type="button" (click)="refresh()">
+      <emr-icon name="refresh" [size]="16" />Refresh
+    </button>
     <a class="btn" routerLink="/patients" style="text-decoration: none"
       ><emr-icon name="users" [size]="16" />All patients</a
     >
-    <button class="btn primary" type="button" (click)="modals.open({ kind: 'patient', patientId: null })">
+    <button
+      class="btn primary"
+      type="button"
+      (click)="modals.open({ kind: 'patient', patientId: null })"
+    >
       <emr-icon name="plus" [size]="16" />New patient
     </button>
   </div>
 </div>
 
-@if (D(); as d) {
-  <div class="kpis">
-    <div class="kpi"><div class="n">{{ d.all.length }}</div><div class="l">Patients</div></div>
-    <div class="kpi" [class.hot]="d.att.length"><div class="n">{{ d.att.length }}</div><div class="l">Need attention</div></div>
-    <div class="kpi"><div class="n">{{ d.crit }}</div><div class="l">With critical results</div></div>
-    <div class="kpi"><div class="n">{{ d.rapid }}</div><div class="l">Rapid eGFR decline</div></div>
-    <div class="kpi"><div class="n">{{ d.drafts.length }}</div><div class="l">Draft encounters</div></div>
+<div class="kpis" aria-live="polite">
+  @let k = kpisOf();
+  <div class="kpi">
+    <div class="n">{{ k ? k.patients : '–' }}</div>
+    <div class="l">Patients</div>
   </div>
+  <div class="kpi" [class.hot]="k && k.need_attention">
+    <div class="n">{{ k ? k.need_attention : '–' }}</div>
+    <div class="l">Need attention</div>
+  </div>
+  <div class="kpi">
+    <div class="n">{{ k ? k.critical_results : '–' }}</div>
+    <div class="l">With critical results</div>
+  </div>
+  <div class="kpi">
+    <div class="n">{{ k ? k.rapid_decline : '–' }}</div>
+    <div class="l">Rapid eGFR decline</div>
+  </div>
+  <div class="kpi">
+    <div class="n">{{ draftTotal() ?? '–' }}</div>
+    <div class="l">Draft encounters</div>
+  </div>
+</div>
 
-  <div class="grid g-main" style="margin-bottom: 16px; align-items: start">
-    <div class="panel">
-      <div class="panel-h">
-        <h2><emr-icon name="alert" [size]="18" />Needs your attention</h2>
-        <span class="muted small">{{ d.att.length }} patient{{ d.att.length === 1 ? '' : 's' }}</span>
-      </div>
-      @for (x of d.att.slice(0, 6); track x.a.p.id) {
-        <div class="att-item">
-          <div>
-            <b>{{ fullName(x.a.p) }}</b>&ngsp;<span class="muted small">{{ x.a.p.mrn }}, {{ x.a.age }} years</span>
-            <div class="why">
-              @for (w of x.why; track $index) {
-                <span [class]="'chip ' + w.tone">{{ w.text }}</span>
-              }
-            </div>
-          </div>
-          <a class="btn sm" [routerLink]="['/patients', x.a.p.id, 'overview']" style="text-decoration: none">Open chart</a>
-        </div>
-      } @empty {
-        <div class="empty">
-          <emr-icon name="check" [size]="24" /><b>Nothing urgent</b>No critical results, rapid declines or
-          high-priority record gaps.
-        </div>
+<div class="grid g-main" style="margin-bottom: 16px; align-items: start">
+  <div class="panel">
+    <div class="panel-h">
+      <h2><emr-icon name="alert" [size]="18" />Needs your attention</h2>
+      @if (kpisOf(); as k) {
+        <span class="muted small"
+          >{{ k.need_attention }} patient{{ k.need_attention === 1 ? '' : 's' }}</span
+        >
       }
     </div>
+    <emr-remote-state [remote]="dash()" (retry)="retryDash()">
+      @if (dash(); as r) {
+        @if (r.state === 'ok') {
+          @for (x of r.data.attention.slice(0, 6); track x.patient_id) {
+            <div class="att-item">
+              <div>
+                <b>{{ x.name }}</b>&ngsp;<span class="muted small"
+                  >{{ x.mrn }}, {{ x.age }} years</span
+                >
+                <div class="why">
+                  @for (w of x.reasons; track $index) {
+                    <span [class]="'chip ' + w.severity">{{ w.text }}</span>
+                  }
+                </div>
+              </div>
+              <a
+                class="btn sm"
+                [routerLink]="['/patients', x.patient_id, 'overview']"
+                style="text-decoration: none"
+                >Open chart</a
+              >
+            </div>
+          } @empty {
+            <div class="empty">
+              <emr-icon name="check" [size]="24" /><b>Nothing urgent</b>No critical results, rapid
+              declines or high-priority record gaps.
+            </div>
+          }
+        }
+      }
+    </emr-remote-state>
+  </div>
 
+  <div class="panel">
+    <div class="panel-h">
+      <h2><emr-icon name="activity" [size]="18" />Patients by eGFR category</h2>
+      <span class="muted small">Latest result</span>
+    </div>
+    <emr-remote-state [remote]="dash()" (retry)="retryDash()">
+      @if (dash(); as r) {
+        @if (r.state === 'ok') {
+          <div class="panel-b">
+            @for (s of stages; track s) {
+              @let n = r.data.egfr_distribution[s] ?? 0;
+              <div
+                class="hbar"
+                [emrTip]="[
+                  n + ' patient' + (n === 1 ? '' : 's') + ' in ' + s + ': ' + egfrLabel(s),
+                ]"
+              >
+                <span
+                  >{{ s }} <span class="muted small">{{ egfrLabel(s).split(',')[0] }}</span></span
+                >
+                <div class="track">
+                  <div
+                    class="fill"
+                    [style.width.%]="(n / maxDist()) * 100"
+                    [style.background]="stageCol[s]"
+                  ></div>
+                </div>
+                <span class="ct">{{ n }}</span>
+              </div>
+            }
+            <div class="small muted" style="margin-top: 8px">
+              @if (r.data.egfr_distribution['none']) {
+                {{ r.data.egfr_distribution['none'] }}
+                patient{{ r.data.egfr_distribution['none'] === 1 ? ' has' : 's have' }} no eGFR on
+                record.
+              }
+              Categories follow KDIGO eGFR thresholds.
+            </div>
+          </div>
+        }
+      }
+    </emr-remote-state>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items: start">
+  <div class="panel">
+    <div class="panel-h">
+      <h2><emr-icon name="flask" [size]="18" />Abnormal results to review</h2>
+    </div>
+    <emr-remote-state [remote]="dash()" (retry)="retryDash()">
+      @if (dash(); as r) {
+        @if (r.state === 'ok') {
+          <table>
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Test</th>
+                <th class="num">Result</th>
+                <th>Flag</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of r.data.abnormal_results.slice(0, 8); track a.result_id) {
+                <tr
+                  class="click-row"
+                  tabindex="0"
+                  [routerLink]="['/patients', a.patient_id, 'labs']"
+                >
+                  <td>
+                    <b>{{ a.name }}</b>
+                  </td>
+                  <td class="nowrap">{{ a.test_name }}</td>
+                  <td class="num mono nowrap">
+                    {{ fmt(a.test, a.value) }} <span class="muted small">{{ a.unit }}</span>
+                  </td>
+                  <td><emr-lab-flag [flag]="flag(a.flag)" /></td>
+                  <td class="nowrap">{{ fmtDate(a.collected_at) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5">
+                    <div class="empty"><b>No abnormal results</b>Nothing to review.</div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    </emr-remote-state>
+  </div>
+
+  <div class="grid">
     <div class="panel">
       <div class="panel-h">
-        <h2><emr-icon name="activity" [size]="18" />Patients by eGFR category</h2>
-        <span class="muted small">Latest result</span>
+        <h2><emr-icon name="calendar" [size]="18" />Upcoming follow-ups</h2>
       </div>
-      <div class="panel-b">
-        @for (k of stages; track k) {
-          <div class="hbar" [emrTip]="[d.dist[k] + ' patient' + (d.dist[k] === 1 ? '' : 's') + ' in ' + k + ': ' + egfrLabel(k)]">
-            <span>{{ k }} <span class="muted small">{{ egfrLabel(k).split(',')[0] }}</span></span>
-            <div class="track">
-              <div class="fill" [style.width.%]="((d.dist[k] ?? 0) / d.maxD) * 100" [style.background]="stageCol[k]"></div>
-            </div>
-            <span class="ct">{{ d.dist[k] }}</span>
-          </div>
-        }
-        <div class="small muted" style="margin-top: 8px">
-          @if (d.dist['none']) {
-            {{ d.dist['none'] }} patient{{ d.dist['none'] === 1 ? ' has' : 's have' }} no eGFR on record.
+      <emr-remote-state [remote]="follow()" (retry)="retryFollow()">
+        @if (follow(); as r) {
+          @if (r.state === 'ok') {
+            @for (e of r.data.items; track e.encounter_id) {
+              <div class="list-item">
+                <div>
+                  <b>{{ e.patient_name }}</b>
+                  <div class="small muted">{{ e.plan || e.chief_complaint || '' }}</div>
+                </div>
+                <div class="row">
+                  <span class="chip teal">{{ fmtDate(e.follow_up_date) }}</span>
+                  <a
+                    class="btn sm"
+                    [routerLink]="['/patients', e.patient_id, 'encounters']"
+                    style="text-decoration: none"
+                    >Open</a
+                  >
+                </div>
+              </div>
+            } @empty {
+              <div class="empty">
+                <b>No follow-ups scheduled</b>Dates entered in an encounter plan appear here.
+              </div>
+            }
           }
-          Categories follow KDIGO eGFR thresholds.
-        </div>
-      </div>
+        }
+      </emr-remote-state>
     </div>
-  </div>
-
-  <div class="grid g2" style="align-items: start">
     <div class="panel">
-      <div class="panel-h"><h2><emr-icon name="flask" [size]="18" />Abnormal results to review</h2></div>
-      <table>
-        <thead>
-          <tr><th>Patient</th><th>Test</th><th class="num">Result</th><th>Flag</th><th>Date</th></tr>
-        </thead>
-        <tbody>
-          @for (r of d.abn.slice(0, 8); track r.id) {
-            <tr class="click-row" tabindex="0" [routerLink]="['/patients', r.patientId, 'labs']">
-              <td><b>{{ name(r.patientId) }}</b></td>
-              <td class="nowrap">{{ LAB[r.test].name }}</td>
-              <td class="num mono nowrap">{{ fmt(r.test, r.value) }} <span class="muted small">{{ r.unit }}</span></td>
-              <td><emr-lab-flag [flag]="r.flag" /></td>
-              <td class="nowrap">{{ fmtDate(r.collectedAt) }}</td>
-            </tr>
+      <div class="panel-h">
+        <h2><emr-icon name="file" [size]="18" />Draft encounters</h2>
+      </div>
+      <emr-remote-state [remote]="drafts()" (retry)="retryDrafts()">
+        @if (drafts(); as r) {
+          @if (r.state === 'ok') {
+            @for (e of r.data.items.slice(0, 4); track e.encounter_id) {
+              <div class="list-item">
+                <div>
+                  <b>{{ e.patient_name }}</b>
+                  <div class="small muted">
+                    {{ fmtDate(e.encounter_date) }}, {{ typeLabel(e.encounter_type) }}
+                  </div>
+                </div>
+                <a
+                  class="btn sm"
+                  [routerLink]="['/patients', e.patient_id, 'encounters']"
+                  style="text-decoration: none"
+                  >Finish</a
+                >
+              </div>
+            } @empty {
+              <div class="empty"><b>No drafts</b>Every encounter has been finalized.</div>
+            }
           }
-        </tbody>
-      </table>
-    </div>
-
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-h"><h2><emr-icon name="calendar" [size]="18" />Upcoming follow-ups</h2></div>
-        @for (e of d.follow.slice(0, 5); track e.id) {
-          <div class="list-item">
-            <div>
-              <b>{{ name(e.patientId) }}</b>
-              <div class="small muted">{{ e.plan || e.cc || '' }}</div>
-            </div>
-            <div class="row">
-              <span class="chip teal">{{ fmtDate(e.followUp) }}</span>
-              <a class="btn sm" [routerLink]="['/patients', e.patientId, 'encounters']" style="text-decoration: none">Open</a>
-            </div>
-          </div>
-        } @empty {
-          <div class="empty"><b>No follow-ups scheduled</b>Dates entered in an encounter plan appear here.</div>
         }
-      </div>
-      <div class="panel">
-        <div class="panel-h"><h2><emr-icon name="file" [size]="18" />Draft encounters</h2></div>
-        @for (e of d.drafts.slice(0, 4); track e.id) {
-          <div class="list-item">
-            <div>
-              <b>{{ name(e.patientId) }}</b>
-              <div class="small muted">{{ fmtDate(e.date) }}, {{ typeLabel(e.type) }}</div>
-            </div>
-            <a class="btn sm" [routerLink]="['/patients', e.patientId, 'encounters']" style="text-decoration: none">Finish</a>
-          </div>
-        } @empty {
-          <div class="empty"><b>No drafts</b>Every encounter has been finalized.</div>
-        }
-      </div>
+      </emr-remote-state>
     </div>
   </div>
-}
+</div>

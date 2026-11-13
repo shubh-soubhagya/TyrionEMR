@@ -1,15 +1,31 @@
-// html:1277-1305
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+// html:1277-1305. Every number on this page comes from a service: ai-svc `GET /insights/dashboard` and patient-svc
+// `GET /encounters`. The three panels load in parallel and fail independently (HLD §3.2b).
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { egfrLabel, fmtVal, LAB_TESTS } from '../../core/clinical/lab-tests';
-import { Analysis, fullName, typeLabel } from '../../core/data/analysis';
-import { DbService } from '../../core/data/db.service';
-import { LabResult } from '../../core/data/models';
-import { fmtDate, isoDate } from '../../core/format';
-import { ModalService } from '../../core/ui/modal.service';
-import { EmrIcon } from '../../shared/ui/icon/icon';
-import { EmrLabFlag } from '../../shared/ui/lab-flag/lab-flag';
-import { EmrTip } from '../../shared/ui/tooltip/tooltip';
+import { Observable, Subscription } from 'rxjs';
+import type { DashboardDto } from '@core/api/dto/ai.dto';
+import type { DashboardEncountersDto } from '@core/api/dto/patient.dto';
+import { IDLE, toRemote, type Remote } from '@core/api/remote';
+import { AuthService } from '@core/auth/auth.service';
+import { egfrLabel, fmtVal, LAB_TESTS, type TestCode } from '@core/clinical/lab-tests';
+import { EncountersApi } from '@core/data/encounters.api';
+import { InsightsApi } from '@core/data/insights.api';
+import { fmtDate } from '@core/format';
+import { ModalService } from '@core/ui/modal.service';
+import { EmrIcon } from '@shared/ui/icon/icon';
+import { EmrLabFlag } from '@shared/ui/lab-flag/lab-flag';
+import { EmrRemoteState } from '@shared/ui/remote-state/remote-state';
+import { EmrTip } from '@shared/ui/tooltip/tooltip';
+import { greetingFor, typeLabel } from '@shared/utils/labels';
+import type { Flag } from '@core/clinical/lab-tests';
 
 const STAGE_COL: Record<string, string> = {
   G1: '#bfe3e6',
@@ -21,33 +37,31 @@ const STAGE_COL: Record<string, string> = {
 };
 const STAGES = ['G1', 'G2', 'G3a', 'G3b', 'G4', 'G5'] as const;
 
-const isCrit = (r: LabResult): number => (r.flag.indexOf('critical') === 0 ? 1 : 0);
-
 @Component({
   selector: 'emr-dashboard-page',
-  imports: [RouterLink, EmrIcon, EmrLabFlag, EmrTip],
+  imports: [RouterLink, EmrIcon, EmrLabFlag, EmrTip, EmrRemoteState],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage {
-  private readonly db = inject(DbService);
+  private readonly insights = inject(InsightsApi);
+  private readonly encounters = inject(EncountersApi);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly modals = inject(ModalService);
+  private readonly auth = inject(AuthService);
 
   protected readonly LAB = LAB_TESTS;
-  protected readonly fmt = fmtVal;
   protected readonly stages = STAGES;
   protected readonly stageCol = STAGE_COL;
   protected readonly egfrLabel = egfrLabel;
   protected readonly fmtDate = fmtDate;
-  protected readonly fullName = fullName;
   protected readonly typeLabel = typeLabel;
-  protected readonly name = (id: string): string => this.db.patientName(id);
+  protected readonly flag = (f: string): Flag => f as Flag;
+  protected readonly fmt = (test: string, v: number): string =>
+    test in LAB_TESTS ? fmtVal(test as TestCode, v) : String(v);
 
-  protected readonly greeting = (() => {
-    const h = new Date().getHours();
-    return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  })();
-  protected readonly doctor = 'Dr. ' + (this.db.clinician.split(' ').pop() ?? '');
+  protected readonly greeting = greetingFor(new Date());
+  protected readonly doctor = computed(() => this.auth.user()?.fullName ?? '');
   protected readonly today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -55,69 +69,65 @@ export class DashboardPage {
     year: 'numeric',
   });
 
-  protected readonly D = computed(() => {
-    const all: Analysis[] = this.db.patients().map((p) => this.db.analysis(p.id));
-    const today = isoDate(Date.now());
-    const raw = this.db.raw();
-    const live = new Set(all.map((a) => a.p.id));
-    const drafts = raw.encounters
-      .filter((e) => e.status === 'draft' && !e.deletedAt)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const follow = raw.encounters
-      .filter((e) => !e.deletedAt && e.status === 'final' && e.followUp && isoDate(e.followUp) >= today && live.has(e.patientId))
-      .sort((a, b) => new Date(a.followUp).getTime() - new Date(b.followUp).getTime());
-    const abn: LabResult[] = [];
-    all.forEach((a) =>
-      Object.values(a.latest)
-        .filter((r): r is LabResult => !!r && r.flag !== 'normal')
-        .sort((x, y) => isCrit(y) - isCrit(x))
-        .slice(0, 2)
-        .forEach((r) => abn.push(r)),
-    );
-    abn.sort(
-      (x, y) =>
-        isCrit(y) - isCrit(x) ||
-        new Date(y.collectedAt).getTime() - new Date(x.collectedAt).getTime(),
-    );
-    const att = all
-      .filter((a) => a.attention)
-      .map((a) => {
-        const why: { tone: string; text: string }[] = [];
-        a.abnormal
-          .filter((r) => r.flag.indexOf('critical') === 0)
-          .forEach((r) =>
-            why.push({
-              tone: 'danger',
-              text: `Critical ${LAB_TESTS[r.test].name.toLowerCase()} ${fmtVal(r.test, r.value)} ${r.unit}`,
-            }),
-          );
-        if (a.rapid)
-          why.push({
-            tone: 'danger',
-            text: `eGFR falling ${Math.abs(a.trends.EGFR.slope ?? 0).toFixed(1)} per year`,
-          });
-        a.gaps
-          .filter((g) => g.sev === 'high')
-          .slice(0, 2)
-          .forEach((g) => why.push({ tone: 'warn', text: g.message.replace(/\.$/, '') }));
-        return { a, why, crit: a.critical ? 0 : a.rapid ? 1 : 2 };
-      })
-      .sort((x, y) => x.crit - y.crit);
-    const dist: Record<string, number> = { G1: 0, G2: 0, G3a: 0, G3b: 0, G4: 0, G5: 0, none: 0 };
-    all.forEach((a) => {
-      const k = a.ckd.egfrCat ?? 'none';
-      dist[k] = (dist[k] ?? 0) + 1;
-    });
-    return {
-      all,
-      att,
-      drafts,
-      follow,
-      abn,
-      dist,
-      maxD: Math.max(1, ...Object.values(dist)),
-      crit: all.filter((a) => a.critical).length,
-      rapid: all.filter((a) => a.rapid).length,
-    };
+  protected readonly dash = signal<Remote<DashboardDto>>(IDLE);
+  protected readonly drafts = signal<Remote<DashboardEncountersDto>>(IDLE);
+  protected readonly follow = signal<Remote<DashboardEncountersDto>>(IDLE);
+
+  protected readonly kpisOf = computed(() => {
+    const r = this.dash();
+    return r.state === 'ok' ? r.data.kpis : null;
   });
+  /** Total of draft encounters (a count the dashboard aggregate does not carry). */
+  protected readonly draftTotal = computed(() => {
+    const r = this.drafts();
+    return r.state === 'ok' ? r.data.total : null;
+  });
+
+  /** Longest bar of the eGFR distribution, so the bars are drawn relative to it. */
+  protected readonly maxDist = computed(() => {
+    const r = this.dash();
+    return r.state === 'ok' ? Math.max(1, ...Object.values(r.data.egfr_distribution)) : 1;
+  });
+
+  private subs: Subscription[] = [];
+
+  constructor() {
+    this.load(false);
+    this.destroyRef.onDestroy(() => this.cancel());
+  }
+
+  /** Reloads all three panels. `fresh` makes ai-svc recompute instead of serving its 30 s snapshot. */
+  protected refresh(): void {
+    this.load(true);
+  }
+
+  protected retryDash(): void {
+    this.run(this.dash, this.insights.dashboard(true));
+  }
+  protected retryDrafts(): void {
+    this.run(this.drafts, this.encounters.drafts(10));
+  }
+  protected retryFollow(): void {
+    this.run(this.follow, this.encounters.upcomingFollowUps(5));
+  }
+
+  private load(fresh: boolean): void {
+    this.cancel();
+    this.run(this.dash, this.insights.dashboard(fresh));
+    this.run(this.drafts, this.encounters.drafts(10));
+    this.run(this.follow, this.encounters.upcomingFollowUps(5));
+  }
+
+  private run<T>(target: ReturnType<typeof signal<Remote<T>>>, source: Observable<T>): void {
+    this.subs.push(
+      toRemote(source, () => false)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((state) => target.set(state)),
+    );
+  }
+
+  private cancel(): void {
+    this.subs.forEach((s) => s.unsubscribe());
+    this.subs = [];
+  }
 }
