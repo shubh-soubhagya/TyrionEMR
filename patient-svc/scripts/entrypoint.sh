@@ -10,5 +10,8 @@ if [ "${SEED_ON_START:-false}" = "true" ]; then
 fi
 # --forwarded-allow-ips="*" is acceptable only because patient-svc publishes no host port and sits
 # on the private network behind the gateway.
+# --h11-max-incomplete-event-size 32768: GET /patients?ids=<500 uuids> is about 18.5 KB, above uvicorn's 16 KiB
+# default; 32 KiB matches what the gateway accepts (gateway LLD R8).
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000 \
-  --workers "${UVICORN_WORKERS:-2}" --proxy-headers --forwarded-allow-ips="*" --no-server-header
+  --workers "${UVICORN_WORKERS:-2}" --proxy-headers --forwarded-allow-ips="*" --no-server-header \
+  --h11-max-incomplete-event-size 32768

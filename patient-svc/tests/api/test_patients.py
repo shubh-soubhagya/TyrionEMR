@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
+from pathlib import Path
 
 import pytest
 
@@ -171,3 +173,22 @@ async def test_paging_is_stable_and_total_survives_past_end(api, roster):
     past = (await api.get("/patients", params={"size": 3, "page": 9})).json()
     assert past["items"] == [] and past["total"] == 4
     assert (await api.get("/patients", params={"size": 101})).status_code == 422
+
+
+async def test_list_accepts_the_maximum_500_ids(api):
+    """The gateway forwards up to 32 KiB of request line; 500 UUIDs are about 18.5 KB (G8, ADR-020)."""
+    ids = ",".join(str(uuid.uuid4()) for _ in range(500))
+    resp = await api.get("/patients", params={"ids": ids})
+    assert resp.status_code == 200 and resp.json()["total"] == 0
+
+
+def test_the_server_is_started_with_a_32_kib_h11_limit():
+    """The in-process client has no h11 layer, so the limit itself is checked where it is set (README: manual check)."""
+    root = Path(__file__).resolve().parents[2]
+    for rel in ("scripts/entrypoint.sh", "Makefile"):
+        assert "--h11-max-incomplete-event-size 32768" in (root / rel).read_text(encoding="utf-8"), rel
+
+
+async def test_a_trailing_slash_is_a_404_not_a_redirect(api):
+    resp = await api.get("/patients/", follow_redirects=False)
+    assert resp.status_code == 404

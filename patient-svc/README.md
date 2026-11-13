@@ -73,7 +73,7 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 
 | # | Item |
 |---|---|
-| O1 | Seed namespace: this service uses `9b3f6a52-...` (its design doc); lab-svc's doc lists `6f1c2d3e-...`, and auth-svc seeds users with random ids. All three must share one namespace (`app/domain/seed_ids.py`) before lab-svc is seeded, or lab results will point at patients that do not exist. |
+| O1 | **Resolved.** Seed namespace: this service, lab-svc (`app/domain/seed_ids.py`) and auth-svc's demo users (`app/cli/seed_users.py`, `uuid5(NS, "user:" + email)`) all use `9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10`. A development database seeded before that keeps its old random user ids until the two demo users are deleted and reseeded (see auth-svc README). |
 | O2 | List sorted by last visit or primary diagnosis takes about 270 ms at 10,000 patients / 200,000 encounters (target 150 ms). The design's upgrade path is a `last_visit` column maintained at finalize. Everything else meets its target; see `docs/db/explain/README.txt`. |
 | O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
 | O3 | Dockerfile and compose file are copied from auth-svc but not yet built or run. |
@@ -90,4 +90,10 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 | D6 | Clinician name from a JWT `name` claim (LLD §27.1 #1) | `clinician_name` is resolved from auth-svc `/auth/me` with the caller's token, cached per user, and is nullable when auth-svc is unreachable | auth-svc keeps tokens free of PII (its LLD §17.9) and that will not change; a `name` claim is ignored |
 | D7 | `encounter_diagnoses` as in §9.2 | + `category` column (migration 0002) | A draft's explicit diagnosis category must survive until finalize, when the problem-list entry is created |
 | D8 | Encounter `clinician_name` NOT NULL | Nullable (migration 0003); `set_updated_at()` honours an explicit `updated_at` | The name is resolved from auth-svc and can be unknown; the injected clock must be able to control timestamps |
+| D9 | Uvicorn defaults | `--h11-max-incomplete-event-size 32768` in `scripts/entrypoint.sh` and `make run` | `GET /patients?ids=` with 500 UUIDs is about 18.5 KB; h11's 16 KiB default would reject it when it arrives in several TCP segments. 32 KiB matches the gateway (its LLD R8). The flag only matters when uvicorn uses h11; with `httptools` installed (it is in `requirements.lock`) uvicorn picks that parser, which has no such limit, so the flag is a safeguard. The in-process test client has no HTTP parser: `tests/api/test_patients.py` checks 500 ids return 200 and that the flag is present. Manual check below |
+| D10 | FastAPI default `redirect_slashes=True` | `redirect_slashes=False` | `/patients/` costs a 307 round trip through the gateway and leaks the upstream path; it is a 404 now (gateway LLD R14) |
+
+Manual h11 check (no database needed): serve any ASGI app with `uvicorn.Config(app, http="h11",
+h11_max_incomplete_event_size=N)`, send `GET /patients?ids=<500 uuids>` in 1,400-byte pieces on a raw socket. With
+`N=16384` the connection is aborted; with `N=32768` the answer is `200 OK` (checked on 13 Nov 2026, uvicorn 0.54).
 

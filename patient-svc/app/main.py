@@ -77,6 +77,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow, jwks: Jw
         docs_url=None if prod else "/docs",
         redoc_url=None if prod else "/redoc",
         openapi_url=None if prod else "/openapi.json",
+        redirect_slashes=False,      # a trailing slash is a 404, not a 307 round trip through the gateway (R14)
     )
     install_common_middleware(app)
     app.add_exception_handler(DBAPIError, db_error_handler)  # type: ignore[arg-type]

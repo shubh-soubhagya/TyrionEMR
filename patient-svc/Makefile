@@ -49,7 +49,7 @@ explain:
 	$(PY) -m app.cli.seed_patients --reset --scale 10000 && $(PY) -m app.cli.explain
 
 run:
-	$(PY) -m uvicorn app.main:app --reload --port 8002
+	$(PY) -m uvicorn app.main:app --reload --port 8002 --h11-max-incomplete-event-size 32768
 
 test:
 	$(PY) -m pytest -q

@@ -3,9 +3,8 @@
 Seeded patients and clinicians get UUIDv5 ids derived from the MRN / e-mail, so lab-svc's seed can reference the
 same patient ids without calling patient-svc.
 
-NOTE (open item): the patient-svc design uses namespace 9b3f6a52-..., while lab-svc's design lists
-6f1c2d3e-.... The two services must share ONE namespace or lab results will point at patients that do not
-exist. This constant is the single place to change; agree on it before seeding lab-svc.
+Resolved: lab-svc and auth-svc's demo-user seed use this same namespace (9b3f6a52-...). Keep it identical in all
+three services or lab results and encounter clinicians will point at ids that do not exist.
 """
 from __future__ import annotations
 
