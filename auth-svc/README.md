@@ -279,6 +279,6 @@ Trivy). It has not run on GitHub yet: nothing is pushed.
 
 ## Status and open items
 
-auth-svc is complete except the smoke test through the gateway on `:8080`. The gateway is a separate
-step in its own folder; it needs only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
+auth-svc is complete. The smoke test through the gateway on `:8080` passes (`make smoke` at the repo root: login, refresh,
+logout, `/api/auth/me`, 19 checks). Run the whole stack from the repo root with `make up`.
 The pre-existing empty `auth_db` on the shared container is intentionally left alone.
