@@ -1,111 +1,196 @@
-@if (v(); as d) {
-  <emr-kidney-panel [a]="d.a" [patientId]="id()" />
-  <div class="grid g-main">
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-h">
-          <h2>Demographics</h2>
-          <button class="btn sm" type="button" (click)="modals.open({ kind: 'patient', patientId: id() })">
-            <emr-icon name="edit" [size]="14" />Edit
-          </button>
+<emr-kidney-panel [patientId]="id()" />
+@if (store.detail(); as r) {
+  @if (r.state === 'ok') {
+    @let p = r.data;
+    <div class="grid g-main">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-h">
+            <h2>Demographics</h2>
+            <button
+              class="btn sm"
+              type="button"
+              (click)="modals.open({ kind: 'patient', patientId: id() })"
+            >
+              <emr-icon name="edit" [size]="14" />Edit
+            </button>
+          </div>
+          <div class="panel-b">
+            <dl class="dl">
+              <dt>Patient ID</dt>
+              <dd class="mono">{{ p.mrn }}</dd>
+              <dt>Date of birth</dt>
+              <dd>{{ fmtDate(p.date_of_birth) }} ({{ p.age }} years)</dd>
+              <dt>Sex</dt>
+              <dd>{{ sexLabel(p.sex) }}</dd>
+              <dt>Phone</dt>
+              <dd>
+                @if (p.phone) {
+                  {{ p.phone }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+              <dt>Email</dt>
+              <dd>
+                @if (p.email) {
+                  {{ p.email }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+              <dt>Address</dt>
+              <dd>
+                @if (p.address) {
+                  {{ p.address }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+            </dl>
+          </div>
         </div>
-        <div class="panel-b">
-          <dl class="dl">
-            <dt>Patient ID</dt>
-            <dd class="mono">{{ d.a.p.mrn }}</dd>
-            <dt>Date of birth</dt>
-            <dd>{{ fmtDate(d.a.p.dob) }} ({{ d.a.age }} years)</dd>
-            <dt>Sex</dt>
-            <dd>{{ sexLabel(d.a.p.sex) }}</dd>
-            <dt>Phone</dt>
-            <dd>@if (d.a.p.phone) { {{ d.a.p.phone }} } @else { <span class="nd">Not documented</span> }</dd>
-            <dt>Email</dt>
-            <dd>@if (d.a.p.email) { {{ d.a.p.email }} } @else { <span class="nd">Not documented</span> }</dd>
-            <dt>Address</dt>
-            <dd>@if (d.a.p.address) { {{ d.a.p.address }} } @else { <span class="nd">Not documented</span> }</dd>
-          </dl>
+        <div class="panel">
+          <div class="panel-h"><h2>Medical history</h2></div>
+          <div class="panel-b">
+            <dl class="dl">
+              <dt>Past medical history</dt>
+              <dd>
+                @if (p.past_medical_history) {
+                  {{ p.past_medical_history }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+              <dt>Family history</dt>
+              <dd>
+                @if (p.family_history) {
+                  {{ p.family_history }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+              <dt>Social history</dt>
+              <dd>
+                @if (p.social_history) {
+                  {{ p.social_history }}
+                } @else {
+                  <span class="nd">Not documented</span>
+                }
+              </dd>
+            </dl>
+          </div>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-h"><h2>Medical history</h2></div>
-        <div class="panel-b">
-          <dl class="dl">
-            <dt>Past medical history</dt>
-            <dd>@if (d.a.p.pmh) { {{ d.a.p.pmh }} } @else { <span class="nd">Not documented</span> }</dd>
-            <dt>Family history</dt>
-            <dd>@if (d.a.p.fh) { {{ d.a.p.fh }} } @else { <span class="nd">Not documented</span> }</dd>
-            <dt>Social history</dt>
-            <dd>@if (d.a.p.sh) { {{ d.a.p.sh }} } @else { <span class="nd">Not documented</span> }</dd>
-          </dl>
-        </div>
-      </div>
-    </div>
 
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-h"><h2>At a glance</h2></div>
-        <div class="panel-b">
-          <dl class="dl" style="grid-template-columns: 130px 1fr">
-            <dt>Primary diagnosis</dt>
-            <dd>@if (d.primary) { {{ d.primary.desc }} } @else { <span class="nd">None recorded</span> }</dd>
-            <dt>Active conditions</dt>
-            <dd>{{ d.activeConds }}</dd>
-            <dt>Active medications</dt>
-            <dd>{{ d.activeMeds }}</dd>
-            <dt>Encounters</dt>
-            <dd>{{ d.encs.length }}</dd>
-            <dt>Last visit</dt>
-            <dd>@if (d.lastFinal) { {{ fmtDate(d.lastFinal.date) }} } @else { <span class="nd">None</span> }</dd>
-            <dt>Next follow-up</dt>
-            <dd>
-              @if (d.lastFinal && d.lastFinal.followUp) { {{ fmtDate(d.lastFinal.followUp) }} } @else { <span class="nd">Not set</span> }
-            </dd>
-            <dt>Latest eGFR</dt>
-            <dd>
-              @if (d.a.latest.EGFR; as e) {
-                <span class="mono">{{ e.value }}</span>&ngsp;<emr-lab-flag [flag]="e.flag" />&ngsp;<span class="muted small">{{ fmtDate(e.collectedAt) }}</span>
-              } @else {
-                <span class="nd">No results</span>
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-h"><h2>At a glance</h2></div>
+          <div class="panel-b">
+            <dl class="dl" style="grid-template-columns: 130px 1fr">
+              <dt>Primary diagnosis</dt>
+              <dd>
+                @if (p.primary_diagnosis) {
+                  {{ p.primary_diagnosis.description }}
+                } @else {
+                  <span class="nd">None recorded</span>
+                }
+              </dd>
+              <dt>Active conditions</dt>
+              <dd>{{ p.counts.active_conditions }}</dd>
+              <dt>Active medications</dt>
+              <dd>{{ p.counts.active_medications }}</dd>
+              <dt>Encounters</dt>
+              <dd>{{ p.counts.encounters }}</dd>
+              <dt>Last visit</dt>
+              <dd>
+                @if (p.last_visit) {
+                  {{ fmtDate(p.last_visit) }}
+                } @else {
+                  <span class="nd">None</span>
+                }
+              </dd>
+              <dt>Next follow-up</dt>
+              <dd>
+                @if (p.next_follow_up) {
+                  {{ fmtDate(p.next_follow_up) }}
+                } @else {
+                  <span class="nd">Not set</span>
+                }
+              </dd>
+              <dt>Latest eGFR</dt>
+              <dd>
+                @if (latestEgfr(); as e) {
+                  <span class="mono">{{ e.value }}</span>&ngsp;<emr-lab-flag
+                    [flag]="flag(e.flag)"
+                  />&ngsp;<span class="muted small">{{ fmtDate(e.collected_at) }}</span>
+                } @else {
+                  <span class="nd">No results</span>
+                }
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h">
+            <h2>Recent encounters</h2>
+            <a [routerLink]="['/patients', id(), 'encounters']" class="small">View all</a>
+          </div>
+          <emr-remote-state [remote]="recent.state()" (retry)="recent.reload()">
+            @if (recent.state(); as rr) {
+              @if (rr.state === 'ok') {
+                @for (e of rr.data.items; track e.id) {
+                  <div class="list-item">
+                    <div>
+                      <b>{{ fmtDate(e.date) }}</b>&ngsp;<span class="muted">{{
+                        typeLabel(e.type)
+                      }}</span>
+                      <div class="small muted">{{ e.cc || 'No chief complaint' }}</div>
+                    </div>
+                    <span
+                      class="chip"
+                      [class.ok]="e.status === 'final'"
+                      [class.warn]="e.status !== 'final'"
+                      >{{ e.status === 'final' ? 'Final' : 'Draft' }}</span
+                    >
+                  </div>
+                }
+              } @else if (rr.state === 'empty') {
+                <div class="empty">
+                  No encounters yet.
+                  <div style="margin-top: 10px">
+                    <button
+                      class="btn sm primary"
+                      type="button"
+                      (click)="
+                        modals.open({ kind: 'encounter-form', patientId: id(), encounterId: null })
+                      "
+                    >
+                      Create first encounter
+                    </button>
+                  </div>
+                </div>
               }
-            </dd>
-          </dl>
+            }
+          </emr-remote-state>
         </div>
-      </div>
-      <div class="panel">
-        <div class="panel-h">
-          <h2>Recent encounters</h2>
-          <a [routerLink]="['/patients', id(), 'encounters']" class="small">View all</a>
-        </div>
-        @for (e of d.encs.slice(0, 3); track e.id) {
-          <div class="list-item">
-            <div>
-              <b>{{ fmtDate(e.date) }}</b>&ngsp;<span class="muted">{{ typeLabel(e.type) }}</span>
-              <div class="small muted">{{ e.cc || 'No chief complaint' }}</div>
+        <emr-remote-state [remote]="gaps.state()" (retry)="gaps.reload()">
+          @if (gaps.state().state === 'ok') {
+            <div class="alert" [class.warn]="highGaps()" [class.ok]="!highGaps()">
+              <emr-icon [name]="highGaps() ? 'alert' : 'check'" [size]="16" />
+              <div>
+                @if (highGaps()) {
+                  <b>{{ highGaps() }} record gap{{ highGaps() > 1 ? 's' : '' }} found.</b>
+                  <a [routerLink]="['/patients', id(), 'ai']">Open AI summary</a> to see what is
+                  missing or inconsistent.
+                } @else {
+                  No significant gaps found in this record.
+                }
+              </div>
             </div>
-            <span class="chip" [class.ok]="e.status === 'final'" [class.warn]="e.status !== 'final'">{{ e.status === 'final' ? 'Final' : 'Draft' }}</span>
-          </div>
-        } @empty {
-          <div class="empty">
-            No encounters yet.
-            <div style="margin-top: 10px">
-              <button class="btn sm primary" type="button" (click)="modals.open({ kind: 'encounter-form', patientId: id(), encounterId: null })">
-                Create first encounter
-              </button>
-            </div>
-          </div>
-        }
-      </div>
-      <div class="alert" [class.warn]="d.highGaps" [class.ok]="!d.highGaps">
-        <emr-icon [name]="d.highGaps ? 'alert' : 'check'" [size]="16" />
-        <div>
-          @if (d.highGaps) {
-            <b>{{ d.highGaps }} record gap{{ d.highGaps > 1 ? 's' : '' }} found.</b>
-            <a [routerLink]="['/patients', id(), 'ai']">Open AI summary</a> to see what is missing or inconsistent.
-          } @else {
-            No significant gaps found in this record.
           }
-        </div>
+        </emr-remote-state>
       </div>
     </div>
-  </div>
+  }
 }

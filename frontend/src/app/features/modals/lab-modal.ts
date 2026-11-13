@@ -1,6 +1,20 @@
 // html:1036-1067
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   flagFor,
@@ -19,7 +33,11 @@ import { EmrModalShell } from '../../shared/ui/modal-shell/modal-shell';
 import { ToastService } from '../../shared/ui/toast/toast.service';
 import { ModalService } from '../../core/ui/modal.service';
 
-type RowGroup = FormGroup<{ test: FormControl<TestCode>; value: FormControl<string>; unit: FormControl<string> }>;
+type RowGroup = FormGroup<{
+  test: FormControl<TestCode>;
+  value: FormControl<string>;
+  unit: FormControl<string>;
+}>;
 
 @Component({
   selector: 'emr-lab-modal',
@@ -82,7 +100,9 @@ export class LabModal {
   }
 
   /** Live flag preview for one row (html `labPreview`, html:1043). */
-  protected preview(row: RowGroup): { flag: ReturnType<typeof flagFor>; converted: string | null } | null {
+  protected preview(
+    row: RowGroup,
+  ): { flag: ReturnType<typeof flagFor>; converted: string | null } | null {
     const raw = row.controls.value.value;
     if (raw === '' || isNaN(+raw)) return null;
     const t = row.controls.test.value;
@@ -100,8 +120,10 @@ export class LabModal {
     const errs: Record<string, string> = {};
     const rows = v.rows.filter((r) => r.value !== '');
     if (!v.date) errs['date'] = 'Collection date is required.';
-    else if (new Date(v.date).getTime() > Date.now() + 60000) errs['date'] = 'Collection date cannot be in the future.';
-    else if (new Date(v.date) < new Date(p.dob)) errs['date'] = 'Collection date is before the patient was born.';
+    else if (new Date(v.date).getTime() > Date.now() + 60000)
+      errs['date'] = 'Collection date cannot be in the future.';
+    else if (new Date(v.date) < new Date(p.dob))
+      errs['date'] = 'Collection date is before the patient was born.';
     const msgs: string[] = [];
     if (!rows.length) msgs.push('Enter at least one result value.');
     const seen: Record<string, boolean> = {};
@@ -110,7 +132,9 @@ export class LabModal {
       const n = +r.value;
       if (isNaN(n) || n < 0) msgs.push(`${T.name}: enter a number of zero or more.`);
       else if (toCanon(r.test, n, r.unit) > T.max)
-        msgs.push(`${T.name}: ${r.value} ${r.unit} is outside the plausible range. Check the value and unit.`);
+        msgs.push(
+          `${T.name}: ${r.value} ${r.unit} is outside the plausible range. Check the value and unit.`,
+        );
       if (seen[r.test]) msgs.push(`${T.name} appears twice in this report.`);
       seen[r.test] = true;
     });

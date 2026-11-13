@@ -1,46 +1,66 @@
-@if (v(); as d) {
-  <div class="panel" style="margin-bottom: 14px">
-    <div class="panel-b">
-      <div class="row" style="justify-content: space-between">
-        <div class="row" style="gap: 18px">
-          <label class="fld" style="margin: 0">
-            <span class="fld-l">Established CKD stage</span>
-            <select class="inp sm" style="min-width: 180px" (change)="setStage($event)">
-              <option value="">Not set</option>
-              @for (s of stages; track s) {
-                <option [selected]="d.a.p.ckd === s">{{ s }}</option>
-              }
-            </select>
-          </label>
-          <div>
-            <div class="fld-l">eGFR category of latest result</div>
-            <div style="margin-top: 6px">
-              @if (d.a.ckd.egfrCat; as cat) {
-                <span class="chip teal">{{ cat }} ({{ egfrLabel(cat) }})</span>
-              } @else {
-                <span class="nd">No eGFR on record</span>
-              }
+<div class="panel" style="margin-bottom: 14px">
+  <div class="panel-b">
+    @if (problem(); as p) {
+      <div class="alert danger" style="margin-bottom: 12px" role="alert">
+        <emr-icon name="alert" [size]="16" />
+        <div>
+          <b>{{ p.general }}</b>
+          @if (p.requestId; as rid) {
+            <div class="small muted">Reference: {{ rid }}</div>
+          }
+          @if (p.conflict) {
+            <div style="margin-top: 8px">
+              <button class="btn sm" type="button" (click)="reloadAfterConflict()">Reload</button>
             </div>
-          </div>
+          }
         </div>
-        <button class="btn primary" type="button" (click)="modals.open({ kind: 'condition', patientId: id() })">
-          <emr-icon name="plus" [size]="16" />Add condition
-        </button>
       </div>
-      @if (d.a.ckd.mismatch) {
-        <div class="alert warn" style="margin-top: 12px">
-          <emr-icon name="alert" [size]="16" />
-          <div>
-            <b>Stage mismatch.</b> Established stage {{ d.a.ckd.established }} differs from the latest eGFR
-            category {{ d.a.ckd.egfrCat }}. One eGFR value does not define a CKD stage, so review before
-            changing the established stage.
+    }
+    <div class="row" style="justify-content: space-between">
+      <div class="row" style="gap: 18px">
+        <label class="fld" style="margin: 0">
+          <span class="fld-l">Established CKD stage</span>
+          <select class="inp sm" style="min-width: 180px" (change)="setStage($event)">
+            <option value="">Not set</option>
+            @for (s of stages; track s) {
+              <option [selected]="established() === s">{{ s }}</option>
+            }
+          </select>
+        </label>
+        <div>
+          <div class="fld-l">eGFR category of latest result</div>
+          <div style="margin-top: 6px">
+            @if (store.egfrCategory(); as cat) {
+              <span class="chip teal">{{ cat }} ({{ egfrLabel(cat) }})</span>
+            } @else {
+              <span class="nd">No eGFR on record</span>
+            }
           </div>
         </div>
-      }
+      </div>
+      <button
+        class="btn primary"
+        type="button"
+        (click)="modals.open({ kind: 'condition', patientId: id() })"
+      >
+        <emr-icon name="plus" [size]="16" />Add condition
+      </button>
     </div>
+    @if (store.mismatch()) {
+      <div class="alert warn" style="margin-top: 12px">
+        <emr-icon name="alert" [size]="16" />
+        <div>
+          <b>Stage mismatch.</b> Established stage {{ established() }} differs from the latest eGFR
+          category {{ store.egfrCategory() }}. One eGFR value does not define a CKD stage, so review
+          before changing the established stage.
+        </div>
+      </div>
+    }
   </div>
+</div>
 
-  @for (s of d.sections; track s.title) {
+<emr-remote-state [remote]="conditions.state()" (retry)="conditions.reload()">
+  @for (s of sections(); track s.title) {
     <div class="panel" style="margin-bottom: 14px">
       <div class="panel-h">
         <h2>{{ s.title }}</h2>
@@ -49,7 +69,13 @@
       @if (s.rows.length) {
         <table>
           <thead>
-            <tr><th>ICD-10</th><th>Description</th><th>Onset</th><th>Status</th><th></th></tr>
+            <tr>
+              <th>ICD-10</th>
+              <th>Description</th>
+              <th>Onset</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
             @for (c of s.rows; track c.id) {
@@ -63,13 +89,22 @@
                 </td>
                 <td>{{ fmtDate(c.onset) }}</td>
                 <td>
-                  <span class="chip" [class.warn]="c.status === 'active'" [class.ok]="c.status !== 'active'">{{ c.status === 'active' ? 'Active' : 'Resolved' }}</span>
+                  <span
+                    class="chip"
+                    [class.warn]="c.status === 'active'"
+                    [class.ok]="c.status !== 'active'"
+                    >{{ c.status === 'active' ? 'Active' : 'Resolved' }}</span
+                  >
                 </td>
                 <td class="num nowrap">
                   @if (c.status === 'active' && !c.isPrimary) {
-                    <button class="btn sm" type="button" (click)="setPrimary(c.id)">Set as primary</button>&ngsp;
+                    <button class="btn sm" type="button" (click)="setPrimary(c.id)">
+                      Set as primary</button
+                    >&ngsp;
                   }
-                  <button class="btn sm ghost" type="button" (click)="toggle(c.id)">{{ c.status === 'active' ? 'Mark resolved' : 'Reactivate' }}</button>
+                  <button class="btn sm ghost" type="button" (click)="toggle(c)">
+                    {{ c.status === 'active' ? 'Mark resolved' : 'Reactivate' }}
+                  </button>
                 </td>
               </tr>
             }
@@ -80,4 +115,4 @@
       }
     </div>
   }
-}
+</emr-remote-state>

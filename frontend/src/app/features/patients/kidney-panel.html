@@ -4,52 +4,65 @@
     <a [routerLink]="['/patients', patientId(), 'labs']" class="small">All lab results</a>
   </div>
   <div class="panel-b">
-    @let ck = a().ckd;
-    <div class="ckd-strip">
-      <div>
-        <div class="k">Established CKD stage</div>
-        <emr-ckd-stage-badge [stage]="a().p.ckd" />
-      </div>
-      <div>
-        <div class="k">eGFR category, latest result</div>
-        @if (ck.egfrCat; as cat) {
-          <span class="chip teal">{{ cat }} ({{ egfrLabel(cat) }})</span>
-        } @else {
-          <span class="nd">No eGFR on record</span>
-        }
-      </div>
-      <div>
-        <div class="k">Albuminuria category (UACR)</div>
-        @if (ck.uacrCat; as cat) {
-          <span class="chip teal">{{ cat }} ({{ uacrLabel(cat) }})</span>
-        } @else {
-          <span class="nd">No UACR on record</span>
-        }
-      </div>
-      @if (ck.mismatch) {
+    <emr-remote-state [remote]="store.latest()" (retry)="store.reloadLatest()">
+      @let ck = latest()?.ckd;
+      <div class="ckd-strip">
         <div>
-          <span class="chip warn"><emr-icon name="alert" [size]="13" />Established stage differs from latest eGFR</span>
+          <div class="k">Established CKD stage</div>
+          <emr-ckd-stage-badge [stage]="established()" />
         </div>
-      }
-    </div>
-    <div class="grid g2">
-      @for (c of charts(); track c.t) {
         <div>
-          <div class="kf-h">
-            <b>{{ LAB[c.t].name }}</b>
-            <span class="muted small">
-              @if (c.s.n) {
-                Latest <b class="mono" style="color: var(--ink)">{{ fmtVal(c.t, c.s.last) }}</b> {{ LAB[c.t].canon }},
-                {{ fmtDate(c.s.pts[c.s.n - 1]?.t) }}
-              } @else {
-                No results yet
-              }
-            </span>
+          <div class="k">eGFR category, latest result</div>
+          @if (ck?.egfr_category; as cat) {
+            <span class="chip teal">{{ cat }} ({{ ck?.egfr_label }})</span>
+          } @else {
+            <span class="nd">No eGFR on record</span>
+          }
+        </div>
+        <div>
+          <div class="k">Albuminuria category (UACR)</div>
+          @if (ck?.uacr_category; as cat) {
+            <span class="chip teal">{{ cat }} ({{ ck?.uacr_label }})</span>
+          } @else {
+            <span class="nd">No UACR on record</span>
+          }
+        </div>
+        @if (store.mismatch()) {
+          <div>
+            <span class="chip warn"
+              ><emr-icon name="alert" [size]="13" />Established stage differs from latest eGFR</span
+            >
           </div>
-          <emr-line-chart [pts]="c.s.pts" [test]="c.t" [low]="c.low" [high]="c.high" [stage]="c.stage" />
-          <emr-trend-chips [stats]="c.s" [test]="c.t" />
-        </div>
-      }
-    </div>
+        }
+      </div>
+    </emr-remote-state>
+    <emr-remote-state [remote]="trends()" (retry)="reload()">
+      <div class="grid g2">
+        @for (c of charts(); track c.t) {
+          <div>
+            <div class="kf-h">
+              <b>{{ LAB[c.t].name }}</b>
+              <span class="muted small">
+                @if (c.s.stats.n) {
+                  Latest
+                  <b class="mono" style="color: var(--ink)">{{ fmtVal(c.t, c.s.stats.last) }}</b>
+                  {{ c.s.unit }}, {{ fmtDate(c.s.stats.pts[c.s.stats.n - 1]?.t) }}
+                } @else {
+                  No results yet
+                }
+              </span>
+            </div>
+            <emr-line-chart
+              [pts]="c.s.stats.pts"
+              [test]="c.t"
+              [low]="c.s.low"
+              [high]="c.s.high"
+              [stage]="c.stage"
+            />
+            <emr-trend-chips [stats]="c.s.stats" [test]="c.t" />
+          </div>
+        }
+      </div>
+    </emr-remote-state>
   </div>
 </div>

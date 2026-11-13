@@ -65,11 +65,17 @@ export class LabsTab {
       return { t, s: trendStats(pts, t), rg, stage };
     };
 
-    let rows = all.filter((r) => (this.test() === 'ALL' || r.test === this.test()) && (!this.abn() || r.flag !== 'normal'));
+    let rows = all.filter(
+      (r) =>
+        (this.test() === 'ALL' || r.test === this.test()) && (!this.abn() || r.flag !== 'normal'),
+    );
     const pages = Math.max(1, Math.ceil(rows.length / PER));
     const page = Math.min(this.page(), pages);
     rows = rows.slice((page - 1) * PER, page * PER);
-    const total = all.filter((r) => (this.test() === 'ALL' || r.test === this.test()) && (!this.abn() || r.flag !== 'normal')).length;
+    const total = all.filter(
+      (r) =>
+        (this.test() === 'ALL' || r.test === this.test()) && (!this.abn() || r.flag !== 'normal'),
+    ).length;
     return {
       a,
       charts: [chart('EGFR', this.bands()), chart('CREAT', false)],
