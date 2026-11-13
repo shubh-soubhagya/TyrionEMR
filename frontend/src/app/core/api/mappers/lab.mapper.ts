@@ -30,5 +30,6 @@ export function labResultFromDto(d: ResultDto, patientId: string): LabResult {
     refLow: d.ref_low,
     refHigh: d.ref_high,
     flag: flagFromDto(d.flag),
+    labName: d.lab_name,
   };
 }

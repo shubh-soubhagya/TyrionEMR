@@ -26,10 +26,14 @@ import { EmrIcon } from '../icon/icon';
           }
         }
         @if (stats().n >= 2) {
-          <span class="chip">Change {{ signed(stats().abs, dec()) }} ({{ signed(stats().pct, 0) }}%)</span>
+          <span class="chip"
+            >Change {{ signed(stats().abs, dec()) }} ({{ signed(stats().pct, 0) }}%)</span
+          >
         }
         @if (stats().slope !== null) {
-          <span class="chip">{{ signed(stats().slope ?? 0, test() === 'EGFR' ? 1 : 2) }} per year</span>
+          <span class="chip"
+            >{{ signed(stats().slope ?? 0, test() === 'EGFR' ? 1 : 2) }} per year</span
+          >
         }
         @if (stats().rapid) {
           <span class="chip danger"><emr-icon name="alert" [size]="13" />Rapid decline</span>

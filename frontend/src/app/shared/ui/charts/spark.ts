@@ -18,7 +18,14 @@ import { EmrTip } from '../tooltip/tooltip';
         [attr.aria-label]="'eGFR trend, ' + stats().direction"
         [emrTip]="v.tip"
       >
-        <path [attr.d]="v.d" fill="none" [attr.stroke]="v.col" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" />
+        <path
+          [attr.d]="v.d"
+          fill="none"
+          [attr.stroke]="v.col"
+          stroke-width="1.7"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
         <circle [attr.cx]="v.cx" [attr.cy]="v.cy" r="2.6" [attr.fill]="v.col" />
       </svg>
     } @else {
@@ -49,7 +56,8 @@ export class EmrSpark {
     const x = (t: number) => 3 + ((t - t0) / (t1 - t0 || 1)) * (W - 6);
     const y = (v: number) => H - 4 - ((v - lo) / rg) * (H - 8);
     // Colors: html:1263. #6b7f89 is the prototype's own (one digit off --ink-3).
-    const col = s.direction === 'worsening' ? '#be2f3b' : s.direction === 'improving' ? '#12805c' : '#6b7f89';
+    const col =
+      s.direction === 'worsening' ? '#be2f3b' : s.direction === 'improving' ? '#12805c' : '#6b7f89';
     const last = pts[pts.length - 1] as { t: number; v: number };
     return {
       W,
@@ -58,7 +66,10 @@ export class EmrSpark {
       d: pts.map((p, i) => (i ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' '),
       cx: x(last.t).toFixed(1),
       cy: y(last.v).toFixed(1),
-      tip: [`eGFR ${fmtVal('EGFR', s.first)} to ${fmtVal('EGFR', s.last)}`, `${s.n} results, ${s.direction}`],
+      tip: [
+        `eGFR ${fmtVal('EGFR', s.first)} to ${fmtVal('EGFR', s.last)}`,
+        `${s.n} results, ${s.direction}`,
+      ],
     };
   });
 }

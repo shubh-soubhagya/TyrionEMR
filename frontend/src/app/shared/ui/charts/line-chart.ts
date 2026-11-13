@@ -25,6 +25,17 @@ const STAGE_BANDS: readonly (readonly [number, number, string])[] = [
   [0, 15, 'G5'],
 ];
 
+/** [lower, upper, code] from the server's `{code, lower}` list (descending thresholds; the top band ends at 100). */
+function serverBands(
+  b: readonly { readonly code: string; readonly lower: number }[] | null,
+): readonly (readonly [number, number, string])[] | null {
+  if (!b || b.length === 0) return null;
+  const sorted = [...b].sort((x, y) => y.lower - x.lower);
+  return sorted.map(
+    (x, i) => [x.lower, i === 0 ? 100 : (sorted[i - 1]?.lower ?? 100), x.code] as const,
+  );
+}
+
 /**
  * Hand-built SVG line chart, ported from the HTML's `lineChart()` (html:983-1004) so the look is
  * identical: grid, reference band, optional KDIGO stage lines, series line, flag-coloured points.
@@ -41,6 +52,8 @@ export class EmrLineChart {
   readonly low = input<number | null>(null);
   readonly high = input<number | null>(null);
   readonly stage = input(false);
+  /** eGFR stage thresholds from lab-svc (`stage_bands`); the built-in KDIGO list is only the fallback. */
+  readonly bands = input<readonly { readonly code: string; readonly lower: number }[] | null>(null);
 
   protected readonly name = computed(() => LAB_TESTS[this.test()].name);
 
@@ -53,6 +66,7 @@ export class EmrLineChart {
     const low = this.low();
     const high = this.high();
     const stage = this.stage();
+    const stageBands = serverBands(this.bands()) ?? STAGE_BANDS;
     const W = 640;
     const H = 270;
     const m = { l: 48, r: stage ? 64 : 22, t: 16, b: 32 };
@@ -101,11 +115,9 @@ export class EmrLineChart {
         };
       }),
       band:
-        high != null || low != null
-          ? { y: Math.min(yTop, yBot), h: Math.abs(yBot - yTop) }
-          : null,
+        high != null || low != null ? { y: Math.min(yTop, yBot), h: Math.abs(yBot - yTop) } : null,
       stages: stage
-        ? STAGE_BANDS.map((b) => {
+        ? stageBands.map((b) => {
             const c = (Math.max(b[0], ymin) + Math.min(b[1], ymax)) / 2;
             return { line: b[0] > 0 && b[0] < ymax ? sy(b[0]) : null, ty: sy(c) + 4, label: b[2] };
           })

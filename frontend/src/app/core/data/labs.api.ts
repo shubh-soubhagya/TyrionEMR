@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 import type {
   CatalogDto,
   CreatedReportDto,
@@ -65,6 +65,19 @@ export class LabsApi {
   /** The catalog for ONE patient: ranges for their sex and age, units with exact string factors. Loaded once per patient. */
   catalog(sex: string, age: number): Observable<CatalogDto> {
     return this.http.get<CatalogDto>(LABS.tests, { params: { sex, age } });
+  }
+
+  private readonly catalogs = new Map<string, Observable<CatalogDto>>();
+
+  /** The catalog for one patient, fetched once and shared: the form's preview uses it for every row and every open. */
+  catalogFor(patientId: string, sex: string, age: number): Observable<CatalogDto> {
+    const key = `${patientId}:${sex}:${age}`;
+    let c = this.catalogs.get(key);
+    if (!c) {
+      c = this.catalog(sex, age).pipe(shareReplay({ bufferSize: 1, refCount: false }));
+      this.catalogs.set(key, c);
+    }
+    return c;
   }
 
   addReport(patientId: string, body: ReportInDto): Observable<CreatedReportDto> {

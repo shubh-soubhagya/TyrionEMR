@@ -333,6 +333,7 @@ describe('lab result', () => {
       refLow: 0.7,
       refHigh: 1.3,
       flag: 'high',
+      labName: 'Lab',
     });
   });
 

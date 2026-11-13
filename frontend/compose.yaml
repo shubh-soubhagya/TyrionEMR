@@ -11,6 +11,8 @@ services:
       - '4200:4200'
     volumes:
       - .:/app
+      # lab-svc's shared test vectors (HLD ADR-019): the live preview must agree with the server on every case
+      - ../lab-svc/tests/vectors:/lab-vectors:ro
     # The dev server proxies /api to the gateway on the host (proxy.conf.mjs).
     extra_hosts:
       - 'host.docker.internal:host-gateway'

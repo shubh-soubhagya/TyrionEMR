@@ -10,7 +10,9 @@ export const isoDate = (d: number | string | Date): string => {
 };
 
 export const fmtDate = (d: number | string | Date | null | undefined): string =>
-  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+  d
+    ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '-';
 
 export const fmtDT = (d: number | string | Date | null | undefined): string =>
   d

@@ -2,13 +2,7 @@
 
 export type TestCode = 'CREAT' | 'EGFR' | 'BUN' | 'K' | 'HB' | 'CA' | 'PHOS' | 'UACR';
 export type Sex = 'M' | 'F' | 'O';
-export type Flag =
-  | 'normal'
-  | 'low'
-  | 'high'
-  | 'critical_low'
-  | 'critical_high'
-  | 'unknown';
+export type Flag = 'normal' | 'low' | 'high' | 'critical_low' | 'critical_high' | 'unknown';
 
 interface LabTest {
   name: string;
@@ -115,7 +109,8 @@ export interface Range {
 
 export function rangeFor(test: TestCode, sex: Sex): Range {
   const t = LAB_TESTS[test];
-  const r = (sex === 'M' || sex === 'F' ? t.ranges[sex] : undefined) ?? t.ranges.any ?? [null, null];
+  const r = (sex === 'M' || sex === 'F' ? t.ranges[sex] : undefined) ??
+    t.ranges.any ?? [null, null];
   return { low: r[0], high: r[1], critLow: t.crit[0], critHigh: t.crit[1] };
 }
 
@@ -153,8 +148,7 @@ export const EGFR_CATS: readonly (readonly [EgfrCat, number, string])[] = [
   ['G5', -1, 'Kidney failure'],
 ];
 
-export const classifyEgfr = (v: number): EgfrCat =>
-  EGFR_CATS.find((c) => v >= c[1])?.[0] ?? 'G5';
+export const classifyEgfr = (v: number): EgfrCat => EGFR_CATS.find((c) => v >= c[1])?.[0] ?? 'G5';
 
 export const egfrLabel = (c: string): string => EGFR_CATS.find((x) => x[0] === c)?.[2] ?? '';
 

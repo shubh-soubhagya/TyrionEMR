@@ -2,7 +2,13 @@
   <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" role="img" [attr.aria-label]="c.aria">
     <g class="ax">
       @for (t of c.ticks; track t.y) {
-        <line class="grid-l" [attr.x1]="c.m.l" [attr.x2]="c.W - c.m.r" [attr.y1]="t.y" [attr.y2]="t.y" />
+        <line
+          class="grid-l"
+          [attr.x1]="c.m.l"
+          [attr.x2]="c.W - c.m.r"
+          [attr.y1]="t.y"
+          [attr.y2]="t.y"
+        />
         <text [attr.x]="c.m.l - 8" [attr.y]="t.y + 4" text-anchor="end">{{ t.label }}</text>
       }
       @for (l of c.xlabels; track $index) {
@@ -11,18 +17,36 @@
       <text [attr.x]="c.m.l" y="11" style="font-weight: 500">{{ c.unit }}</text>
     </g>
     @if (c.band; as b) {
-      <rect class="band" [attr.x]="c.m.l" [attr.y]="b.y" [attr.width]="c.W - c.m.l - c.m.r" [attr.height]="b.h" />
+      <rect
+        class="band"
+        [attr.x]="c.m.l"
+        [attr.y]="b.y"
+        [attr.width]="c.W - c.m.l - c.m.r"
+        [attr.height]="b.h"
+      />
     }
     @for (s of c.stages; track s.label) {
       @if (s.line !== null) {
-        <line class="stage-l" [attr.x1]="c.m.l" [attr.x2]="c.W - c.m.r" [attr.y1]="s.line" [attr.y2]="s.line" />
+        <line
+          class="stage-l"
+          [attr.x1]="c.m.l"
+          [attr.x2]="c.W - c.m.r"
+          [attr.y1]="s.line"
+          [attr.y2]="s.line"
+        />
       }
       <text class="stage-t" [attr.x]="c.W - c.m.r + 6" [attr.y]="s.ty">{{ s.label }}</text>
     }
     <path class="series" [attr.d]="c.path" />
     @for (p of c.points; track $index) {
       <g class="hp" [emrTip]="p.tip">
-        <line class="xhair" [attr.x1]="p.x" [attr.x2]="p.x" [attr.y1]="c.m.t" [attr.y2]="c.H - c.m.b" />
+        <line
+          class="xhair"
+          [attr.x1]="p.x"
+          [attr.x2]="p.x"
+          [attr.y1]="c.m.t"
+          [attr.y2]="c.H - c.m.b"
+        />
         <circle r="14" [attr.cx]="p.x" [attr.cy]="p.y" fill="transparent" />
         <circle class="pt" r="5" [attr.cx]="p.x" [attr.cy]="p.y" [attr.fill]="p.fill" />
       </g>

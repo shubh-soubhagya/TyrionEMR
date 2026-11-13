@@ -117,6 +117,8 @@ export interface LabResult {
   refLow: number | null;
   refHigh: number | null;
   flag: Flag;
+  /** The laboratory that reported it (lab-svc `lab_name`). */
+  labName?: string;
 }
 
 export interface Db {

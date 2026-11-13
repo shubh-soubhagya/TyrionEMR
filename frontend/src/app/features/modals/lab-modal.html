@@ -1,121 +1,132 @@
 <emr-modal-shell
   title="Add lab report"
   [sub]="
-    patient().first +
-    ' ' +
-    patient().last +
-    ', ' +
-    patient().mrn +
-    '. Each test is flagged against the reference range at the time of entry.'
+    loaded()
+      ? loaded()!.name +
+        ', ' +
+        loaded()!.mrn +
+        '. Each test is flagged against the reference range at the time of entry.'
+      : 'Loading the test catalog…'
   "
   size="lg"
   (closed)="closed.emit()"
 >
-  <form [formGroup]="form" novalidate (ngSubmit)="submit()">
-    <div>
-      @if (general()) {
-        <div class="alert danger" style="margin-bottom: 12px">
-          <emr-icon name="alert" [size]="16" />
-          <div>
-            <b>{{ general() }}</b>
-          </div>
-        </div>
-      }
-    </div>
-    <div class="f-row">
-      <label class="fld"
-        ><span class="fld-l">Collected on<b class="req">*</b></span>
-        <input
-          type="datetime-local"
-          formControlName="date"
-          [max]="nowLocal"
-          [class.invalid]="errors()['date']"
-        />
-        <span class="err">{{ errors()['date'] }}</span></label
-      >
-      <label class="fld"
-        ><span class="fld-l">Laboratory</span><input formControlName="lab" /><span
-          class="err"
-        ></span
-      ></label>
-    </div>
-    <label class="fld"
-      ><span class="fld-l">Notes</span><input formControlName="notes" maxlength="200" /><span
-        class="err"
-      ></span
-    ></label>
-    <div class="fld">
-      <span class="fld-l">Results</span>
-      <div class="small muted" style="margin-bottom: 8px">
-        Pick the unit you were given. Values are converted and stored in the standard unit, and the
-        original entry is kept.
-      </div>
-      <div id="lab-rows">
-        @for (row of rows.controls; track $index) {
-          <div
-            class="lab-row"
-            [formGroup]="row"
-            style="
-              display: grid;
-              grid-template-columns: 1.5fr 1fr 1.1fr 1.2fr auto;
-              gap: 8px;
-              align-items: start;
-              margin-bottom: 8px;
-            "
-          >
-            <select
-              class="inp"
-              formControlName="test"
-              aria-label="Test"
-              (change)="onTestChange(row)"
-            >
-              @for (k of ORDER; track k) {
-                <option [value]="k">{{ LAB[k].name }}</option>
-              }
-            </select>
-            <input
-              class="inp"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="Value"
-              formControlName="value"
-              aria-label="Value"
-            />
-            <select class="inp" formControlName="unit" aria-label="Unit">
-              @for (u of units(row.controls.test.value); track u) {
-                <option [value]="u">{{ u }}</option>
-              }
-            </select>
-            <span class="lab-prev small" style="padding-top: 6px" aria-live="polite">
-              @if (preview(row); as pv) {
-                <emr-lab-flag [flag]="pv.flag" />
-                @if (pv.converted) {
-                  <div class="muted" style="margin-top: 3px">{{ pv.converted }}</div>
+  <emr-remote-state [remote]="data.state()" (retry)="data.reload()">
+    @if (loaded()) {
+      <form [formGroup]="form" novalidate (ngSubmit)="submit()">
+        <div aria-live="polite">
+          @if (problem().general) {
+            <div class="alert danger" style="margin-bottom: 12px" role="alert">
+              <emr-icon name="alert" [size]="16" />
+              <div>
+                <b>{{ problem().general }}</b>
+                @if (problem().requestId; as rid) {
+                  <div class="small muted">Reference: {{ rid }}</div>
                 }
-              }
-            </span>
-            <button
-              type="button"
-              class="icon-btn"
-              aria-label="Remove test"
-              (click)="removeRow($index)"
-            >
-              <emr-icon name="x" [size]="16" />
+              </div>
+            </div>
+          }
+        </div>
+        <div class="f-row">
+          <label class="fld"
+            ><span class="fld-l">Collected on<b class="req">*</b></span>
+            <input
+              type="datetime-local"
+              formControlName="date"
+              [max]="nowLocal"
+              [class.invalid]="problem().errors['date']"
+            />
+            <span class="err">{{ problem().errors['date'] }}</span></label
+          >
+          <label class="fld"
+            ><span class="fld-l">Laboratory</span><input formControlName="lab" /><span
+              class="err"
+            ></span
+          ></label>
+        </div>
+        <label class="fld"
+          ><span class="fld-l">Notes</span><input formControlName="notes" maxlength="200" /><span
+            class="err"
+          ></span
+        ></label>
+        <div class="fld">
+          <span class="fld-l">Results</span>
+          <div class="small muted" style="margin-bottom: 8px">
+            Pick the unit you were given. Values are converted and stored in the standard unit, and
+            the original entry is kept.
+          </div>
+          <div id="lab-rows">
+            @for (row of rows.controls; track $index) {
+              <div
+                class="lab-row"
+                [formGroup]="row"
+                style="
+                  display: grid;
+                  grid-template-columns: 1.5fr 1fr 1.1fr 1.2fr auto;
+                  gap: 8px;
+                  align-items: start;
+                  margin-bottom: 8px;
+                "
+              >
+                <select
+                  class="inp"
+                  formControlName="test"
+                  aria-label="Test"
+                  (change)="onTestChange(row)"
+                >
+                  @for (k of items(); track k.code) {
+                    <option [value]="k.code">{{ k.name }}</option>
+                  }
+                </select>
+                <input
+                  class="inp"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="Value"
+                  formControlName="value"
+                  aria-label="Value"
+                  [class.invalid]="rowErrors()[$index]"
+                />
+                <select class="inp" formControlName="unit" aria-label="Unit">
+                  @for (u of units(row.controls.test.value); track u) {
+                    <option [value]="u">{{ u }}</option>
+                  }
+                </select>
+                <span class="lab-prev small" style="padding-top: 6px" aria-live="polite">
+                  @if (preview(row); as pv) {
+                    <emr-lab-flag [flag]="pv.flag" />
+                    @if (pv.converted) {
+                      <div class="muted" style="margin-top: 3px">{{ pv.converted }}</div>
+                    }
+                  }
+                </span>
+                <button
+                  type="button"
+                  class="icon-btn"
+                  aria-label="Remove test"
+                  (click)="removeRow($index)"
+                >
+                  <emr-icon name="x" [size]="16" />
+                </button>
+                @if (rowErrors()[$index]; as msg) {
+                  <span class="err" style="grid-column: 1 / -1">{{ msg }}</span>
+                }
+              </div>
+            }
+          </div>
+          <div>
+            <button type="button" class="btn sm" (click)="addRow()">
+              <emr-icon name="plus" [size]="14" />Add another test
             </button>
           </div>
-        }
-      </div>
-      <div>
-        <button type="button" class="btn sm" (click)="addRow()">
-          <emr-icon name="plus" [size]="14" />Add another test
-        </button>
-      </div>
-      <span class="err">{{ errors()['rows'] }}</span>
-    </div>
-    <div class="form-actions">
-      <button type="button" class="btn" (click)="closed.emit()">Cancel</button>
-      <button class="btn primary" type="submit">Save lab report</button>
-    </div>
-  </form>
+          <span class="err">{{ problem().errors['rows'] }}</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn" (click)="closed.emit()">Cancel</button>
+          <button class="btn primary" type="submit" [disabled]="busy()">Save lab report</button>
+        </div>
+      </form>
+    }
+  </emr-remote-state>
 </emr-modal-shell>
