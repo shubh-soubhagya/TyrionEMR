@@ -76,7 +76,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "allowedHosts": ["host.docker.internal"]
+            "allowedHosts": ["host.docker.internal"],
+            "proxyConfig": "proxy.conf.mjs"
           },
           "configurations": {
             "production": {

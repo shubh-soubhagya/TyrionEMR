@@ -11,9 +11,13 @@ services:
       - '4200:4200'
     volumes:
       - .:/app
+    # The dev server proxies /api to the gateway on the host (proxy.conf.mjs).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment:
       NG_CLI_ANALYTICS: 'false'
       CHOKIDAR_USEPOLLING: 'true'
+      GATEWAY_URL: ${GATEWAY_URL:-http://host.docker.internal:8080}
 
   # Visual parity check (reference HTML vs Angular app). Started on demand only:
   #   docker compose --profile tools run --rm parity

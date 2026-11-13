@@ -1,6 +1,5 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8000/api',
-  useMocks: true,
-  aiRequestTimeoutMs: 60000,
+  // Relative on purpose: the dev server proxies /api to the gateway (proxy.conf.mjs).
+  apiBaseUrl: '/api',
 };
