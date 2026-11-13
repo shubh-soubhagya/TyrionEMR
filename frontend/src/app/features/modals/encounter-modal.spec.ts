@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { API_BASE } from '@core/api/endpoints';
 import { errorInterceptor } from '@core/http/error.interceptor';
 import { ModalService } from '@core/ui/modal.service';
+import { ToastService } from '@shared/ui/toast/toast.service';
 import { EncounterModal } from './encounter-modal';
 
 const ENC = `${API_BASE}/patients/p1/encounters`;
@@ -148,5 +149,67 @@ describe('EncounterModal', () => {
     expect(el.textContent).toContain('Too high for the server');
     expect(el.textContent).toContain('req-5');
     expect(el.querySelector<HTMLInputElement>('.vit label:nth-child(1) input')?.value).toBe('120');
+  });
+});
+
+describe('EncounterModal editing a draft', () => {
+  const detail = (over: Record<string, unknown> = {}) => ({
+    id: 'e1',
+    patient_id: 'p1',
+    encounter_date: '2026-11-13T04:30:00Z',
+    encounter_type: 'follow_up',
+    clinician_id: 'u',
+    clinician_name: 'Dr',
+    chief_complaint: 'Review',
+    symptoms: [],
+    examination_notes: null,
+    assessment: 'ok',
+    plan: 'go',
+    follow_up_date: null,
+    status: 'draft',
+    vitals: null,
+    diagnoses: [
+      {
+        seq: 1,
+        icd10_code: 'I10',
+        description: 'Hypertension',
+        category: null,
+        add_to_problem_list: true,
+        condition_id: null,
+      },
+    ],
+    finalized_at: null,
+    finalized_by: null,
+    version: 1,
+    created_at: '',
+    updated_at: '',
+    ...over,
+  });
+
+  it('saves the edits, then finalizes with the new version, and reports the conditions the server added', async () => {
+    const { fixture, ctrl, el } = create('e1');
+    await Promise.resolve();
+    ctrl.expectOne(`${ENC}/e1`).flush(detail());
+    await flushLoads(ctrl);
+    fixture.detectChanges();
+    expect(el.querySelector<HTMLInputElement>('.dx-row input[type=checkbox]')?.checked).toBe(true); // flag survives the reload
+    button(el, 'Finalize encounter')?.click();
+    fixture.detectChanges();
+    button(el, 'Finalize')?.click();
+    const patch = ctrl.expectOne(`${ENC}/e1`);
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body.version).toBe(1);
+    patch.flush({ encounter: detail({ version: 2 }), problem_list_changes: { added: 0 } });
+    const fin = ctrl.expectOne(`${ENC}/e1/finalize`);
+    expect(fin.request.body).toEqual({ version: 2 });
+    fin.flush({
+      encounter: detail({ status: 'final', version: 3 }),
+      problem_list_changes: { added: 1 },
+    });
+    fixture.detectChanges();
+    const toasts = TestBed.inject(ToastService)
+      .toasts()
+      .map((t) => t.message);
+    expect(toasts).toContain('Encounter finalized. 1 condition added to the problem list.');
   });
 });

@@ -70,6 +70,24 @@ docker compose -f frontend/compose.yaml exec web npx ng test --watch=false     #
 
 `make capture-fixtures` in `ai-svc/` records real upstream responses for ai-svc's contract tests (needs the stack up and seeded).
 
+## Screenshots
+
+Taken from the running stack with the seeded data (`docs/screenshots/`):
+[sign in](docs/screenshots/01-sign-in.png), [dashboard](docs/screenshots/02-dashboard.png),
+[patient list with sparklines and a filter](docs/screenshots/03-patient-list-filtered.png),
+[overview with the kidney panel](docs/screenshots/04-overview-kidney-panel.png),
+[conditions with the stage mismatch](docs/screenshots/05-conditions-stage-mismatch.png),
+[encounter form](docs/screenshots/06-encounter-form.png),
+[labs table with flags and trends](docs/screenshots/07-labs-table-and-trends.png),
+[add lab report with the live preview](docs/screenshots/08-add-lab-report-preview.png),
+[trend charts](docs/screenshots/09-trend-charts.png),
+AI summary: [running](docs/screenshots/10-ai-summary-running.png), [completed](docs/screenshots/11-ai-summary-completed.png),
+[degraded](docs/screenshots/12-ai-summary-degraded.png), [failed](docs/screenshots/13-ai-summary-failed.png),
+and [a source chip opening a record](docs/screenshots/14-ai-source-chip-opens-record.png).
+
+The end-to-end flow (sign in, dashboard, search, encounter draft and finalize, µmol/L lab report, AI summary, source chip,
+sign out and back in) is `frontend/e2e/flow/flow.e2e.ts`; see `frontend/README.md`.
+
 ## Known limitations
 
 Each service's README has a deviations table: [auth-svc](auth-svc/README.md), [patient-svc](patient-svc/README.md),

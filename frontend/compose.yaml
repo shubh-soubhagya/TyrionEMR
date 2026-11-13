@@ -38,3 +38,18 @@ services:
     volumes:
       - .:/app
       - ../reference:/reference:ro
+
+  # End-to-end flow and the submission screenshots against the running stack. Started on demand only:
+  #   docker compose --profile tools run --rm flow
+  # Needs the whole stack (`make up` at the repo root) and the `web` service above.
+  flow:
+    image: mcr.microsoft.com/playwright:v1.65.0-noble
+    profiles: ['tools']
+    working_dir: /app
+    command: npx playwright test --config=playwright.flow.config.ts
+    ipc: host
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - .:/app
+      - ../docs/screenshots:/shots

@@ -127,7 +127,7 @@ Ten patients, `PT-000101` to `PT-000110`, with the clinician "Dr. Anita Rao" (th
 
 ### 5 Submission (frontend share)
 
-- [ ] README, synthetic data, API description, architecture and AI explanation: root README done; screenshots pending (phase B10)
+- [x] README, synthetic data, API description, architecture and AI explanation, screenshots (root README and docs/screenshots)
 
 ## G. Not done, with reasons
 
