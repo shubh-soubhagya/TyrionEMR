@@ -86,6 +86,8 @@ make seed-reset                               # development only: reseeds PT-000
 
 ## Decisions to review
 
+- `FastAPI(redirect_slashes=False)`: `/labs/tests/` is a 404, not a 307 round trip through the gateway that also leaks the
+  upstream path (gateway LLD R14). Deviation from FastAPI's default, same in all four services.
 - Reference ranges and critical limits are the reference UI prototype's, not a separate "supplied ranges file"
   (none is in the repo). Only `catalog_data.py` changes if one exists; re-seeding with a later `effective_from`
   keeps history.

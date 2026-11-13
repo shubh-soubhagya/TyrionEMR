@@ -116,3 +116,9 @@ async def test_unknown_route_uses_envelope(client):
 async def test_metrics_exposed(client):
     r = await client.get("/metrics")
     assert r.status_code == 200 and "http_request_duration_seconds" in r.text
+
+
+
+async def test_a_trailing_slash_is_a_404_not_a_redirect(client):
+    resp = await client.get("/health/", follow_redirects=False)
+    assert resp.status_code == 404
