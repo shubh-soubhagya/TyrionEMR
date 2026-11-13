@@ -1,11 +1,10 @@
 """Contract tests (LLD B17.7): the fixtures ai-svc is tested with must satisfy the JSON Schemas the providers publish.
 
 The schemas are copies of patient-svc's ``contracts/patient`` and lab-svc's ``contracts/lab``. The providers validate
-their real responses against the same files, so a drift on either side fails a build. One known, documented gap:
+their real responses against the same files, so a drift on either side fails a build.
 
-* B20.1: lab-svc has not yet added ``first_result_at`` and ``egfr_lt60_run`` to /latest and /internal/labs/status.
-
-They are allowed as *extra* keys only; every required field and type is still checked.
+B20.1 is closed: lab-svc sends ``first_result_at`` and ``egfr_lt60_run`` (both nullable) on /latest and
+/internal/labs/status, and the copied schemas REQUIRE the keys, so a response without them fails here.
 """
 from __future__ import annotations
 
@@ -20,7 +19,6 @@ from jsonschema import Draft202012Validator
 from tests.fixtures import seed
 
 HERE = Path(__file__).parent
-PENDING_EXTRAS = {"first_result_at", "egfr_lt60_run"}
 
 
 def schema(rel: str) -> dict:
@@ -93,7 +91,7 @@ def test_patient_svc_shapes(p):
 
 
 @pytest.mark.parametrize("p", PATIENTS, ids=IDS)
-def test_lab_svc_shapes_and_only_the_documented_extras(p):
+def test_lab_svc_shapes_and_no_undeclared_keys(p):
     validate(p["latest"], "lab/latest.schema.json")
     validate(p["trends"], "lab/trends.schema.json")
     validate({"items": p["results"].get("EGFR", []), "page": 1, "size": 50, "total": len(p["results"].get("EGFR", []))},
@@ -102,7 +100,7 @@ def test_lab_svc_shapes_and_only_the_documented_extras(p):
     if p["status"]:
         validate({"items": [p["status"]], "next_cursor": None}, "lab/status.schema.json")
         extras |= keys_below({"items": [p["status"]], "next_cursor": None}, schema("lab/status.schema.json"))
-    assert extras <= PENDING_EXTRAS, extras - PENDING_EXTRAS
+    assert not extras, extras
 
 
 def test_the_bulk_charts_contract_forbids_extra_fields_so_identifiers_cannot_slip_in():
@@ -124,3 +122,25 @@ def test_test_names_and_decimals_match_lab_svcs_catalog():
     assert set(TEST_NAMES) <= set(catalog)
     for code in TEST_NAMES:
         assert (TEST_NAMES[code], TEST_DECIMALS[code]) == catalog[code], code
+
+
+@pytest.mark.parametrize("name", ["latest", "status"])
+def test_both_new_lab_fields_are_required_by_the_schema_copy(name):
+    s = schema(f"lab/{name}.schema.json")
+    node = s["properties"]["items"]["items"] if name == "status" else s
+    assert {"first_result_at", "egfr_lt60_run"} <= set(node["required"])
+
+
+@pytest.mark.parametrize("name", ["latest", "status", "trends", "results"])
+def test_lab_schema_copies_equal_lab_svcs_published_contracts(name):
+    src = HERE.parents[2] / "lab-svc" / "contracts" / "lab" / f"{name}.schema.json"
+    if not src.is_file():
+        pytest.skip("lab-svc source tree not present")
+    assert json.loads(src.read_text(encoding="utf-8")) == schema(f"lab/{name}.schema.json")
+
+
+def test_a_lab_document_without_the_new_keys_fails_the_contract():
+    p = next(x for x in PATIENTS if x["status"])
+    broken = {k: v for k, v in p["latest"].items() if k not in ("first_result_at", "egfr_lt60_run")}
+    with pytest.raises(AssertionError):
+        validate(broken, "lab/latest.schema.json")

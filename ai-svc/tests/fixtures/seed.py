@@ -171,8 +171,8 @@ def build(spec: Spec, *, b20_fields: bool = True) -> dict:
         "rapid_decline": bool(egfr_stats and egfr_stats["rapid_decline"]),
         "last_result_at": reports[-1][0].isoformat() if has_labs else None,
     }
-    if b20_fields and has_labs:
-        lab |= {"first_result_at": reports[0][0].isoformat(), "egfr_lt60_run": run}
+    if b20_fields:                      # lab-rules-2 sends both keys for every patient, null when there is no data
+        lab |= {"first_result_at": reports[0][0].isoformat() if has_labs else None, "egfr_lt60_run": run}
 
     enc_id = uid(spec.mrn, "enc")
     enc_at = NOW - timedelta(days=20)

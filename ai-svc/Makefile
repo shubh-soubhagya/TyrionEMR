@@ -29,6 +29,13 @@ openapi:
 	$(PY) -m app.cli.export_openapi
 check-openapi:
 	$(PY) -m app.cli.export_openapi --check
+# Needs the whole stack up (`make up` at the repo root) and the databases seeded. Logs in as the demo user through the
+# gateway, then reads the /internal routes from a one-off container on nephro-net (they are not routed by the
+# gateway). Writes tests/fixtures/captured/. See app/cli/capture_fixtures.py.
+capture-fixtures:
+	MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --build \
+	  -v "$$(pwd -W 2>/dev/null || pwd)/tests/fixtures/captured:/out" \
+	  --entrypoint python ai-svc -m app.cli.capture_fixtures --out /out
 reap:
 	$(PY) -m app.cli.reap_once
 test-unit:

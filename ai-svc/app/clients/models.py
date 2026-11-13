@@ -180,7 +180,7 @@ class LabSummary(Up):
     has_critical: bool = False
     rapid_decline: bool = False
     last_result_at: datetime | None = None
-    # B20.1: requested from lab-svc. Optional until lab-svc sends them (rules 10 and 12 skip without them).
+    # B20.1: lab-svc sends both (nullable) since lab-rules-2. The keys are part of the contract; null is tolerated.
     first_result_at: datetime | None = None
     egfr_lt60_run: RunIn | None = None
 

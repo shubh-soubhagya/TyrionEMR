@@ -12,7 +12,7 @@ tool calling, LLM adapter, validation, provenance) for the NephroCare EMR.
 ## Run (same Postgres container as auth-svc, patient-svc and lab-svc)
 
 ```bash
-cp .env.example .env            # AI_DB_PW, the two URLs (host port 5433), LLM_API_KEY
+cp .env.example .env            # AI_DB_PW and the two URLs (host port 5433). No LLM key needed: LLM_PROVIDER=mock
 make init-db init-test-db       # idempotent: role ai_svc, nephro_ai_db, nephro_ai_db_test
 make install migrate            # venv, alembic upgrade head
 make run                        # http://localhost:8004  (/docs when APP_ENV is not production)
@@ -31,8 +31,9 @@ port; only the gateway does. The container is non-root with a read-only root fil
 
 ## LLM
 
-Groq only, over raw httpx (no vendor SDK), model `openai/gpt-oss-20b` (the same as the Granthan llm-service).
-`LLM_API_KEY` comes from `LLM_API_KEY_FILE` (Docker secret) or the environment and is never logged. `LLM_PROVIDER=mock`
+The stack runs with **no API key**: `.env.example` sets `LLM_PROVIDER=mock`, the deterministic MockProvider. To use
+Groq set `LLM_PROVIDER=groq` and give it a key. The Groq adapter is raw httpx (no vendor SDK), model
+`openai/gpt-oss-20b` (the same as the Granthan llm-service). `LLM_API_KEY` comes from `LLM_API_KEY_FILE` (Docker secret) or the environment and is never logged. `LLM_PROVIDER=mock`
 runs the deterministic MockProvider; with `APP_ENV=dev` the header `X-Mock-Scenario` selects a scenario
 (`success`, `tool_roundtrip`, `invalid_then_valid`, `invalid_twice`, `bad_refs`, `unsafe_then_safe`, `unsafe_twice`,
 `timeout`, `rate_limited`, `upstream_down`). Prompts are Markdown files in `app/prompts/<version>/`.
@@ -52,8 +53,10 @@ is kept at `low`. No embedding model is used by this service.
 | GET | `/insights/dashboard` | KPIs, attention rows, eGFR distribution, abnormal results; 30 s single-flight snapshot, `Cache-Control: no-cache` recomputes |
 | GET | `/health`, `/ready`, `/metrics` | `/ready` checks DB, migrations at head and JWKS; upstreams and the LLM are not readiness checks |
 
-## Dependencies on other services
+## Contract fixtures
 
-lab-svc must add `first_result_at` and `egfr_lt60_run` (B20.1) to `/latest` and `/internal/labs/status`, and reseed
-Kavita Joshi's eGFR 59 -> 49. Until then the rules `NO_ESTABLISHED_CKD_STAGE` and `LAB_DATE_INVALID` stay quiet and she
-is not on the worklist; the fields are optional in the client models and the contract tests allow them as extras.
+`tests/fixtures/seed.py` builds the ten HLD §18 patients by hand from the provider contracts. `make capture-fixtures`
+records the real upstream responses (with the whole stack running and seeded) into `tests/fixtures/captured/`; the
+tests in `tests/contract/test_captured.py` check them against the providers' JSON Schemas and the client models, and
+assert HLD §18 (6 need attention, 4 rapid declines) on all ten patients. They are skipped only until the first capture
+is committed.
