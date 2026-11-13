@@ -63,6 +63,16 @@ host for a quick check, run a throwaway container on `nephro-net`, for example
 | dr.rao@nephrocare.demo | Dr. Anita Rao | `Nephro#2026` |
 | dr.malhotra@nephrocare.demo | Dr. Karan Malhotra | `Nephro#2026` |
 
+The demo users' ids are `uuid5(9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10, "user:" + email)`, the ids patient-svc's seed gives
+its encounters' clinicians. A development database seeded earlier keeps the old random ids (the seed is idempotent by
+email and does not touch existing rows) until the two demo users are deleted and reseeded; their refresh tokens go
+with them (`ON DELETE CASCADE`), so they sign in again. Not run by any script; run it by hand when you want it:
+
+```bash
+docker exec -i graphgpt-postgres psql -U postgres -d nephro_auth_db -c   "DELETE FROM users WHERE email IN ('dr.rao@nephrocare.demo','dr.malhotra@nephrocare.demo')"
+make seed                       # recreates them with the new ids (SEED_DEMO_USERS or --force)
+```
+
 The prototype's `admin@nephrocare.demo` is deliberately not seeded. Invite a clinician when signup is
 off: `python -m app.cli.create_user --email dr.x@clinic.example --name "Dr. X"`.
 
@@ -127,6 +137,8 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D26 | `.env.example` (and the root example's auth section) list the role variables and every setting; `setup/retire-legacy-role.sh` retires `auth_svc` (NOLOGIN, never dropped); `make retire-legacy-role` | The examples had fallen behind the hardening work and still described the single role. LLD §16.3b |
 | D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
 | D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
+| D24 | FastAPI default `redirect_slashes=True` | `redirect_slashes=False`: `/auth/login/` is a 404 | A trailing slash would cost a 307 round trip through the gateway and leak the upstream path (gateway LLD R14) |
+| D25 | Demo users get random `uuid4` ids | `uuid5(9b3f6a52-..., "user:" + email)` | patient-svc's seeded encounters reference their clinician by that id (patient-svc `seed_ids.py`) |
 
 ## Configuration added for production readiness
 

@@ -74,3 +74,8 @@ async def test_every_error_uses_the_envelope(client):
               await client.get("/auth/me"), await client.post("/auth/refresh")):
         err = r.json()["error"]
         assert set(err) == {"code", "message", "details", "request_id"} and err["request_id"]
+
+
+async def test_a_trailing_slash_is_a_404_not_a_redirect(client):
+    resp = await client.post("/auth/login/", json={}, follow_redirects=False)
+    assert resp.status_code == 404

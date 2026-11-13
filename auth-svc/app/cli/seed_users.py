@@ -14,6 +14,15 @@ from app.domain.clock import utcnow
 from app.services.password_hasher import PasswordHasherService
 
 DEMO_PASSWORD = "Nephro#2026"
+# Same namespace as patient-svc/app/domain/seed_ids.py and lab-svc: patient-svc's seeded encounters name their clinician
+# by uuid5(NS, "user:" + email), so the demo users must carry exactly those ids.
+SEED_NAMESPACE = uuid.UUID("9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10")
+
+
+def demo_user_id(email: str) -> uuid.UUID:
+    return uuid.uuid5(SEED_NAMESPACE, f"user:{email.lower()}")
+
+
 DEMO_USERS = [
     ("Dr. Anita Rao", "dr.rao@nephrocare.demo"),
     ("Dr. Karan Malhotra", "dr.malhotra@nephrocare.demo"),
@@ -40,7 +49,7 @@ async def main(force: bool) -> int:
         async with engine.begin() as conn:
             for name, email in DEMO_USERS:
                 result = await conn.execute(_INSERT, {
-                    "id": uuid.uuid4(), "email": email, "hash": await hasher.hash(DEMO_PASSWORD),
+                    "id": demo_user_id(email), "email": email, "hash": await hasher.hash(DEMO_PASSWORD),
                     "name": name, "now": utcnow()})
                 created += result.rowcount or 0
     finally:

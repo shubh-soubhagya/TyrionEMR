@@ -110,6 +110,7 @@ def create_app(settings: Settings | None = None, clock: Clock = utcnow,
         docs_url=None if prod else "/docs",
         redoc_url=None if prod else "/redoc",
         openapi_url=None if prod else "/openapi.json",
+        redirect_slashes=False,      # /auth/login/ is a 404, not a 307 round trip through the gateway (R14)
     )
     install_common_middleware(app)
     app.add_exception_handler(AuthError, _auth_error_handler)  # type: ignore[arg-type]
