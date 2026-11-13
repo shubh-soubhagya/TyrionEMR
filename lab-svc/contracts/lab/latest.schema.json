@@ -10,6 +10,8 @@
     "has_critical",
     "rapid_decline",
     "last_result_at",
+    "first_result_at",
+    "egfr_lt60_run",
     "status_version"
   ],
   "properties": {
@@ -181,6 +183,36 @@
     "status_version": {
       "type": "integer",
       "minimum": 0
+    },
+    "first_result_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "egfr_lt60_run": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "since",
+            "n"
+          ],
+          "properties": {
+            "since": {
+              "type": "string"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
     }
   }
 }

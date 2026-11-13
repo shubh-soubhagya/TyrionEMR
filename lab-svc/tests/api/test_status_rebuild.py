@@ -55,7 +55,7 @@ async def test_version_increases_by_one_per_write_and_counts_current_results(api
     pid = patients.add()
     await add(api, pid, 0, K=4.0)
     first = await status_row(db_engine, pid)
-    assert (first["version"], first["result_count"], first["rules_version"]) == (1, 1, "lab-rules-1")
+    assert (first["version"], first["result_count"], first["rules_version"]) == (1, 1, "lab-rules-2")
     res = (await add(api, pid, 10, K=6.8, UACR=100))["results"][0]
     second = await status_row(db_engine, pid)
     assert (second["version"], second["result_count"]) == (2, 3)
@@ -129,7 +129,7 @@ async def test_stale_only_recomputes_just_the_rows_built_with_old_rules(api, pat
     res = await status_rebuild.rebuild(sm, make_settings(), stale_only=True)
     assert (res.rebuilt, res.skipped) == (1, 2)
     after = {p: await status_row(db_engine, p) for p in (a, b, c)}
-    assert after[b]["rules_version"] == "lab-rules-1" and after[b]["version"] == versions[b] + 1
+    assert after[b]["rules_version"] == "lab-rules-2" and after[b]["version"] == versions[b] + 1
     assert after[a]["version"] == versions[a] and after[c]["version"] == versions[c]       # untouched
 
 
@@ -167,3 +167,15 @@ async def test_attention_partial_index_serves_the_worklist(db_engine) -> None:
     async with db_engine.connect() as c:
         idx = (await c.execute(text("SELECT indexdef FROM pg_indexes WHERE indexname = 'ix_status_attention'"))).scalar_one()
     assert "WHERE (has_critical OR rapid_decline)" in idx
+
+
+async def test_rows_built_with_lab_rules_1_are_rebuilt_and_then_pass_check(api, patients, db_engine, sm) -> None:
+    a, b, _ = await populate(api, patients)
+    async with db_engine.begin() as conn:                      # what a database migrated from 0003 looks like
+        await conn.execute(text("UPDATE patient_lab_status SET rules_version = 'lab-rules-1', "
+                                "first_result_at = NULL, egfr_lt60_run = NULL"))
+    assert await status_rebuild.check(sm, make_settings())      # stale rows are reported
+    res = await status_rebuild.rebuild(sm, make_settings(), stale_only=True)
+    assert res.rebuilt == 3 and res.skipped == 0
+    assert await status_rebuild.check(sm, make_settings()) == []
+    assert (await status_row(db_engine, a))["rules_version"] == "lab-rules-2"

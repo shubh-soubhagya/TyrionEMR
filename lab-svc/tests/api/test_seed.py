@@ -194,7 +194,7 @@ async def test_lab_level_attention_set(api, seeded) -> None:
     items = (await api.get("/internal/labs/status", params={"limit": 200})).json()["items"]
     assert len(items) == 9
     attention = {i["patient_id"] for i in items if i["has_critical"] or i["rapid_decline"]}
-    assert attention == {str(patient_id(m)) for m in ("PT-000101", "PT-000104", "PT-000109")}
+    assert attention == {str(patient_id(m)) for m in ("PT-000101", "PT-000104", "PT-000109", "PT-000110")}
 
 
 @pytest.mark.api
@@ -211,3 +211,13 @@ async def test_reset_is_refused_unless_explicitly_allowed(api, seeded) -> None:
         await seed(make_settings(seed_allow_reset=True, environment="production"), seeded["sm"], reset=True)
     again = await seed(make_settings(seed_allow_reset=True, seed_anchor_date=NOW.date()), seeded["sm"], reset=True)
     assert again == seeded["first"]
+
+
+@pytest.mark.api
+async def test_110_is_a_rapid_decline_with_a_lt60_run(api, seeded) -> None:
+    """ai-svc LLD B20.1 #3: eGFR 59 -> 49 over 500 days (about -7 per year) keeps HLD s18's worklist."""
+    body = await latest(api, "PT-000110")
+    stats = await egfr_stats(api, "PT-000110")
+    assert stats["slope_per_year"] <= -5 and body["rapid_decline"] is True
+    assert body["ckd"]["egfr_category"] == "G3a" and body["ckd"]["egfr_value"] == 49
+    assert body["egfr_lt60_run"]["n"] >= 1 and body["first_result_at"] is not None

@@ -95,6 +95,8 @@ class PatientLabStatus(Base):
     rapid_decline: Mapped[bool] = mapped_column(server_default=text("false"))
     result_count: Mapped[int] = mapped_column(server_default=text("0"))
     last_result_at: Mapped[datetime | None]
+    first_result_at: Mapped[datetime | None]
+    egfr_lt60_run: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     version: Mapped[int] = mapped_column(server_default=text("1"))
     rules_version: Mapped[str]
     updated_at: Mapped[datetime] = mapped_column(server_default=text("clock_timestamp()"))

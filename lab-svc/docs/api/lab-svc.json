@@ -676,6 +676,28 @@
           "ckd": {
             "$ref": "#/components/schemas/CkdBlock"
           },
+          "egfr_lt60_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Lt60Run"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "first_result_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Result At"
+          },
           "has_critical": {
             "title": "Has Critical",
             "type": "boolean"
@@ -720,6 +742,8 @@
           "has_critical",
           "rapid_decline",
           "last_result_at",
+          "first_result_at",
+          "egfr_lt60_run",
           "status_version"
         ],
         "title": "LatestOut",
@@ -817,6 +841,25 @@
           "result"
         ],
         "title": "LatestTile",
+        "type": "object"
+      },
+      "Lt60Run": {
+        "properties": {
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "n"
+        ],
+        "title": "Lt60Run",
         "type": "object"
       },
       "RangeOut": {
@@ -1193,6 +1236,16 @@
             ],
             "title": "Egfr Category"
           },
+          "egfr_lt60_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Lt60Run"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "egfr_stats": {
             "anyOf": [
               {
@@ -1204,6 +1257,18 @@
               }
             ],
             "title": "Egfr Stats"
+          },
+          "first_result_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Result At"
           },
           "has_critical": {
             "title": "Has Critical",
@@ -1264,7 +1329,9 @@
           "has_critical",
           "rapid_decline",
           "result_count",
-          "last_result_at"
+          "last_result_at",
+          "first_result_at",
+          "egfr_lt60_run"
         ],
         "title": "StatusItem",
         "type": "object"

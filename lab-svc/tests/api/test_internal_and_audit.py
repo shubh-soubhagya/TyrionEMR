@@ -106,6 +106,40 @@ async def test_status_pages_are_in_patient_id_order(api, patients) -> None:
     assert ids == sorted(ids)
 
 
+# ---- first_result_at and egfr_lt60_run (B20.1) ----------------------------------------------------------
+async def test_both_endpoints_return_first_result_at_and_the_lt60_run(api, patients) -> None:
+    pid = patients.add()
+    for i, e in enumerate([70, 58, 55, 50]):
+        await add(api, pid, i * 30, EGFR=e)
+    pub = (await api.get(f"/labs/patients/{pid}/latest")).json()
+    bulk = next(i for i in (await api.get("/internal/labs/status")).json()["items"] if i["patient_id"] == str(pid))
+    for body in (pub, bulk):
+        assert body["egfr_lt60_run"]["n"] == 3 and body["first_result_at"] is not None
+        assert body["egfr_lt60_run"]["since"][:10] > body["first_result_at"][:10]
+
+
+async def test_lt60_run_is_null_when_the_latest_egfr_is_normal_and_a_correction_moves_it(api, patients) -> None:
+    pid = patients.add()
+    await add(api, pid, 0, EGFR=50)
+    second = (await add(api, pid, 30, EGFR=45))["results"][0]
+    assert (await api.get(f"/labs/patients/{pid}/latest")).json()["egfr_lt60_run"]["n"] == 2
+    fixed = await api.post(f"/labs/results/{second['id']}/correct",
+                           json={"value": 75, "unit": "mL/min/1.73m²", "reason": "re-keyed"})
+    assert fixed.status_code in (200, 201), fixed.text
+    body = (await api.get(f"/labs/patients/{pid}/latest")).json()
+    assert body["egfr_lt60_run"] is None                       # the superseded 45 no longer counts
+
+
+async def test_first_result_at_follows_a_back_dated_report_and_is_null_without_results(api, patients) -> None:
+    empty = (await api.get(f"/labs/patients/{patients.add()}/latest")).json()
+    assert empty["first_result_at"] is None and empty["egfr_lt60_run"] is None
+    pid = patients.add()
+    await add(api, pid, 30, K=4.0)
+    first = (await api.get(f"/labs/patients/{pid}/latest")).json()["first_result_at"]
+    await add(api, pid, 0, K=4.1)                               # collected earlier, entered later
+    assert (await api.get(f"/labs/patients/{pid}/latest")).json()["first_result_at"] < first
+
+
 # ---- contracts -----------------------------------------------------------------------------------------
 @pytest.mark.parametrize("name", ["latest", "results", "results-internal", "trends", "summary", "status", "report",
                                   "correction"])

@@ -82,7 +82,7 @@ async def test_status_row_is_written_in_the_same_transaction(patients, post_repo
     async with db_engine.connect() as c:
         row = (await c.execute(text("SELECT result_count, version, rules_version FROM patient_lab_status "
                                     "WHERE patient_id = :p"), {"p": pid})).one()
-    assert tuple(row) == (1, 1, "lab-rules-1")
+    assert tuple(row) == (1, 1, "lab-rules-2")
 
 
 async def test_lab_name_defaults_and_request_id_is_stored(patients, post_report, db_engine) -> None:

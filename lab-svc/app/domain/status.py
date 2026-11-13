@@ -37,6 +37,21 @@ def _num(v: Decimal | None) -> float | None:
     return None if v is None else float(v)
 
 
+def egfr_lt60_run(egfr: Sequence[ResultPoint]) -> dict[str, Any] | None:
+    """The trailing run of eGFR values < 60 that ends at the latest eGFR (ai-svc LLD B20.1 #2).
+
+    ``egfr`` is ordered oldest first. None when there is no eGFR or the latest one is >= 60.
+    """
+    run: list[ResultPoint] = []
+    for r in reversed(egfr):
+        if r.value >= 60:
+            break
+        run.append(r)
+    if not run:
+        return None
+    return {"since": run[-1].collected_at.isoformat(), "n": len(run)}
+
+
 def build_status(rows: Sequence[ResultPoint], cfg: TrendConfig = TrendConfig(),  # noqa: B008
                  spark_points: int = DEFAULT_SPARK_POINTS) -> dict[str, Any]:
     ordered = sorted(rows, key=lambda r: (r.collected_at, r.created_at, str(r.id)))
@@ -60,5 +75,7 @@ def build_status(rows: Sequence[ResultPoint], cfg: TrendConfig = TrendConfig(), 
         "rapid_decline": egfr_stats.rapid_decline,
         "result_count": len(ordered),
         "last_result_at": ordered[-1].collected_at if ordered else None,
+        "first_result_at": min((r.collected_at for r in ordered), default=None),
+        "egfr_lt60_run": egfr_lt60_run(egfr),
         "rules_version": RULES_VERSION,
     }

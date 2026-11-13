@@ -105,6 +105,11 @@ class CkdBlock(BaseModel):
     uacr_collected_at: datetime | None
 
 
+class Lt60Run(BaseModel):
+    since: datetime
+    n: int
+
+
 class LatestOut(BaseModel):
     patient_id: uuid.UUID
     tests: list[LatestTile]
@@ -112,6 +117,8 @@ class LatestOut(BaseModel):
     has_critical: bool
     rapid_decline: bool
     last_result_at: datetime | None
+    first_result_at: datetime | None
+    egfr_lt60_run: Lt60Run | None
     status_version: int                # 0 when the patient has no results
 
 
@@ -150,6 +157,8 @@ class StatusItem(BaseModel):
     rapid_decline: bool
     result_count: int
     last_result_at: datetime | None
+    first_result_at: datetime | None
+    egfr_lt60_run: Lt60Run | None
 
 
 class StatusPage(BaseModel):

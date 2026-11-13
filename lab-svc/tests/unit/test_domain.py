@@ -13,7 +13,7 @@ from app.domain.catalog_data import CATALOG, RANGES, RANGES_EFFECTIVE_FROM
 from app.domain.ckd import STAGE_BANDS, classify_egfr, classify_uacr
 from app.domain.constants import RULES_VERSION
 from app.domain.flagging import RangeDef, age_on, flag_for, select_range
-from app.domain.status import ResultPoint, build_status
+from app.domain.status import ResultPoint, build_status, egfr_lt60_run
 from app.domain.trends import Point, TrendConfig, trend_stats
 from app.domain.units import TestDef, UnknownUnit, resolve_unit, to_canonical, unit_key
 
@@ -276,6 +276,48 @@ def test_categories_counts_and_rules_version() -> None:
     assert snap["rules_version"] == RULES_VERSION
     empty = build_status([])
     assert empty["latest"] == {} and empty["egfr_stats"] is None and empty["last_result_at"] is None
+
+
+# ---- egfr_lt60_run and first_result_at (ai-svc LLD B20.1) ---------------------------------------------
+def _run(*pairs: tuple[str, int], created: dict[int, int] | None = None) -> dict | None:
+    rows = [rp("EGFR", v, d, created=(created or {}).get(d, 0)) for v, d in pairs]
+    return build_status(rows)["egfr_lt60_run"]
+
+
+def _iso(days: int) -> str:
+    return (T0 + timedelta(days=days)).isoformat()
+
+
+@pytest.mark.parametrize(("name", "pairs", "expected"), [
+    ("no eGFR at all", [], None),
+    ("latest >= 60", [("55", 1), ("61", 9)], None),
+    ("latest exactly 60 is not below 60", [("55", 1), ("60", 9)], None),
+    ("run of one", [("70", 1), ("59", 9)], {"since": _iso(9), "n": 1}),
+    ("whole series below 60", [("58", 1), ("55", 5), ("50", 9)], {"since": _iso(1), "n": 3}),
+    ("run broken by a value >= 60", [("50", 1), ("65", 5), ("55", 9), ("52", 12)], {"since": _iso(9), "n": 2}),
+])
+def test_egfr_lt60_run_table(name: str, pairs: list[tuple[str, int]], expected: dict | None) -> None:
+    assert _run(*pairs) == expected, name
+
+
+def test_egfr_lt60_run_ties_on_collected_at_follow_created_at_then_id() -> None:
+    """Two results share a day; the one entered last is the latest, so it decides whether the run exists."""
+    a, b = rp("EGFR", "65", 9, created=10), rp("EGFR", "55", 9, created=20)
+    assert egfr_lt60_run([a, b]) == {"since": _iso(9), "n": 1}
+    assert build_status([a, b])["egfr_lt60_run"] == {"since": _iso(9), "n": 1}
+    c, d = rp("EGFR", "55", 9, created=10), rp("EGFR", "65", 9, created=20)
+    assert build_status([c, d])["egfr_lt60_run"] is None
+
+
+def test_other_tests_do_not_enter_the_run() -> None:
+    rows = [rp("EGFR", "50", 1), rp("K", "4.0", 3), rp("EGFR", "48", 5)]
+    assert build_status(rows)["egfr_lt60_run"] == {"since": _iso(1), "n": 2}
+
+
+def test_first_result_at_is_the_minimum_collected_at_of_any_test() -> None:
+    snap = build_status([rp("K", "4.0", 30), rp("EGFR", "50", 5), rp("CREAT", "1.0", 20)])
+    assert snap["first_result_at"] == T0 + timedelta(days=5)
+    assert build_status([])["first_result_at"] is None and build_status([])["egfr_lt60_run"] is None
 
 
 # ---- shared vectors (B13.3) ----------------------------------------------------------------------

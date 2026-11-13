@@ -36,10 +36,10 @@ The service publishes no port; only the gateway does (`LAB_SVC_URL=http://lab-sv
 | POST | `/labs/results/{id}/correct` | `{value, unit, reason}`; supersedes the result, judged against its own range snapshot, no patient-svc call. Returns `{corrected, current, status_version}`. 409 `RESULT_ALREADY_SUPERSEDED` carries `current_id` |
 | GET | `/labs/patients/{id}/results` | `test`, `from` (inclusive), `to` (exclusive), `flag=abnormal\|critical\|unknown\|normal`, `report_id`, `include_superseded`, `page`, `size` (1-100, default 10) |
 | GET | `/labs/patients/{id}/trends?tests=CREAT,EGFR` | Points + stats for the selected window, `reference` from the latest point's snapshot, `stage_bands` on eGFR |
-| GET | `/labs/patients/{id}/latest` | One tile per test in display order (null when none), `ckd` block, attention flags, `status_version`; `ETag: W/"status-<n>"` and `304` |
+| GET | `/labs/patients/{id}/latest` | One tile per test in display order (null when none), `ckd` block, attention flags, `first_result_at`, `egfr_lt60_run {since, n}` (trailing run of eGFR < 60 ending at the latest eGFR, null otherwise), `status_version`; `ETag: W/"status-<n>"` and `304` |
 | GET | `/labs/summary?patient_ids=a,b` | 1-50 ids, one indexed read, one entry per id in request order (`has_results: false` when none), `TOO_MANY_IDS` beyond 50 |
 | GET | `/internal/labs/patients/{id}/{results,trends,latest}` | For ai-svc. `results` takes `limit` (<= 50) and adds `truncated`; the others are identical to the public ones |
-| GET | `/internal/labs/status?cursor=&limit=` | Bulk read model, keyset by `patient_id`, limit <= 200, `INVALID_CURSOR` (400) on a bad cursor |
+| GET | `/internal/labs/status?cursor=&limit=` | Bulk read model (same two extra fields as `/latest`), keyset by `patient_id`, limit <= 200, `INVALID_CURSOR` (400) on a bad cursor |
 | GET | `/health`, `/ready`, `/metrics` | `/ready` checks the database, the migration head, the catalog and the JWKS |
 
 lab-svc never asks patient-svc whether a patient exists on a read, so results for an unknown patient are an empty
@@ -73,7 +73,16 @@ verifies it. Every write and patient read adds an `audit_events` row (counts and
 
 `python -m app.cli.seed_labs` loads the ten profiles of LLD B11.2 through the real write path (idempotent; dates count
 back from today or `SEED_ANCHOR_DATE`; fixed random seed). Patient ids are the UUIDv5 ids patient-svc uses.
-`tests/api/test_seed.py` asserts the outcomes the later insights rely on.
+`tests/api/test_seed.py` asserts the outcomes the later insights rely on. PT-000110 (Kavita Joshi) runs eGFR 59 -> 49
+over 500 days (about -7 per year, a rapid decline) as ai-svc LLD B20.1 #3 asks.
+
+Upgrading an existing development database to `lab-rules-2` (migration `0004`, ai-svc LLD B20.1):
+
+```bash
+make migrate                                  # adds first_result_at and egfr_lt60_run (nullable)
+python -m app.cli.rebuild_status --stale-only # rows still on lab-rules-1 are recomputed; then `make check-status`
+make seed-reset                               # development only: reseeds PT-000110 with the new 59 -> 49 profile
+```
 
 ## Decisions to review
 

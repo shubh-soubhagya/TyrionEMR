@@ -2,4 +2,4 @@
 configuration changes: rebuild_status --stale-only recomputes rows built with an older version."""
 from typing import Final
 
-RULES_VERSION: Final = "lab-rules-1"
+RULES_VERSION: Final = "lab-rules-2"

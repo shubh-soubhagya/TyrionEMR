@@ -24,7 +24,7 @@ from app.services.reports import refresh_status
 
 # columns compared by check(); version and updated_at change on every recompute and are ignored
 COMPARED = ("latest", "egfr_category", "uacr_category", "egfr_stats", "creat_stats", "egfr_spark", "has_critical",
-            "rapid_decline", "result_count", "last_result_at", "rules_version")
+            "rapid_decline", "result_count", "last_result_at", "first_result_at", "egfr_lt60_run", "rules_version")
 
 
 @dataclass(frozen=True, slots=True)

@@ -20,7 +20,7 @@ async def test_catalog_has_all_eight_tests_in_display_order(api: httpx.AsyncClie
     body = (await api.get("/labs/tests", params={"sex": "M"})).json()
     assert [t["code"] for t in body["items"]] == ["CREAT", "EGFR", "BUN", "K", "HB", "CA", "PHOS", "UACR"]
     assert [t["display_order"] for t in body["items"]] == list(range(1, 9))
-    assert body["rules_version"] == "lab-rules-1"
+    assert body["rules_version"] == "lab-rules-2"
 
 
 async def test_units_carry_exact_string_factors(api: httpx.AsyncClient) -> None:

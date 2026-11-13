@@ -28,6 +28,7 @@ from app.schemas.reads import (
     LatestOut,
     LatestResult,
     LatestTile,
+    Lt60Run,
     Reference,
     ResultsPage,
     StageBand,
@@ -48,6 +49,11 @@ def _f(v) -> float | None:
 
 def _dt(v: str | None) -> datetime | None:
     return None if v is None else datetime.fromisoformat(v)
+
+
+
+def _run(raw: dict[str, Any] | None) -> Lt60Run | None:
+    return None if raw is None else Lt60Run.model_validate(raw)
 
 
 class ReadService:
@@ -143,6 +149,8 @@ class ReadService:
             uacr_value=uacr["value"] if uacr else None, uacr_collected_at=_dt(uacr["collected_at"]) if uacr else None)
         return LatestOut(patient_id=patient_id, tests=tiles, ckd=ckd, has_critical=bool(st and st.has_critical),
                          rapid_decline=bool(st and st.rapid_decline), last_result_at=st.last_result_at if st else None,
+                         first_result_at=st.first_result_at if st else None,
+                         egfr_lt60_run=_run(st.egfr_lt60_run) if st else None,
                          status_version=st.version if st else 0)
 
     # ---- B6.7 batch summary ---------------------------------------------------------------------------
@@ -179,5 +187,6 @@ class ReadService:
         items = [StatusItem(patient_id=r.patient_id, latest=r.latest, egfr_category=r.egfr_category,
                             uacr_category=r.uacr_category, egfr_stats=r.egfr_stats, creat_stats=r.creat_stats,
                             has_critical=r.has_critical, rapid_decline=r.rapid_decline, result_count=r.result_count,
-                            last_result_at=r.last_result_at) for r in rows]
+                            last_result_at=r.last_result_at, first_result_at=r.first_result_at,
+                            egfr_lt60_run=_run(r.egfr_lt60_run)) for r in rows]
         return StatusPage(items=items, next_cursor=rows[-1].patient_id if len(rows) == limit else None)

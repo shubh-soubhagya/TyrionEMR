@@ -77,7 +77,7 @@ PROFILES: tuple[Profile, ...] = (
     Profile("PT-000108", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, why="no labs at all"),
     Profile("PT-000109", 6, 19, 11, 400, 6, 5.9, 9.1, 7.9, 6.4, 900, k_last=6.2,
             why="critical potassium and creatinine"),
-    Profile("PT-000110", 5, 58, 52, 500, 25, 4.2, 11.5, 9.0, 3.9, 320, why="low eGFR, no established stage"),
+    Profile("PT-000110", 5, 59, 49, 500, 25, 4.2, 11.5, 9.0, 3.9, 320, why="low eGFR, no established stage"),
 )
 
 
