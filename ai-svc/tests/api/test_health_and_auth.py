@@ -69,3 +69,9 @@ async def test_ready_fails_when_database_unreachable(clock, jwks, upstreams):
         assert r.status_code == 503
         assert {"db", "migrations"} <= {d["check"] for d in r.json()["error"]["details"]}
         assert "127.0.0.1" not in r.text             # connection details never leak
+
+
+
+async def test_a_trailing_slash_is_a_404_not_a_redirect(client):
+    resp = await client.get("/health/", follow_redirects=False)
+    assert resp.status_code == 404

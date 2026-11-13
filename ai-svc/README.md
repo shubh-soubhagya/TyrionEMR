@@ -53,6 +53,12 @@ is kept at `low`. No embedding model is used by this service.
 | GET | `/insights/dashboard` | KPIs, attention rows, eGFR distribution, abnormal results; 30 s single-flight snapshot, `Cache-Control: no-cache` recomputes |
 | GET | `/health`, `/ready`, `/metrics` | `/ready` checks DB, migrations at head and JWKS; upstreams and the LLM are not readiness checks |
 
+## Deviations
+
+| # | Default or design | Here | Why |
+|---|---|---|---|
+| D1 | FastAPI `redirect_slashes=True` | `redirect_slashes=False`: `/insights/dashboard/` is a 404 | A trailing slash would cost a 307 round trip through the gateway and leak the upstream path (gateway LLD R14) |
+
 ## Contract fixtures
 
 `tests/fixtures/seed.py` builds the ten HLD §18 patients by hand from the provider contracts. `make capture-fixtures`
