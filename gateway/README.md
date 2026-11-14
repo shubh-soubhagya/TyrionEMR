@@ -27,7 +27,7 @@ make smoke     # end-to-end check of the running gateway against the real servic
 make down logs build
 ```
 
-## Deviations from the design document
+## Design and deviations
 
 | # | Design | Here | Why |
 |---|---|---|---|
