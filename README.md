@@ -137,32 +137,27 @@ make migrate
 make up
 ```
 
-The first `make up` builds five Docker images, so it takes several minutes. Later runs reuse the images and start in seconds; after you change code, run `make rebuild` instead. When it finishes, check that everything is
-healthy (it can take a minute after `make up`):
-
-```bash
-make ps
-```
-
-All five lines (`gateway`, `auth-svc`, `patient-svc`, `lab-svc`, `ai-svc`) should say `healthy`. Then load the demo data and
-run the built-in checks:
+The first `make up` builds five Docker images, so it takes several minutes. Later runs reuse the images and start in seconds;
+after you change code, run `make rebuild` instead. `make up` waits until all five containers are healthy, shows each image
+with its health, and prints the API addresses, so you do not need to check anything else. Then load the demo data and run
+the built-in checks:
 
 ```bash
 make seed
 make smoke
 ```
 
-`make smoke` should end with `19 passed, 0 failed`.
+`make smoke` should end with `19 passed, 0 failed`. At any time, `make ps` waits for and shows the health of the containers.
 
 ### Step 7: start the website
 
 ```bash
-cd frontend
-docker compose up -d web
+make web
 ```
 
-The first start downloads the website's packages and can take 5 to 10 minutes. To watch it, run `docker compose logs -f web`
-and wait for a line with `http://localhost:4200`, then press Ctrl+C (the website keeps running).
+The first start downloads the website's packages and compiles the app, which can take 5 to 10 minutes. The command waits
+until the page answers and then prints the address and the login. (`make start` does steps 6 and 7 together, without the
+seed.)
 
 ### Step 8: open it
 
@@ -189,13 +184,12 @@ try, see [the demo path below](#a-five-minute-demo-path).
 ### Stopping and starting again
 
 ```bash
-make down                          # in the TyrionEMR folder: stops the five application containers
-cd frontend && docker compose down # stops the website
+make down                          # in the TyrionEMR folder: stops the five application containers and the website
 docker stop graphgpt-postgres      # stops the database; your data is kept
 ```
 
-Next time: `docker start graphgpt-postgres`, then `make up`, then `cd frontend && docker compose up -d web`. You do not need
-steps 3 to 6 again. Other commands: `make logs` shows the logs, `make test` runs the backend tests (needs Python 3.12).
+Next time: `docker start graphgpt-postgres`, then `make start`. You do not need
+steps 3 to 5, `make keys`, `make migrate` or `make seed` again. Other commands: `make logs` shows the backend logs, `make down` stops the backend and the website, `make test` runs the backend tests (needs Python 3.12).
 
 ### A five-minute demo path
 

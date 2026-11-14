@@ -6,7 +6,7 @@ SERVICES := auth-svc patient-svc lab-svc ai-svc gateway
 # one-off container of a service on nephro-net, entrypoint replaced (no dependencies started)
 RUN = MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --entrypoint
 
-.PHONY: network init-dbs keys migrate seed up rebuild down logs ps smoke test docs docs-check schema-dump
+.PHONY: network init-dbs keys migrate seed up rebuild web start down logs ps smoke test docs docs-check schema-dump
 
 # 1. The external network every container shares, with the shared Postgres attached under the alias "postgres".
 #    Idempotent: creates the network only if missing, attaches the container only if it is not attached.
@@ -47,18 +47,53 @@ seed:
 	$(RUN) python lab-svc -m app.cli.seed_catalog
 	$(RUN) python lab-svc -m app.cli.seed_labs
 
-# Starts the stack. Docker builds an image only when it does not exist yet, so a second `make up` is fast and rebuilds nothing.
+# Starts the backend (gateway, auth, patient, lab, AI). Docker builds an image only when it does not exist yet, so a second
+# `make up` is fast and rebuilds nothing. It then waits until every container is healthy and prints the URLs.
 up: network
 	docker compose up -d
-# After changing code, rebuild the images and restart the changed services.
+	@make --no-print-directory ps
+	@echo ""
+	@echo "Backend is running."
+	@echo "  API (gateway):  http://localhost:8080/api"
+	@echo "  API docs:       http://localhost:8080/docs"
+	@echo "Next: make seed (first time only), then make web to start the website."
+
+# After changing code, rebuild the images and restart the changed services, then wait until healthy.
 rebuild: network
 	docker compose up --build -d
+	@make --no-print-directory ps
+
+# Starts the website (the Angular dev server in frontend/). The first compile takes up to a minute or two; this waits
+# until the page answers, then prints the address.
+web:
+	cd frontend && docker compose up -d web
+	@echo "Waiting for the website to compile (the first start can take a minute or two)..."
+	@ok=1; for i in $$(seq 1 90); do \
+	  if curl -s -o /dev/null --max-time 3 http://localhost:4200/; then ok=0; break; fi; sleep 3; done; \
+	if [ "$$ok" = "0" ]; then \
+	  echo ""; echo "Website is ready."; echo "  Open:     http://localhost:4200  (type localhost, not an IP address)"; \
+	  echo "  Sign in:  dr.rao@nephrocare.demo  /  Nephro#2026"; \
+	else echo "The website did not answer in time. See: cd frontend && docker compose logs web"; exit 1; fi
+
+# Everything: backend, then the website.
+start: up web
+
+# Stops the backend containers and the website (the website container is stopped, not removed, so it restarts quickly).
 down:
 	docker compose down
+	cd frontend && docker compose stop web
 logs:
 	docker compose logs -f --tail=100
+
+# Waits until every backend container is healthy (up to 3 minutes), then shows only the image and its health.
 ps:
-	docker compose ps
+	@echo "Waiting for the containers to become healthy (up to 3 minutes)..."
+	@n=0; for i in $$(seq 1 60); do \
+	  total=$$(docker compose ps --format '{{.Health}}' | grep -c .); \
+	  bad=$$(docker compose ps --format '{{.Health}}' | grep -vc '^healthy$$'); \
+	  if [ "$$total" -gt 0 ] && [ "$$bad" = "0" ]; then n=1; break; fi; sleep 3; done; \
+	printf '%-22s %s\n' IMAGE HEALTH; docker compose ps --format '{{.Image}} {{.Health}}' | sort | awk '{printf "%-22s %s\n", $$1, $$2}'; \
+	if [ "$$n" = "1" ]; then echo "All containers are healthy."; else echo "Not everything is healthy yet. Run: make logs"; exit 1; fi
 
 # End-to-end check of the running stack through the gateway (gateway/setup/smoke-test.sh)
 smoke:
