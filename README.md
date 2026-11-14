@@ -29,7 +29,7 @@ person's data is in the repository, the fixtures or the screenshots.
 | Charts | Chart.js 4 for the laboratory trend charts |
 | Backend | Python 3.12, FastAPI, SQLAlchemy (async), Alembic: four services and a custom gateway. Python was chosen for fast typed development, automatic OpenAPI and async I/O for the slow LLM calls (HLD ADR-013) |
 | Database | PostgreSQL, one database and role per service |
-| AI | A provider adapter with a deterministic mock (default, no key) and Groq (free tier, `openai/gpt-oss-20b`) |
+| AI | A provider adapter: Groq by default (free tier, `openai/gpt-oss-20b`), with a deterministic mock used when no key is set |
 | Runtime | Docker and Docker Compose |
 
 ## Architecture
@@ -43,7 +43,7 @@ flowchart LR
     GW --> AI["ai-svc"]
     AI --> PAT
     AI --> LAB
-    AI --> LLM["LLM provider<br/>mock or Groq"]
+    AI --> LLM["LLM provider<br/>Groq, or the mock without a key"]
 ```
 
 The gateway verifies the access token, applies rate limits and routes `/api/<prefix>/**`. `/api/internal/**` is never routed.
@@ -224,9 +224,11 @@ backend code needs `make rebuild`, because the services run from images that con
 
 ## AI provider
 
-The default provider is the deterministic mock, so the stack needs no API key. With `APP_ENV=dev` the AI tab's demo options
-send `X-Mock-Scenario` (the gateway forwards it only outside production). To use Groq, set `LLM_PROVIDER=groq` and
-`LLM_API_KEY` (or `LLM_API_KEY_FILE`) in `ai-svc/.env`, then `docker compose up -d ai-svc`. How the AI pipeline works and what
+The default provider is Groq (`openai/gpt-oss-20b`, free tier). Get a free key at <https://console.groq.com/keys>, put it in
+`ai-svc/.env` as `LLM_API_KEY=...` (or give the path of a key file in `LLM_API_KEY_FILE`), and run `docker compose up -d ai-svc`.
+When no key is set, the service falls back to the deterministic mock outside production, so every feature still works and
+the summary says its provider is `mock`. Set `LLM_PROVIDER=mock` to force the mock. With `APP_ENV=dev` and the mock, the AI
+tab's demo options send `X-Mock-Scenario` (the gateway forwards it only outside production). How the AI pipeline works and what
 it guards against: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#ai-integration).
 
 ## Tests
@@ -261,7 +263,7 @@ Screens 04, 07 and 09 were taken before the trend charts moved to Chart.js and s
 | <a href="docs/screenshots/10-ai-summary-running.png"><img src="docs/screenshots/10-ai-summary-running.png" width="260" alt="AI running"></a><br/>AI summary running | <a href="docs/screenshots/11-ai-summary-completed.png"><img src="docs/screenshots/11-ai-summary-completed.png" width="260" alt="AI completed"></a><br/>AI summary completed | <a href="docs/screenshots/12-ai-summary-degraded.png"><img src="docs/screenshots/12-ai-summary-degraded.png" width="260" alt="AI degraded"></a><br/>AI summary degraded (LLM unavailable) |
 | <a href="docs/screenshots/13-ai-summary-failed.png"><img src="docs/screenshots/13-ai-summary-failed.png" width="260" alt="AI failed"></a><br/>AI summary failed | <a href="docs/screenshots/14-ai-source-chip-opens-record.png"><img src="docs/screenshots/14-ai-source-chip-opens-record.png" width="260" alt="Source chip"></a><br/>A source chip opening the cited record | <a href="docs/screenshots/15-chart-tooltip.png"><img src="docs/screenshots/15-chart-tooltip.png" width="260" alt="Chart tooltip"></a><br/>A chart tooltip |
 
-All AI screenshots used the mock provider. The end-to-end flow (sign in, dashboard, search, encounter draft and finalise,
+The AI screenshots were taken with the mock provider (no key set). The end-to-end flow (sign in, dashboard, search, encounter draft and finalise,
 µmol/L lab report, AI summary, source chip, sign out and back in) is `frontend/e2e/flow/flow.e2e.ts`.
 
 ## Microservices

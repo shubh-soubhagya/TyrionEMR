@@ -60,7 +60,7 @@ As part of the stack: see the root [README](../README.md#quick-start). Alone, fo
 Postgres container on host port 5433):
 
 ```bash
-cp .env.example .env            # needed: the code default provider is groq, the example sets mock
+cp .env.example .env            # the provider is groq; without LLM_API_KEY the service falls back to the mock
 make init-db init-test-db       # idempotent: role ai_svc, nephro_ai_db and nephro_ai_db_test
 make install migrate            # venv, alembic upgrade head
 make run                        # http://localhost:8004 (/docs when APP_ENV is not production)
@@ -79,7 +79,7 @@ Service-specific settings. The full list is in [.env.example](.env.example); def
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LLM_PROVIDER` | `groq` in code, `mock` in `.env.example` | `mock` or `groq` |
+| `LLM_PROVIDER` | `groq` (code and `.env.example`) | `groq` or `mock`; groq without a key falls back to the mock outside production |
 | `LLM_API_KEY` or `LLM_API_KEY_FILE` | unset | Groq key; the file (a Docker secret) wins. Never logged |
 | `LLM_MODEL` | `openai/gpt-oss-20b` | Groq model |
 | `LLM_MAX_OUTPUT_TOKENS` | 1400 in code, 2048 in `.env.example` | Reasoning tokens count against it, so it is not set lower for gpt-oss |
@@ -93,8 +93,10 @@ Service-specific settings. The full list is in [.env.example](.env.example); def
 
 ### LLM providers and demo scenarios
 
-The stack needs no API key: with `LLM_PROVIDER=mock` the deterministic mock provider writes the narrative. To use Groq, set
-`LLM_PROVIDER=groq` and a key in `ai-svc/.env` and run `docker compose up -d ai-svc`. The Groq adapter uses plain `httpx`
+Groq is the default provider (`openai/gpt-oss-20b`, free tier). Get a free key at https://console.groq.com/keys, put it in
+`ai-svc/.env` as `LLM_API_KEY=...` and run `docker compose up -d ai-svc`. When no key is set, the service falls back to the
+deterministic mock outside production, so every feature still works and the summary says its provider is `mock` (production
+keeps Groq and fails visibly without a key). Set `LLM_PROVIDER=mock` to force the mock. The Groq adapter uses plain `httpx`
 and no vendor SDK.
 
 With the mock provider and `APP_ENV=dev`, the header `X-Mock-Scenario` selects a scenario per job. The AI tab's demo options

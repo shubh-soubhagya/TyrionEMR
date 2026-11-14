@@ -32,7 +32,7 @@ flowchart LR
     PAT --- DB2[("nephro_patient_db")]
     LAB --- DB3[("nephro_lab_db")]
     AI --- DB4[("nephro_ai_db")]
-    AI -->|"HTTPS"| LLM["LLM provider<br/>mock (default) or Groq"]
+    AI -->|"HTTPS"| LLM["LLM provider<br/>Groq, or the mock without a key"]
     GW -. "JWKS" .-> AUTH
 ```
 
@@ -250,10 +250,10 @@ Insights keep working in every row above because they never call the LLM.
 
 | Provider | Selected by | Notes |
 |---|---|---|
-| Mock (default) | `LLM_PROVIDER=mock` | Deterministic, no network, no key. With `APP_ENV=dev` the header `X-Mock-Scenario` picks a scenario (success, tool round trip, invalid output, unsafe output, timeout, rate limit, upstream down); the AI tab's demo options send it. The gateway forwards the header only outside production |
-| Groq | `LLM_PROVIDER=groq` and `LLM_API_KEY` (or `LLM_API_KEY_FILE`) | Free tier, model `openai/gpt-oss-20b`, plain `httpx`, no vendor SDK. The key is never logged |
+| Groq (default) | `LLM_PROVIDER=groq` (the default) and `LLM_API_KEY` (or `LLM_API_KEY_FILE`) | Free tier, model `openai/gpt-oss-20b`, plain `httpx`, no vendor SDK. Get a free key at https://console.groq.com/keys. The key is never logged |
+| Mock (no key, or forced) | Used automatically when no key is set outside production, or by `LLM_PROVIDER=mock` | Deterministic, no network, no key. The summary says its provider is `mock`. With `APP_ENV=dev` the header `X-Mock-Scenario` picks a scenario (success, tool round trip, invalid output, unsafe output, timeout, rate limit, upstream down); the AI tab's demo options send it. The gateway forwards the header only outside production |
 
-To switch, set the variables in `ai-svc/.env` and run `docker compose up -d ai-svc`. Prompts are Markdown files under
+To use the real model, put the key in `ai-svc/.env` and run `docker compose up -d ai-svc`; to force the mock, set `LLM_PROVIDER=mock`. Prompts are Markdown files under
 [`ai-svc/app/prompts/v1/`](../ai-svc/app/prompts/v1).
 
 ## Frontend architecture
