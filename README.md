@@ -264,17 +264,76 @@ Screens 04, 07 and 09 were taken before the trend charts moved to Chart.js and s
 All AI screenshots used the mock provider. The end-to-end flow (sign in, dashboard, search, encounter draft and finalise,
 µmol/L lab report, AI summary, source chip, sign out and back in) is `frontend/e2e/flow/flow.e2e.ts`.
 
+## Microservices
+
+The backend is four services and a gateway. Each one is a separate folder with its own code, tests, settings, Dockerfile and
+Docker Compose file, so it can be built, run and tested on its own. Only the gateway publishes a port to your computer.
+
+| Service | What it does | Port | Database | Folder |
+|---|---|---|---|---|
+| gateway | The single entry point: checks and routes every `/api` request | 8080 (published) | none | [gateway/](gateway/README.md) |
+| auth-svc | Accounts, sign-in, tokens and signing keys | 8001 when run alone | `nephro_auth_db` | [auth-svc/](auth-svc/README.md) |
+| patient-svc | Patients, conditions, medications, allergies, encounters | 8002 when run alone | `nephro_patient_db` | [patient-svc/](patient-svc/README.md) |
+| lab-svc | Lab results, reference ranges, CKD category, trends | 8003 when run alone | `nephro_lab_db` | [lab-svc/](lab-svc/README.md) |
+| ai-svc | The AI clinical summary and the worklist and dashboard rules | 8004 when run alone | `nephro_ai_db` | [ai-svc/](ai-svc/README.md) |
+| frontend | The Angular website | 4200 | none | [frontend/](frontend/README.md) |
+
+Inside Docker the four services listen on port 8000 on a private network (`nephro-net`) and publish nothing; the gateway
+reaches them by name (`http://auth-svc:8000` and so on). The ports in the table are the ones used when you run a service
+directly on your computer for development.
+
+### What is inside a service folder
+
+Every backend service folder has the same shape. `auth-svc/` as the example:
+
+```
+auth-svc/
+  .env.example          the settings template (committed): every setting with a safe default or a "change-me" placeholder
+  .env                  your real settings (not committed): created by copying .env.example, holds the database password
+  Dockerfile            builds the service image: python:3.12-slim, installs from pyproject.toml, runs as a non-root user
+  docker-compose.yml    runs this one service in Docker, on the shared network nephro-net, with a health check
+  Makefile              short commands for this service alone: install, run, test, lint, migrate, seed, openapi
+  pyproject.toml        the Python dependencies and tool settings
+  alembic.ini
+  migrations/           the database schema, as numbered migration files
+  app/                  the code: api (routes), services, repositories (all SQL), models, domain (pure rules), core
+  tests/                the tests (unit, API against a real test database, database guards)
+  docs/                 the service design, the OpenAPI file (docs/api/openapi.json) and the build plan
+  setup/                one-time scripts: create the database role and database, signing keys
+  scripts/              the container start-up script (wait for the database, migrate, seed, start)
+  README.md             this service: endpoints, tables, settings, tests, deviations
+```
+
+Differences between the services:
+
+| Item | Where it differs |
+|---|---|
+| `.env` | auth-svc, patient-svc, lab-svc and ai-svc each need their own, with their own database password. The gateway needs none: all its settings have defaults, and `gateway/.env.example` lists the optional ones |
+| `docker-compose.prod.yml` | Only auth-svc and the gateway have a production override that turns on the production start-up checks |
+| `contracts/` | Only patient-svc and lab-svc: JSON Schemas for the internal responses that ai-svc reads, used by contract tests |
+| `alembic.ini`, `migrations/` | Not in the gateway, which has no database |
+| `frontend/` | Has no Dockerfile. It runs the Angular dev server from a Node image through `frontend/compose.yaml`, with the source mounted into the container |
+
+The root-level files tie them together:
+
+| File | Purpose |
+|---|---|
+| `docker-compose.yml` | Includes the five backend compose files so one command starts the whole backend (the Docker project name is `tyrionemr`) |
+| `.env` and `.env.example` | Settings shared by the root compose file: the database passwords and the gateway port. They must match each service's own `.env` |
+| `Makefile` | The commands you use every day: `make up`, `make rebuild`, `make web`, `make ps`, `make seed`, `make smoke`, `make test` |
+| `scripts/docs/` | The documentation tools: link checker and API table generator |
+
 ## Repository layout
 
 | Folder | Contents |
 |---|---|
-| `auth-svc/`, `patient-svc/`, `lab-svc/`, `ai-svc/` | One self-contained FastAPI service each: `app/`, `migrations/`, `tests/`, `docs/`, Dockerfile, README |
+| `auth-svc/`, `patient-svc/`, `lab-svc/`, `ai-svc/` | One self-contained FastAPI service each (see above) |
 | `gateway/` | The custom API gateway |
 | `frontend/` | The Angular app, its Docker setup and its end-to-end tests |
 | `docs/` | Architecture, API, database and development documents, the full design ([HLD.md](docs/HLD.md)) and the screenshots |
 | `reference/` | The HTML prototype used as the visual reference, and the original brief |
 | `scripts/docs/` | Documentation tooling: link checker and API index generator |
-| `docker-compose.yml`, `Makefile`, `.env.example` | The whole stack, the common targets and the shared settings |
+| `docker-compose.yml`, `Makefile`, `.env.example` | The whole stack, the common commands and the shared settings |
 
 ## Known limitations
 

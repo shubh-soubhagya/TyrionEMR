@@ -1,4 +1,4 @@
-# Whole stack from the repo root:  make up  (== docker compose up --build -d).
+# Whole stack from the repo root:  make up  (== docker compose up -d; use make rebuild after code changes).
 # Each included file resolves its own .env, secrets and build context relative to ITS folder, so every service keeps
 # running on its own too (cd <svc> && docker compose up). Only the gateway publishes a host port (${GATEWAY_PORT:-8080}).
 # The frontend dev server stays in frontend/compose.yaml. Needs Docker Compose v2.20+ (`include:`).
