@@ -52,59 +52,145 @@ More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick start
 
-Prerequisites: Docker with Compose v2.20 or later (`include:` is used), GNU make and bash (Git Bash on Windows), and a
-running Postgres container named `graphgpt-postgres` (the shared server; host port 5433). Python 3.12 is needed only to run
-the backend test suites on the host. The frontend runs in Docker only: never run node, npm or ng on the host.
+This takes about 20 to 30 minutes the first time, mostly waiting for Docker to download and build. You type commands in a
+terminal; you do not need to know Python or Angular. Copy each block exactly and run the blocks in order.
 
-### Step 0: create the Postgres container (skip if you already have `graphgpt-postgres`)
+### Step 1: install three tools
 
-The services keep their data in one PostgreSQL server that runs as a Docker container. The name must be exactly
-`graphgpt-postgres`, because the Makefiles look for it.
+| Tool | Why | Check it works |
+|---|---|---|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (start it and wait until it says it is running) | Runs everything | `docker --version` and `docker compose version` |
+| `make` | Runs the short commands used below | `make --version` |
+| A bash terminal | The commands are written for bash. On Windows install [Git for Windows](https://git-scm.com/download/win) and open **Git Bash**. On macOS or Linux use the normal terminal | |
 
-```bash
-docker run -d --name graphgpt-postgres   -e POSTGRES_PASSWORD=choose-a-superuser-password   -p 5433:5432   -v nephro-pgdata:/var/lib/postgresql/data   postgres:17
-docker exec graphgpt-postgres pg_isready      # repeat until it prints "accepting connections"
-```
+On Windows, if `make --version` says "command not found", install it once with `winget install GnuWin32.Make` (or
+`choco install make`) and open a new Git Bash window.
 
-| Part | Meaning |
-|---|---|
-| `--name graphgpt-postgres` | The container name the Makefiles expect |
-| `-e POSTGRES_PASSWORD=...` | The password of the built-in `postgres` superuser; pick your own |
-| `-p 5433:5432` | Publishes Postgres on port 5433 of your machine (the `.env` files use 5433) |
-| `-v nephro-pgdata:...` | A named volume, so the data survives a restart or removal of the container |
+Do not install Node or Angular: the website runs inside Docker.
 
-To use another container name, run the make targets with `PG_CONTAINER=your-name` and attach that container to
-`nephro-net` with the alias `postgres`. Start it again later with `docker start graphgpt-postgres`.
-
-### Step 1: set up and start
-
-The `cp` lines create the settings files; skip them if the `.env` files already exist. The database passwords you put in each
-service's `.env` are the ones `make init-dbs` gives the new database roles, so they must match the passwords inside that
-service's connection URLs.
+### Step 2: get the code and open a terminal in it
 
 ```bash
-cp .env.example .env                  # then replace the change-me passwords; each service has its own .env.example
-for s in auth-svc patient-svc lab-svc ai-svc; do cp $s/.env.example $s/.env; done   # fill in the DB passwords
-make network                          # nephro-net, with graphgpt-postgres attached under the alias "postgres"
-make init-dbs                         # prints the role and database commands, runs them only if you type "yes"
-make keys                             # auth-svc JWT signing key (skipped when it already exists)
-make migrate                          # auth-svc schema (the other three migrate when they start)
-make up                               # builds and starts the five containers
-make seed                             # demo clinicians, ten patients, lab catalog and results (idempotent)
-make smoke                            # 19 end-to-end checks through the gateway
-cd frontend && docker compose up -d   # dev server, first start runs npm ci
+git clone https://github.com/shubh-soubhagya/TyrionEMR.git
+cd TyrionEMR
 ```
 
-Open <http://localhost:4200> (use `localhost`, not an IP: the refresh cookie is Secure). Demo accounts, password
-`Nephro#2026`:
+Every command below is run from this `TyrionEMR` folder unless it says otherwise.
 
-| Email | Name |
+### Step 3: create the settings files
+
+Pick one password for the databases. Use only letters and digits (no spaces or symbols), for example `NephroDb2026`. The
+first block creates the settings files; the second puts your password in all of them.
+
+```bash
+cp .env.example .env
+for s in auth-svc patient-svc lab-svc ai-svc; do cp $s/.env.example $s/.env; done
+```
+
+```bash
+sed -i 's/change-me/NephroDb2026/g' .env auth-svc/.env patient-svc/.env lab-svc/.env ai-svc/.env
+```
+
+(On macOS use `sed -i '' ...` instead of `sed -i ...`.) Replace `NephroDb2026` with your own password if you like; the same
+word is used in every file, which is what the setup needs. Skip this step if the `.env` files already exist.
+
+### Step 4: start the database
+
+All the services store their data in one PostgreSQL database server, which runs as a Docker container. Skip this step if you
+already have a container named `graphgpt-postgres`. The name must be exactly that.
+
+```bash
+docker run -d --name graphgpt-postgres -e POSTGRES_PASSWORD=NephroAdmin2026 -p 5433:5432 -v nephro-pgdata:/var/lib/postgresql/data postgres:17
+```
+
+Wait about 10 seconds, then run this. When it says `accepting connections` the database is ready (if not, wait and run it again):
+
+```bash
+docker exec graphgpt-postgres pg_isready
+```
+
+What the command means: `--name` names the container, `POSTGRES_PASSWORD` is the password of the database administrator (this
+is not the one from step 3), `-p 5433:5432` makes the database reachable on port 5433 of your computer, and `-v` keeps the
+data safe if the container is removed. If the container stops later (for example after a restart), start it with
+`docker start graphgpt-postgres`.
+
+### Step 5: create the databases
+
+```bash
+make network
+make init-dbs
+```
+
+`make init-dbs` shows the commands it will run and asks `Type yes to continue`. Read them, type `yes` and press Enter. It
+creates four empty databases and their logins on the database container.
+
+### Step 6: build and start the application
+
+```bash
+make keys
+make migrate
+make up
+```
+
+`make up` builds five Docker images, so the first run takes several minutes. When it finishes, check that everything is
+healthy (it can take a minute after `make up`):
+
+```bash
+make ps
+```
+
+All five lines (`gateway`, `auth-svc`, `patient-svc`, `lab-svc`, `ai-svc`) should say `healthy`. Then load the demo data and
+run the built-in checks:
+
+```bash
+make seed
+make smoke
+```
+
+`make smoke` should end with `19 passed, 0 failed`.
+
+### Step 7: start the website
+
+```bash
+cd frontend
+docker compose up -d web
+```
+
+The first start downloads the website's packages and can take 5 to 10 minutes. To watch it, run `docker compose logs -f web`
+and wait for a line with `http://localhost:4200`, then press Ctrl+C (the website keeps running).
+
+### Step 8: open it
+
+Go to <http://localhost:4200> in your browser. Type `localhost`; do not use an IP address, or sign-in will fail. Sign in with:
+
+| Email | Password |
 |---|---|
-| `dr.rao@nephrocare.demo` | Dr. Anita Rao |
-| `dr.malhotra@nephrocare.demo` | Dr. Karan Malhotra |
+| `dr.rao@nephrocare.demo` | `Nephro#2026` |
 
-Other targets: `make ps`, `make logs`, `make down`, `make test`, `make docs`, `make docs-check`.
-`make init-dbs` changes the shared Postgres container (roles and databases); read the commands it prints first.
+(`dr.malhotra@nephrocare.demo` also works, with the same password.) The demo data is ten invented patients. For things to
+try, see [the demo path below](#a-five-minute-demo-path).
+
+### If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| `make: command not found` | Install `make` (step 1) and open a new terminal |
+| `Cannot connect to the Docker daemon` | Start Docker Desktop and wait until it is running |
+| `make ps` shows a service that is not `healthy` | Wait a minute and run `make ps` again; then `make logs` shows why |
+| `password authentication failed` in a log | The password in a `.env` file does not match the one used in step 5. Fix it, then run `make down` and `make up` |
+| The page does not load | In the `frontend` folder run `docker compose logs web` and wait for the build to finish |
+| Sign-in fails | Check that `make seed` ran and that the address is `http://localhost:4200` |
+
+### Stopping and starting again
+
+```bash
+make down                          # in the TyrionEMR folder: stops the five application containers
+cd frontend && docker compose down # stops the website
+docker stop graphgpt-postgres      # stops the database; your data is kept
+```
+
+Next time: `docker start graphgpt-postgres`, then `make up`, then `cd frontend && docker compose up -d web`. You do not need
+steps 3 to 6 again. Other commands: `make logs` shows the logs, `make test` runs the backend tests (needs Python 3.12).
 
 ### A five-minute demo path
 
