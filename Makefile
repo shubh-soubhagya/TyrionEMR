@@ -6,7 +6,7 @@ SERVICES := auth-svc patient-svc lab-svc ai-svc gateway
 # one-off container of a service on nephro-net, entrypoint replaced (no dependencies started)
 RUN = MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --entrypoint
 
-.PHONY: network init-dbs keys migrate seed up down logs ps smoke test
+.PHONY: network init-dbs keys migrate seed up down logs ps smoke test docs docs-check schema-dump
 
 # 1. The external network every container shares, with the shared Postgres attached under the alias "postgres".
 #    Idempotent: creates the network only if missing, attaches the container only if it is not attached.
@@ -64,3 +64,18 @@ smoke:
 # test database. The gateway needs neither a database nor Docker.
 test:
 	@for s in $(SERVICES); do echo "=== $$s"; REQUIRE_DB_TESTS=1 make -C $$s test || exit 1; done
+
+# ---- documentation (scripts/docs, standard-library Python only) ----------------------------------------------------
+# Re-export each service's OpenAPI file from its routes (no database needed), then rebuild the API index in docs/API.md.
+docs:
+	@for s in auth-svc patient-svc lab-svc ai-svc; do make -C $$s openapi || exit 1; done
+	python scripts/docs/gen_api_docs.py
+
+# Every relative link and anchor in the Markdown files resolves, and docs/API.md matches the OpenAPI files.
+docs-check:
+	python scripts/docs/check_links.py
+	python scripts/docs/gen_api_docs.py --check
+
+# Schema-only dumps of the four databases into docs/db/<service>.sql (needs the Postgres container running).
+schema-dump:
+	@bash scripts/docs/schema_dump.sh

@@ -1,7 +1,7 @@
 # gateway
 
 The custom API gateway of the NephroCare EMR: the only component with a published port. Design:
-[docs/gateway-HLD-LLD.md](docs/gateway-HLD-LLD.md). Build plan: [PHASES.md](PHASES.md).
+[docs/gateway-HLD-LLD.md](docs/gateway-HLD-LLD.md). Build plan: [PHASES.md](docs/PHASES.md).
 
 Self-contained like `auth-svc/` and `patient-svc/`: own `app/core`, no shared library.
 

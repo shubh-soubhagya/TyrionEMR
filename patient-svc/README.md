@@ -1,6 +1,6 @@
 # patient-svc
 
-The clinical chart service of the Nephro EMR. Design: [docs/patient-svc-HLD-LLD.md](docs/patient-svc-HLD-LLD.md). Build plan: [PHASES.md](PHASES.md).
+The clinical chart service of the Nephro EMR. Design: [docs/patient-svc-HLD-LLD.md](docs/patient-svc-HLD-LLD.md). Build plan: [PHASES.md](docs/PHASES.md).
 Layout, tooling and container setup mirror `auth-svc`.
 
 ## Run it (development)
@@ -20,15 +20,15 @@ make up                         # Docker, on nephro-net, no published port
 
 ## Status
 
-All ten phases of [PHASES.md](PHASES.md) are implemented: schema and immutability triggers, patients, conditions,
+All ten phases of [PHASES.md](docs/PHASES.md) are implemented: schema and immutability triggers, patients, conditions,
 medications, allergies, encounters (draft, edit, finalize, delete, problem-list linkage), dashboard queries,
 internal endpoints with JSON Schema contracts (`contracts/patient/`), audit trail, metrics, seed data,
-OpenAPI export (`docs/api/patient-svc.json`) and measured query plans (`docs/db/explain/`).
+OpenAPI export (`docs/api/openapi.json`) and measured query plans (`docs/db/explain/`).
 
 ```bash
 make migrate      # alembic upgrade head on the dev database
 make seed         # the ten synthetic demo patients (idempotent); make seed-reset wipes first (dev only)
-make openapi      # docs/api/patient-svc.json
+make openapi      # docs/api/openapi.json
 ```
 
 

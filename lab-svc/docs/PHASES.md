@@ -1,6 +1,8 @@
+> Build plan used with an AI coding agent. Kept as a record of how the service was built; the README describes the result.
+
 # lab-svc — Development Phases
 
-Source of truth: [docs/lab-svc-HLD-LLD.md](docs/lab-svc-HLD-LLD.md) (§ numbers below are its sections: A = HLD part, B = LLD part). System context: [../docs/HLD.md](../docs/HLD.md).
+Source of truth: [docs/lab-svc-HLD-LLD.md](lab-svc-HLD-LLD.md) (§ numbers below are its sections: A = HLD part, B = LLD part). System context: [../docs/HLD.md](../../docs/HLD.md).
 Layout mirrors `patient-svc` (`app/api`, `app/core`, `app/domain`, `app/models`, `app/repositories`, `app/services`, `app/schemas`, `migrations`, `tests`, `contracts`). Database objects live in `nephro_lab_db` / `nephro_lab_db_test` on the shared `graphgpt-postgres` container (the LLD calls them `lab_db`; the `nephro_` prefix follows the other services).
 Each phase is finished, tested and committed before the next starts. Tests run against the real Postgres test database.
 

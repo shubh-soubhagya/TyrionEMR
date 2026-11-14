@@ -23,7 +23,7 @@ Docker with Compose v2.20+ (`include:` is used), GNU make and bash (Git Bash on 
 `graphgpt-postgres` (the shared server; host port 5433). Python 3.12 is needed only to run the test suites on the host.
 The frontend runs in Docker only ([CLAUDE.md](CLAUDE.md) §9); never run node, npm or ng on the host.
 
-## First-time setup
+## Quick start
 
 ```bash
 cp .env.example .env                  # then edit the change-me passwords; each service also has its own .env.example
@@ -53,8 +53,8 @@ options send `X-Mock-Scenario` (the gateway forwards it only outside production)
 | Service | OpenAPI export |
 |---|---|
 | auth-svc | [auth-svc/docs/api/openapi.json](auth-svc/docs/api/openapi.json) |
-| patient-svc | [patient-svc/docs/api/patient-svc.json](patient-svc/docs/api/patient-svc.json) |
-| lab-svc | [lab-svc/docs/api/lab-svc.json](lab-svc/docs/api/lab-svc.json) |
+| patient-svc | [patient-svc/docs/api/openapi.json](patient-svc/docs/api/openapi.json) |
+| lab-svc | [lab-svc/docs/api/openapi.json](lab-svc/docs/api/openapi.json) |
 | ai-svc | [ai-svc/docs/api/openapi.json](ai-svc/docs/api/openapi.json) and [examples](ai-svc/docs/api/examples/) |
 
 With the stack running, the gateway serves an aggregated Swagger UI (development only) at <http://localhost:8080/docs>.

@@ -2281,4 +2281,4 @@ Ordered so each step is testable before the next.
 | 10 | Audit on every route in §19.1 | Audit cases pass |
 | 11 | Seed with deterministic ids | Seed test §25.6 passes; dashboard shows drafts and follow-ups |
 | 12 | Dockerfile, entrypoint, compose wiring, make targets | `docker compose up patient-svc` reaches ready against the existing container |
-| 13 | Export OpenAPI to `docs/api/patient-svc.json`; capture `EXPLAIN` plans | Files committed |
+| 13 | Export OpenAPI to `docs/api/openapi.json`; capture `EXPLAIN` plans | Files committed |

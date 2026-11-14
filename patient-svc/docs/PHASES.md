@@ -1,6 +1,8 @@
+> Build plan used with an AI coding agent. Kept as a record of how the service was built; the README describes the result.
+
 # patient-svc — Development Phases
 
-Source: [docs/patient-svc-HLD-LLD.md](docs/patient-svc-HLD-LLD.md) (§ numbers below refer to it).
+Source: [docs/patient-svc-HLD-LLD.md](patient-svc-HLD-LLD.md) (§ numbers below refer to it).
 Paths are relative to `patient-svc/` and follow the code layout in §22.
 Build order follows the checklist in §28, grouped into 10 phases. Each phase must be finished, tested and committed before the next starts.
 
@@ -185,7 +187,7 @@ Build order follows the checklist in §28, grouped into 10 phases. Each phase mu
 - `Dockerfile` (multi-stage, non-root), `docker-entrypoint.sh` (wait → migrate → optional seed → uvicorn), compose service wiring with `nephro-pgnet`, remaining Make targets (`migrate-patient`, `seed-patient`, `test-patient`).
 - Run the full suite: unit, API, DB, concurrency, contract.
 - Performance: seed 10k patients / 200k encounters in `patient_db_test`, save `EXPLAIN (ANALYZE, BUFFERS)` to `docs/db/explain/`.
-- Export OpenAPI to `docs/api/patient-svc.json`; update README with run instructions.
+- Export OpenAPI to `docs/api/openapi.json`; update README with run instructions.
 
 **Done when**
 - `docker compose up patient-svc` reaches ready against the existing container, and the seeded dashboard shows drafts and follow-ups.

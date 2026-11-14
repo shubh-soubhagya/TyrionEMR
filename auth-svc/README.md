@@ -1,284 +1,193 @@
 # auth-svc
 
-Identity, credentials, sessions and token-signing keys for the NephroCare EMR. Self-contained: own
-Dockerfile, migrations, tests and docs. Design: [docs/auth-svc-HLD-LLD.md](docs/auth-svc-HLD-LLD.md)
-(highest authority for anything auth-related). API: [docs/api/openapi.json](docs/api/openapi.json).
+Identity for the NephroCare EMR. auth-svc registers and signs in clinicians, issues short-lived RS256 access tokens,
+rotates refresh tokens held in an HttpOnly cookie, and publishes the public signing keys. Every other service verifies tokens
+locally against those keys and never calls auth-svc per request.
 
-Synthetic data only. One role, `clinician` (ADR-018): there is no admin role and no user-management API.
+It owns: users and password hashes, refresh-token families, the signing keys, the login audit trail.
+It does not own: patients, encounters, labs or AI output; authorization beyond one role (`clinician`, ADR-018 in the
+[design](docs/auth-svc-HLD-LLD.md)); user management (there is no admin role or admin API).
 
-## Layout
+Synthetic data only.
 
-```
-app/core         settings, error envelope, request-id + JSON access log, redaction, metrics, token verification
-app/api          routes -> services (no SQL here), cookie helpers
-app/services     AuthService (transactions), TokenService, KeyStore (JWKS), PasswordHasherService
-app/repositories all SQL
-app/models       SQLAlchemy models        app/domain  pure logic (password policy, clock)
-app/jobs         refresh-token cleanup    app/cli     wait_for_db, seed_users, create_user, export_openapi
-migrations       Alembic (async, advisory lock)        setup   one-time DB + key scripts
-```
+## Endpoints
 
-## First-time setup (existing Postgres container)
+Full reference: [docs/API.md](../docs/API.md#auth-svc). All paths are reached through the gateway under `/api`.
 
-Prerequisites: Docker, Python 3.12, and a running Postgres 13+ container. The commands below use
-`graphgpt-postgres`; override with `PG_CONTAINER=... PG_SUPERUSER=...`.
+| Method | Gateway path | Purpose |
+|---|---|---|
+| POST | `/api/auth/signup` | Create a clinician and sign them in (controlled by `ENABLE_PUBLIC_SIGNUP`) |
+| POST | `/api/auth/login` | Verify email and password; returns an access token and sets the refresh cookie |
+| POST | `/api/auth/refresh` | Rotate the refresh cookie and return a new access token |
+| POST | `/api/auth/logout` | Revoke the refresh token and clear the cookie |
+| GET | `/api/auth/me` | The signed-in user (name and email come from here, never from the token) |
+| POST | `/api/auth/password` | Change password; signs the user out everywhere |
+
+Not routed by the gateway:
+
+| Path | Caller |
+|---|---|
+| `GET /.well-known/jwks.json` | The gateway and the other three services, to verify tokens |
+| `GET /health`, `GET /ready` | Docker health checks and the gateway's readiness probe |
+| `GET /metrics` | Internal network only (`METRICS_ENABLED`) |
+
+### Token and cookie model
+
+- Access token: RS256, 15 minutes, in the response body, kept in memory by the browser. It carries `sub`, `role`, `iss`,
+  `aud`, `kid`, `iat`, `exp` and no personal data.
+- Refresh token: opaque random value, 7 days, stored as a SHA-256 hash; sent only as the cookie `nephro_rt`
+  (HttpOnly, Secure, SameSite=Strict, `Path=/api/auth`, no `Domain`).
+- Rotation with reuse detection: replaying an already rotated token outside a 10 s grace window revokes the whole family.
+- Lockout: the 5th failed login locks the account (still `401`), the 6th answers `429` with `Retry-After`.
+- Key ids are the RFC 7638 thumbprint of the public key.
+
+## Data
+
+Database `nephro_auth_db` (tests use `nephro_auth_db_test`). Schema and relationships:
+[docs/DATABASE.md](../docs/DATABASE.md#auth-svc).
+
+| Table | Holds |
+|---|---|
+| `users` | Email (unique, lower case), argon2id hash, name, role, active flag, failed-login counters |
+| `refresh_tokens` | One row per issued refresh token: SHA-256 hash, family id, expiry, `revoked_at` with a reason (`rotated`, `logout`, `reuse_detected`, `user_inactive`, `password_changed`), the token that replaced it |
+| `auth_events` | Append-only audit trail of sign-in outcomes, no emails or tokens (365-day retention) |
+
+Migrations: `0001` initial, `0002` `users.last_failed_at`, `0003` `password_changed` revoke reason, `0004` `auth_events`,
+`0005` append-only `auth_events` with `purge_auth_events()`.
+
+## Dependencies
+
+None at runtime except its own database. It calls no other service. Database statement, lock and idle timeouts are set on
+every connection; a timeout answers `503 SERVICE_BUSY`.
+
+## Run
+
+As part of the stack: see the root [README](../README.md#quick-start). Alone, for development (needs Python 3.12 and a
+Postgres 13+ container; the commands use `graphgpt-postgres` on host port 5433):
 
 ```bash
 cp .env.example .env            # set the two role passwords and the same passwords inside the four URLs
-make install                    # .venv + dev dependencies
-make keys                       # RSA-3072 signing key pair -> setup/keys (gitignored)
-
+make install                    # .venv and dev dependencies
+make keys                       # RSA-3072 signing key pair into setup/keys (gitignored)
 docker network create nephro-net
 docker network connect --alias postgres nephro-net graphgpt-postgres
-
-# This changes the shared Postgres container. Read setup/*.sh first. It creates the roles auth_migrator and
-# auth_app and the databases nephro_auth_db / nephro_auth_db_test, moves ownership from the legacy auth_svc
-# role if it finds it, and refuses to touch a database owned by anyone else. Only auth_* roles are touched.
 set -a; . ./.env; set +a
-make init-db init-test-db       # needs AUTH_MIGRATOR_DB_PW and AUTH_APP_DB_PW from .env
-
-make migrate                    # as auth_migrator: docker compose run --rm migrate   (make migrate-local on the host)
-make seed                       # demo clinicians
+make init-db init-test-db       # creates roles auth_migrator and auth_app and the databases; read setup/*.sh first
+make migrate                    # as auth_migrator
+make seed                       # the two demo clinicians
+make run                        # http://localhost:8001/docs on the host
 ```
 
-`docker-compose.yml` REQUIRES `AUTH_APP_DB_USER`, `AUTH_APP_DB_PW`, `AUTH_MIGRATOR_DB_USER` and
-`AUTH_MIGRATOR_DB_PW`. There is no fallback to the retired single role `auth_svc`, so a missing variable stops
-`docker compose` with a message naming it. `.env.example` lists every setting with its default.
+`make up` starts the container on `nephro-net` and publishes no host port; only the gateway publishes one. To reach it
+directly: `docker run --rm --network nephro-net curlimages/curl -s http://auth-svc:8000/ready`.
 
-Run it:
+Demo clinicians (seeded when `SEED_DEMO_USERS=true`), password `Nephro#2026`:
 
-```bash
-make run                        # host, http://localhost:8001/docs
-make up                         # Docker, on nephro-net (no host port is published)
-```
+| Email | Name |
+|---|---|
+| `dr.rao@nephrocare.demo` | Dr. Anita Rao |
+| `dr.malhotra@nephrocare.demo` | Dr. Karan Malhotra |
 
-`make up` publishes nothing by design; only the gateway will publish a port. To reach it from the
-host for a quick check, run a throwaway container on `nephro-net`, for example
-`docker run --rm --network nephro-net curlimages/curl -s http://auth-svc:8000/ready`.
+Their ids are `uuid5(9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10, "user:" + email)`, the ids patient-svc's seed gives its
+encounters' clinicians. A database seeded before that change keeps random ids until the two users are deleted and
+reseeded: delete them with `DELETE FROM users WHERE email IN (...)`, then `make seed`. Their refresh tokens go with them.
+For another clinician when signup is off: `python -m app.cli.create_user --email dr.x@clinic.example --name "Dr. X"`.
 
-### Demo users (seeded when `SEED_DEMO_USERS=true`)
+Operations (unlock, revoke sessions, reset a password, rotate keys, roles, backups, production): [docs/operations.md](docs/operations.md).
 
-| Email | Name | Password |
+## Configuration
+
+Service-specific settings. The full list with defaults is in [.env.example](.env.example).
+
+| Variable | Default | Purpose |
 |---|---|---|
-| dr.rao@nephrocare.demo | Dr. Anita Rao | `Nephro#2026` |
-| dr.malhotra@nephrocare.demo | Dr. Karan Malhotra | `Nephro#2026` |
+| `ENVIRONMENT` | `development` | `development`, `test` or `production`. Production turns on the startup guard and disables `/docs` |
+| `AUTH_DATABASE_URL` | none | Runtime login (`auth_app`) |
+| `AUTH_MIGRATION_DATABASE_URL` | unset | Schema-owner login (`auth_migrator`) for Alembic and `make migrate` |
+| `ENABLE_PUBLIC_SIGNUP` | `true` in code | Allow `POST /auth/signup`; production also needs `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true` |
+| `SEED_DEMO_USERS` | `false` | Seed the two demo clinicians |
+| `LOGIN_FAILURE_WINDOW_MINUTES` | `15` | Failed attempts older than this stop counting toward lockout |
+| `RATE_LIMIT_LOGIN_PER_MIN` / `RATE_LIMIT_LOGIN_BURST` | `10` / `5` | Per-IP limiter on login and signup, per worker process |
+| `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Longest wait for a hash slot before `503 SERVICE_BUSY` |
+| `AUTH_DB_SSLMODE` | `disable` | `disable`, `require` or `verify-full`; production needs `require` or stricter |
+| `DB_STATEMENT_TIMEOUT_MS` / `DB_LOCK_TIMEOUT_MS` / `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `5000` / `2000` / `10000` | Server-side timeouts |
+| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit retention through `purge_auth_events()`; minimum 30 |
+| `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only) |
 
-The demo users' ids are `uuid5(9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10, "user:" + email)`, the ids patient-svc's seed gives
-its encounters' clinicians. A development database seeded earlier keeps the old random ids (the seed is idempotent by
-email and does not touch existing rows) until the two demo users are deleted and reseeded; their refresh tokens go
-with them (`ON DELETE CASCADE`), so they sign in again. Not run by any script; run it by hand when you want it:
-
-```bash
-docker exec -i graphgpt-postgres psql -U postgres -d nephro_auth_db -c   "DELETE FROM users WHERE email IN ('dr.rao@nephrocare.demo','dr.malhotra@nephrocare.demo')"
-make seed                       # recreates them with the new ids (SEED_DEMO_USERS or --force)
-```
-
-The prototype's `admin@nephrocare.demo` is deliberately not seeded. Invite a clinician when signup is
-off: `python -m app.cli.create_user --email dr.x@clinic.example --name "Dr. X"`.
+Error codes added beyond the design: `429 RATE_LIMITED` (per-IP bucket empty, `Retry-After` set) and `503 SERVICE_BUSY`.
+Password-rule details gained `SAME_AS_CURRENT` for the change-password call.
 
 ## Tests
 
 ```bash
-make test         # everything (225 tests)
-make test-unit    # pure, no database
+make test         # everything
+make test-unit    # pure logic, no database
 make test-api     # real Postgres (nephro_auth_db_test), fake clock, cheap argon2
-make lint         # ruff + mypy
+make lint         # ruff and mypy
 ```
 
-API tests run `alembic downgrade base` then `upgrade head` on the test database first, so the schema
-under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
+Last recorded full run: 284 passed. API tests run `alembic downgrade base` then `upgrade head` on the test database first, so
+the schema under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 
-## Rules the tests prove
+Rules the tests prove:
 
 | Rule | Test |
 |---|---|
 | argon2id only, never plaintext; refresh tokens stored as sha256 | `test_signup`, `test_password_hasher` |
-| Unknown email and wrong password: identical `401`; dummy verify runs | `test_login` |
-| 5th failure locks (still `401`), 6th is `429` + `Retry-After`; no hashing while locked; atomic counter; `LOCKOUT_REVEAL=false` | `test_lockout` |
-| Reuse outside the 10 s window revokes the family **and the revocation commits** | `test_refresh` (mutation-checked) |
+| Unknown email and wrong password: identical `401`; a dummy verify runs | `test_login` |
+| 5th failure locks (still `401`), 6th is `429` plus `Retry-After`; no hashing while locked; atomic counter; `LOCKOUT_REVEAL=false` | `test_lockout` |
+| Reuse outside the 10 s window revokes the family and the revocation commits | `test_refresh` |
 | Reuse inside the window: `409`, nothing changes, cookie untouched | `test_refresh` |
-| Only a replayed `rotated` token is theft. Logout / `reuse_detected` / `user_inactive` tokens answer `401 REFRESH_INVALID`, clear the cookie, touch nothing, log no `reuse_detected` | `test_refresh` |
+| Only a replayed `rotated` token is theft; logout, `reuse_detected` and `user_inactive` tokens answer `401 REFRESH_INVALID` and touch nothing | `test_refresh` |
 | Two parallel refreshes: exactly one `200`, one `409` | `test_refresh_concurrency` |
-| Cookie `nephro_rt`: HttpOnly, Secure, SameSite=Strict, Path=/api/auth, no Domain | `test_cookies`, `test_signup` |
+| Cookie `nephro_rt`: HttpOnly, Secure, SameSite=Strict, `Path=/api/auth`, no `Domain` | `test_cookies`, `test_signup` |
 | Origin allow-list on refresh and logout | `test_refresh`, `test_logout` |
-| RS256 only; `none`/HS256-confusion/wrong iss/aud/kid rejected; no PII in token | `test_token_service` |
+| RS256 only; `none`, HS256-confusion, wrong `iss`, `aud` or `kid` rejected; no personal data in the token | `test_token_service` |
 | `kid` is the RFC 7638 thumbprint (published test vector) | `test_keystore` |
-| `role` always `clinician`, never read from the request | `test_signup` |
+| `role` is always `clinician`, never read from the request | `test_signup` |
 | No emails, passwords, tokens or cookies in logs | `test_no_pii_in_logs` |
-| Migration produces exactly the LLD 15.2 schema; DB rejects bad rows itself | `test_schema` |
+| The migration produces exactly the LLD §15.2 schema; the database rejects bad rows itself | `test_schema` |
+| `auth_app` cannot alter the schema or change `auth_events` rows | `test_db_roles`, `test_audit_append_only` |
 
-## Deviations from the design documents
+## Design and deviations
 
-| # | Deviation | Reason |
-|---|---|---|
-| D1 | Database is `nephro_auth_db` (and `_test`), not `auth_db` | `auth_db` already exists on the shared container, owned by `postgres`. Chosen by the user (option B). |
-| D2 | Host-side connections use port **5433**, not 5432 | Host port 5432 is also bound by a different server, which rejects the `auth_svc` password. 5433 reaches the same container. |
-| D3 | Self-contained service in `auth-svc/`, no `libs/common`, `app/core` instead of `app/api/deps.py` split etc. | Layout change requested by the user, overriding HLD-v2 §17.1 and LLD §14/§23. |
-| D4 | Lockout SQL and every timestamp use the injected clock (`:now`), and **access-token expiry is checked against the same clock** | Needed to test expiry and lockout without sleeping. The LLD already specified `:now` for lockout; token expiry needed the same treatment (PyJWT checks the wall clock). |
-| D5 | Email validated with `email-validator(test_environment=True)` instead of `EmailStr` | `EmailStr` rejects reserved TLDs, including `.test` used by the LLD's own examples. Deliverability is never checked. |
-| D6 | `Retry-After` is `ceil(remaining seconds)` | The LLD's `+1` made a fresh 15-minute lock say "16 minutes". |
-| D7 | OpenAPI export is `docs/api/openapi.json` | Per the requested tree (the original task said `docs/api/auth-svc.json`). |
-| D8 | Route label in logs/metrics is rebuilt from the real path | FastAPI reports router-relative paths (`/login`), which would collide across prefixes. |
-| D9 | JWKS cache/refetch verifier is not included | **Resolved.** The cache and refetch logic live in `gateway/app/services/jwks_cache.py` (patient-svc, lab-svc and ai-svc each keep their own copy with the same rules); auth-svc only publishes the keys | The verifier is consumer-side, not part of the issuer |
-| D10 | Login reserves an attempt atomically **before** verifying the password; new column `users.last_failed_at` (migration 0002); failures older than `LOGIN_FAILURE_WINDOW_MINUTES` stop counting | Parallel guesses bypassed the lockout (N tried instead of 5) and a correct guess could log in after the account locked. LLD §19.2 |
-| D11 | In-process per-IP rate limit on `/auth/login` and `/auth/signup` (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth until the gateway exists. Limits are **per process** (2 workers = up to 2x). LLD §28 |
-| D12 | `ENVIRONMENT=production` startup guard; docs/schema off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe config must not reach production. LLD §28 |
-| D13 | Dependencies hash-locked (`requirements*.lock`), base image pinned by digest, CI workflow, runtime image no longer copies `app/` | Reproducible, verifiable builds. `/ready` now finds `alembic.ini` via the working directory |
-| D14 | DB statement / lock / idle-in-transaction timeouts on every connection; those errors answer `503 SERVICE_BUSY` | A stuck query or held lock must not hang requests. LLD §28 |
-| D15 | `AUTH_DB_SSLMODE` / `AUTH_DB_SSLROOTCERT` for the app, CLI and Alembic; production refuses `disable` | Encrypt database traffic. LLD §16 |
-| D16 | Unhandled exceptions log type, cause chain and stack (file, line, function), never messages or locals | Debuggable without leaking request data. LLD §28 |
-| D17 | Breached-password list: 142,487 entries (SecLists, MIT) instead of 88 | Real protection against common passwords |
-| D18 | `METRICS_ENABLED`; `/metrics` documented as internal-only | Reduce exposed surface |
-| D19 | `generate-keys.sh --prod`, `rotate-keys.sh`, rotation covered by a test | Key management. LLD §26.2 |
-| D20 | `POST /auth/password`; CLI `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions`; `password_changed` revoke reason (migration 0003) | Password lifecycle without raw SQL. LLD §17.7b, §26 |
-| D21 | `auth_events` audit table (migration 0004), 365-day retention | Durable, PII-free audit trail. LLD §15.4b |
-| D24 | `auth_events` is append-only for `auth_app` (SELECT and INSERT only); retention runs through `purge_auth_events(days)` (migration 0005, `SECURITY DEFINER`, 30-day floor, database clock); `AUTH_EVENTS_RETENTION_DAYS` must be at least 30 | The runtime role could rewrite or erase login history. LLD §15.4b |
-| D25 | No fallback to the legacy `auth_svc` role: compose requires the four `AUTH_APP_DB_*` / `AUTH_MIGRATOR_DB_*` variables; `env.py` needs `AUTH_MIGRATION_DATABASE_URL`; production refuses a runtime URL using `auth_svc` or `auth_migrator` (dev warns). Implemented in `app/db/migration_url.py`, `build_state` and the guard rather than in `config.py`, so nothing is logged while settings are still loading | A missing variable used to break startup quietly. LLD §16.3b |
-| D26 | `.env.example` (and the root example's auth section) list the role variables and every setting; `setup/retire-legacy-role.sh` retires `auth_svc` (NOLOGIN, never dropped); `make retire-legacy-role` | The examples had fallen behind the hardening work and still described the single role. LLD §16.3b |
-| D22 | Least-privilege roles `auth_migrator` / `auth_app`, separate migrate job, `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
-| D23 | `sub` must be a UUID (else `401 UNAUTHENTICATED`); uvicorn graceful shutdown 20 s; DB pool gauges | Small fixes. LLD §28 |
-| D24 | FastAPI default `redirect_slashes=True` | `redirect_slashes=False`: `/auth/login/` is a 404 | A trailing slash would cost a 307 round trip through the gateway and leak the upstream path (gateway LLD R14) |
-| D25 | Demo users get random `uuid4` ids | `uuid5(9b3f6a52-..., "user:" + email)` | patient-svc's seeded encounters reference their clinician by that id (patient-svc `seed_ids.py`) |
+Design: [docs/auth-svc-HLD-LLD.md](docs/auth-svc-HLD-LLD.md) (the highest authority for anything auth-related). Operations:
+[docs/operations.md](docs/operations.md). This service has no separate build plan.
 
-## Configuration added for production readiness
+| # | Design says | Here | Why |
+|---|---|---|---|
+| D1 | Database `auth_db` | `nephro_auth_db` (and `_test`) | `auth_db` already exists on the shared container, owned by `postgres` |
+| D2 | Port 5432 | Host connections use 5433 | Host port 5432 is bound by a different server |
+| D3 | `libs/common` and the HLD §17.1 layout | Self-contained service folder; `app/core` instead of an `app/api/deps.py` split | Layout chosen for the repository; overrides HLD §17.1 and LLD §14, §23 |
+| D4 | `:now` in the lockout SQL | Every timestamp and access-token expiry use the injected clock | Expiry and lockout can be tested without sleeping |
+| D5 | `EmailStr` | `email-validator(test_environment=True)` | `EmailStr` rejects reserved TLDs such as `.test`, which the LLD examples use |
+| D6 | `Retry-After` with `+1` | `ceil(remaining seconds)` | A fresh 15-minute lock said "16 minutes" |
+| D7 | `docs/api/auth-svc.json` | `docs/api/openapi.json` | One file name in every service |
+| D8 | Route label from the path | Rebuilt from the real path | FastAPI reports router-relative paths, which collide across prefixes |
+| D9 | JWKS cache and refetch verifier | **Resolved.** The cache and refetch logic live in `gateway/app/services/jwks_cache.py`; patient-svc, lab-svc and ai-svc each keep a copy with the same rules. auth-svc only publishes the keys | The verifier belongs to the consumer, not the issuer |
+| D10 | Login verifies, then counts | Login reserves an attempt atomically before verifying; `users.last_failed_at` (migration 0002); old failures stop counting | Parallel guesses bypassed the lockout. LLD §19.2 |
+| D11 | No in-service limiter | Per-IP limit on login and signup (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth behind the gateway. Limits are per process. LLD §28 |
+| D12 | No environment concept | `ENVIRONMENT=production` startup guard; docs off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe configuration must not reach production |
+| D13 | Plain install | Hash-locked requirements, base image pinned by digest, CI workflow | Reproducible, verifiable builds |
+| D14 | No timeouts | Statement, lock and idle-in-transaction timeouts on every connection; `503 SERVICE_BUSY` | A stuck query must not hang requests |
+| D15 | No TLS setting | `AUTH_DB_SSLMODE` and `AUTH_DB_SSLROOTCERT`; production refuses `disable` | Encrypt database traffic |
+| D16 | Log exception messages | Unhandled exceptions log type, cause chain and stack, never messages or locals | Debuggable without leaking request data |
+| D17 | 88-entry password list | 142,487 entries (SecLists, MIT) | Real protection against common passwords |
+| D18 | `/metrics` public | `METRICS_ENABLED`; documented as internal only | Smaller exposed surface |
+| D19 | Manual key handling | `generate-keys.sh --prod`, `rotate-keys.sh`, rotation covered by a test | Key management. LLD §26.2 |
+| D20 | No password lifecycle | `POST /auth/password`; CLIs `set_password`, `unlock_user`, `deactivate_user`, `revoke_sessions`; `password_changed` reason (migration 0003) | Password lifecycle without raw SQL |
+| D21 | No audit table | `auth_events` (migration 0004), 365-day retention | Durable audit trail with no personal data |
+| D22 | One database role | `auth_migrator` and `auth_app`; separate migrate job; `AUTH_MIGRATION_DATABASE_URL` | The runtime role cannot change the schema. LLD §16.3b |
+| D23 | `sub` any string | `sub` must be a UUID (else `401`); 20 s graceful shutdown; pool gauges | Small fixes |
+| D24 | Audit rows deletable | `auth_events` is append-only for `auth_app`; retention through `purge_auth_events(days)` (migration 0005, `SECURITY DEFINER`, 30-day floor) | The runtime role could rewrite login history. LLD §15.4b |
+| D25 | Fallback to the legacy role | No fallback to `auth_svc`: compose requires the four role variables; production refuses a runtime URL using `auth_svc` or `auth_migrator` | A missing variable used to break startup quietly. LLD §16.3b |
+| D26 | Examples describe one role | `.env.example` lists the role variables; `setup/retire-legacy-role.sh` retires `auth_svc` (NOLOGIN, never dropped) | The examples had fallen behind the hardening work |
+| D27 | FastAPI `redirect_slashes=True` | `redirect_slashes=False`: `/auth/login/` is a 404 | A trailing slash would cost a 307 round trip and leak the upstream path (gateway LLD R14) |
+| D28 | Random `uuid4` demo user ids | `uuid5(9b3f6a52-..., "user:" + email)` | patient-svc's seeded encounters reference their clinician by that id |
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `ENVIRONMENT` | `development` | `development` / `test` / `production`. Production turns on the startup guard and disables `/docs`, `/redoc`, `/openapi.json` |
-| `ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION` | `false` | Needed to run production with `ENABLE_PUBLIC_SIGNUP=true` |
-| `LOGIN_FAILURE_WINDOW_MINUTES` | `15` | Failed attempts older than this stop counting toward lockout |
-| `RATE_LIMIT_ENABLED` | `true` | In-process per-IP limiter on login and signup |
-| `RATE_LIMIT_LOGIN_PER_MIN` | `10` | Sustained refill per IP, **per worker process** |
-| `RATE_LIMIT_LOGIN_BURST` | `5` | Requests allowed back-to-back from a cold start |
-| `ARGON2_QUEUE_TIMEOUT_S` | `2.0` | Max wait for a hash slot before `503 SERVICE_BUSY` |
-| `AUTH_MIGRATION_DATABASE_URL` | unset | Schema-owner login for Alembic / `make migrate` (falls back to `AUTH_DATABASE_URL`) |
-| `RUN_MIGRATIONS_ON_START` | `false` | Run migrations in the entrypoint (local convenience) |
-| `AUTH_DB_SSLMODE` | `disable` | `disable` / `require` / `verify-full`; production needs `require` or stricter |
-| `AUTH_DB_SSLROOTCERT` | unset | CA certificate for `require` (chain) / `verify-full` (chain + host name) |
-| `DB_STATEMENT_TIMEOUT_MS` | `5000` | Server-side statement timeout |
-| `DB_LOCK_TIMEOUT_MS` | `2000` | Server-side lock timeout |
-| `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `10000` | Server-side idle-in-transaction timeout |
-| `AUTH_EVENTS_RETENTION_DAYS` | `365` | Audit rows older than this are purged through `purge_auth_events()`. Minimum 30; startup fails below |
-| `METRICS_ENABLED` | `true` | Serve `/metrics` (internal network only) |
+## Known limitations
 
-### New error codes
-
-| HTTP | Code | When |
-|---|---|---|
-| 429 | `RATE_LIMITED` | Per-IP bucket empty on login or signup. `Retry-After` set |
-| 503 | `SERVICE_BUSY` | Hash queue full for `ARGON2_QUEUE_TIMEOUT_S`, or a database lock/statement timeout. `Retry-After: 1` |
-
-Password-rule `details[].code` gained `SAME_AS_CURRENT` (change password only).
-
-### Running in production
-
-```bash
-PROD_CORS_ALLOWED_ORIGINS=https://emr.example.org \
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-The service refuses to start (and says why) if seeding is on, cookies are not Secure, CORS names
-localhost or `*`, the key file is group/world readable, or public signup is on without
-`ALLOW_PUBLIC_SIGNUP_IN_PRODUCTION=true`.
-
-### Reproducible builds
-
-Dependencies are locked with hashes, generated inside the pinned Linux image:
-
-```bash
-make lock    # rewrites requirements.lock, requirements-dev.lock and requirements-build.lock
-```
-
-`pip install --require-hashes` is used by the Dockerfile and CI. CI is `.github/workflows/auth-svc.yml`.
-
-## Operations
-
-Run these inside the container (`docker compose exec auth-svc ...`) or on the host with `.env` loaded.
-Each prints what it changed and writes an audit event.
-
-| Task | Command |
-|---|---|
-| Unlock an account | `python -m app.cli.unlock_user --email dr.rao@nephrocare.demo` |
-| Sign a user out everywhere | `python -m app.cli.revoke_sessions --email ...` |
-| Deactivate a user (and sign out) | `python -m app.cli.deactivate_user --email ...` |
-| Reset a password (prompted twice, policy applied, signs out everywhere) | `python -m app.cli.set_password --email ...` |
-| Create a clinician when signup is off | `python -m app.cli.create_user --email ... --name "Dr. X"` |
-| Migrate the schema (schema-owner role) | `make migrate` |
-| See what retiring the legacy `auth_svc` role would do (read-only) | `make retire-legacy-role-plan` |
-| Retire the legacy `auth_svc` role (no login, no connect; not dropped) | `make retire-legacy-role` |
-| Rotate the signing key (steps 1-2 of LLD §26.2) | `./setup/rotate-keys.sh [--prod]` |
-| Production signing key (0600, uid 10001) | `./setup/generate-keys.sh --prod` |
-
-Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-known/jwks.json`.
-
-### Least-privilege database roles
-
-| Role | Used by | Rights |
-|---|---|---|
-| `auth_migrator` | Alembic, `make migrate`, test cleanup | owns the database, the `public` schema and every table and function; never used at runtime |
-| `auth_app` | the running service (`AUTH_DATABASE_URL`) | `CONNECT`; `USAGE` on `public`; `SELECT, INSERT, UPDATE, DELETE` on `users` and `refresh_tokens`; **`SELECT, INSERT` only on `auth_events`** (append-only); `EXECUTE` on `purge_auth_events()`. Cannot create, alter, drop or truncate anything |
-| `auth_svc` | nobody: the retired single role | owns nothing after `init-auth-db.sh`; `make retire-legacy-role` blocks its login |
-
-`setup/init-auth-db.sh` is idempotent and **moves ownership from the legacy `auth_svc`**. It changes roles and
-grants, so on a shared Postgres read it first. A fresh setup ends with the same grants as after migration `0005`.
-
-```bash
-set -a; . ./.env; set +a
-make init-db init-test-db       # create/repair the roles, databases and grants
-make migrate                    # schema changes run as auth_migrator
-```
-
-Tests that prove the split (`tests/api/test_db_roles.py`, `tests/api/test_audit_append_only.py`) run when
-`AUTH_TEST_DATABASE_URL` (auth_app) and `AUTH_TEST_MIGRATION_DATABASE_URL` (auth_migrator) differ.
-
-#### Retiring the legacy role
-
-```bash
-make retire-legacy-role-plan    # read-only: shows what it would do
-make retire-legacy-role         # REVOKE CONNECT on both databases, then ALTER ROLE auth_svc NOLOGIN
-```
-
-`setup/retire-legacy-role.sh` touches only `auth_svc`. It is idempotent, **refuses to run** if `auth_migrator` or
-`auth_app` is missing or if `auth_svc` still owns any object in either database, and never drops the role. It prints
-the undo commands (`ALTER ROLE auth_svc LOGIN`, `GRANT CONNECT ...`). Existing `auth_svc` sessions keep running
-until they close; the script does not terminate them.
-
-### Watch the audit table (unknown-email logins)
-
-Every login with an unknown email writes an `auth_events` row (`unknown_user`, no email stored). The per-IP rate limit
-caps that per address and retention purges old rows (`AUTH_EVENTS_RETENTION_DAYS`, 365 by default, **never below 30**),
-but a distributed password-spraying attack grows the table fast, and its rows cannot be purged for at least 30 days.
-Monitor the **table size** and **row count**, their growth rate, the share of `unknown_user` outcomes, and
-`auth_rate_limited_total`. Queries and the reasoning are in LLD §24.3.
-
-```sql
-SELECT pg_size_pretty(pg_total_relation_size('auth_events')) AS size, (SELECT count(*) FROM auth_events) AS rows;
-```
-
-### Backups, and the risk of sharing a Postgres
-
-```bash
-./setup/backup-auth-db.sh graphgpt-postgres postgres                    # this database only, verified readable
-AUTH_DB_NAME=nephro_auth_db_test ./setup/restore-auth-db.sh graphgpt-postgres backups/<file>.dump postgres   # rehearse on the test DB
-```
-
-`auth_db` shares `graphgpt-postgres` with other systems: a restore, a heavy query or a full disk elsewhere affects
-sign-in for everyone. Use a dedicated instance (or managed Postgres with point-in-time recovery) in production.
-
-### Common-password list
-
-`app/domain/data/common_passwords.txt` is SecLists' `Pwdb_top-1000000.txt` (MIT, Daniel Miessler) filtered to
-10+ characters, lowercased and de-duplicated (142,487 entries); the header records the source. To regenerate,
-download the file into an empty directory, then run a filter that keeps lines of 10+ characters, lowercases and
-de-duplicates them.
-
-### CI
-
-`.github/workflows/auth-svc.yml` (ruff, mypy, pytest on Postgres 16 with both roles, `pip-audit`, image build and
-Trivy). It has not run on GitHub yet: nothing is pushed.
-
-## Status and open items
-
-auth-svc is complete. The smoke test through the gateway on `:8080` passes (`make smoke` at the repo root: login, refresh,
-logout, `/api/auth/me`, 19 checks). Run the whole stack from the repo root with `make up`.
-The pre-existing empty `auth_db` on the shared container is intentionally left alone.
+- The per-IP limiter is per process: two workers allow up to twice the configured rate.
+- The shared Postgres container is a single point of failure for sign-in (see [operations](docs/operations.md#backups-and-the-shared-postgres)).
+- There is no admin role, user-management API, email verification or password reset by email; resets are an operator task.
+- A database seeded before D28 keeps random demo user ids until reseeded.

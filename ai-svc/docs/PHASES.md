@@ -1,6 +1,8 @@
+> Build plan used with an AI coding agent. Kept as a record of how the service was built; the README describes the result.
+
 # ai-svc — Development Phases
 
-Source of truth: [docs/ai-svc-HLD-LLD.md](docs/ai-svc-HLD-LLD.md) (§ numbers below are its sections: A = HLD part, B = LLD part, AI-ADR = its decisions). System context: HLD v2 (`../docs/HLD.md`). The phases follow the build checklist in B21, grouped into 10.
+Source of truth: [docs/ai-svc-HLD-LLD.md](ai-svc-HLD-LLD.md) (§ numbers below are its sections: A = HLD part, B = LLD part, AI-ADR = its decisions). System context: HLD v2 (`../docs/HLD.md`). The phases follow the build checklist in B21, grouped into 10.
 Layout is B1 (`app/api`, `app/core`, `app/insights`, `app/context`, `app/prompts`, `app/llm`, `app/tools`, `app/validation`, `app/orchestrator`, `app/jobs`, `app/clients`, `app/repositories`, `migrations`, `tests`). Database objects live in `nephro_ai_db` / `nephro_ai_db_test` on the shared `graphgpt-postgres` container, network `nephro-net` (B18).
 Each phase is finished, tested and committed before the next starts. Tests run against the real Postgres test database; upstreams are mocked with `respx`.
 

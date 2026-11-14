@@ -1,6 +1,8 @@
+> Build plan used with an AI coding agent. Kept as a record of how the service was built; the README describes the result.
+
 # gateway — Development Phases
 
-Source: [docs/gateway-HLD-LLD.md](docs/gateway-HLD-LLD.md) (§ numbers below refer to it).
+Source: [docs/gateway-HLD-LLD.md](gateway-HLD-LLD.md) (§ numbers below refer to it).
 Paths are relative to `gateway/` and follow the code layout in §16.
 Build order follows the checklist in §33, grouped into 9 phases. Each phase must be finished, tested and committed before the next starts.
 All Python work is tested in-process with fake upstreams (`httpx.MockTransport`) and a fake JWKS; Docker is needed only from Phase 8.

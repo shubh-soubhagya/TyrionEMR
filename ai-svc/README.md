@@ -3,7 +3,7 @@
 Deterministic insights (gap rules, attention rule, worklist, dashboard) and the AI clinical summary (context builder,
 tool calling, LLM adapter, validation, provenance) for the NephroCare EMR.
 
-- Design: [docs/ai-svc-HLD-LLD.md](docs/ai-svc-HLD-LLD.md) (the source of truth). Build plan and status: [PHASES.md](PHASES.md).
+- Design: [docs/ai-svc-HLD-LLD.md](docs/ai-svc-HLD-LLD.md) (the source of truth). Build plan and status: [PHASES.md](docs/PHASES.md).
 - API export: [docs/api/openapi.json](docs/api/openapi.json). Recorded responses (running, completed, cache hit,
   degraded, failed, insights): [docs/api/examples/](docs/api/examples/).
 - Insights never call the LLM (enforced by an import test) and never touch the database, so they keep working when

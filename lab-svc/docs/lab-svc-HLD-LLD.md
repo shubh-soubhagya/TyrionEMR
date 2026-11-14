@@ -1880,6 +1880,6 @@ If the port is not published, use the Docker network (B14.3); publishing a port 
 6. Read endpoints: results, trends, latest, summary, internal mirrors, bulk status.
 7. Correction endpoint.
 8. Seed and rebuild script; `rebuild_status --check` in CI.
-9. API and contract tests green; export OpenAPI to `docs/api/lab-svc.json`.
+9. API and contract tests green; export OpenAPI to `docs/api/openapi.json`.
 10. Wire to the gateway and the Angular Labs tab, lab form preview and patient list summary.
 

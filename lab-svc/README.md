@@ -4,8 +4,8 @@ Laboratory data and everything derived from it: reference ranges, unit conversio
 and the `patient_lab_status` read model.
 
 - Design: [docs/lab-svc-HLD-LLD.md](docs/lab-svc-HLD-LLD.md) (the source of truth), system context in [../docs/HLD.md](../docs/HLD.md).
-- Build plan and status: [PHASES.md](PHASES.md) (all twelve phases done).
-- API export: [docs/api/lab-svc.json](docs/api/lab-svc.json). Query plans: [docs/db/explain/](docs/db/explain/).
+- Build plan and status: [PHASES.md](docs/PHASES.md) (all twelve phases done).
+- API export: [docs/api/openapi.json](docs/api/openapi.json). Query plans: [docs/db/explain/](docs/db/explain/).
 
 ## Run (same Postgres container as auth-svc and patient-svc)
 
