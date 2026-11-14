@@ -1,6 +1,57 @@
 {
   "items": [
     {
+      "collected_at": "2026-11-13T22:17:00Z",
+      "flag": "low",
+      "id": "1fb4905c-5729-4da1-aed0-c5faf40dadf4",
+      "is_correction": false,
+      "lab_name": "Metro Diagnostics Laboratory",
+      "ref_high": null,
+      "ref_low": 90.0,
+      "report_id": "c62ce307-9ca5-4297-b23c-31606b63014a",
+      "superseded": false,
+      "test_code": "EGFR",
+      "test_name": "eGFR",
+      "unit": "mL/min/1.73m²",
+      "unit_original": "mL/min/1.73m²",
+      "value": 36.0,
+      "value_original": 36.0
+    },
+    {
+      "collected_at": "2026-11-13T22:16:00Z",
+      "flag": "low",
+      "id": "dcadc50f-0af4-4e35-b355-a97d17794e83",
+      "is_correction": false,
+      "lab_name": "Metro Diagnostics Laboratory",
+      "ref_high": null,
+      "ref_low": 90.0,
+      "report_id": "491bb298-fc98-485e-becb-6d65c782e642",
+      "superseded": false,
+      "test_code": "EGFR",
+      "test_name": "eGFR",
+      "unit": "mL/min/1.73m²",
+      "unit_original": "mL/min/1.73m²",
+      "value": 36.0,
+      "value_original": 36.0
+    },
+    {
+      "collected_at": "2026-11-13T20:54:00Z",
+      "flag": "critical_low",
+      "id": "cab11912-7ad9-4835-97c1-fde791f7d9b6",
+      "is_correction": false,
+      "lab_name": "Metro Diagnostics Laboratory",
+      "ref_high": null,
+      "ref_low": 90.0,
+      "report_id": "787dbc74-2bae-4527-a6da-f84548c8ef0b",
+      "superseded": false,
+      "test_code": "EGFR",
+      "test_name": "eGFR",
+      "unit": "mL/min/1.73m²",
+      "unit_original": "mL/min/1.73m²",
+      "value": 9.0,
+      "value_original": 9.0
+    },
+    {
       "collected_at": "2026-10-24T09:00:00Z",
       "flag": "low",
       "id": "490474ba-c67c-43c2-90b7-f6bb6c4ddb06",
@@ -139,6 +190,6 @@
   ],
   "page": 1,
   "size": 50,
-  "total": 8,
+  "total": 11,
   "truncated": false
 }

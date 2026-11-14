@@ -22,6 +22,36 @@
     },
     {
       "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease 221718",
+      "icd10_code": null,
+      "id": "96fe5594-4fec-4514-aeaf-37a92dd5ed9c",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease 221641",
+      "icd10_code": null,
+      "id": "d3b8d33e-e913-4ab4-ae36-d65fa24f0e18",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease",
+      "icd10_code": "D63.1",
+      "id": "e3396391-4b2b-4fd2-ae9a-9aeaabaf15cd",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
       "description": "Hyperlipidaemia",
       "icd10_code": "E78.5",
       "id": "bae29f8c-a235-4a97-a05a-32042c9fff47",

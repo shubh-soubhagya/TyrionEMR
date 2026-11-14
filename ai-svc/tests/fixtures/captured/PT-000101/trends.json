@@ -51,6 +51,24 @@
           "flag": "high",
           "result_id": "82568a3b-3767-42e1-be7c-4958896819ab",
           "value": 1.91
+        },
+        {
+          "collected_at": "2026-11-13T20:54:00Z",
+          "flag": "high",
+          "result_id": "785fd143-c7d3-4a6e-83c3-bffcc94aa207",
+          "value": 1.695
+        },
+        {
+          "collected_at": "2026-11-13T22:16:00Z",
+          "flag": "high",
+          "result_id": "df27d2cd-a894-4520-ac45-aa64892570d2",
+          "value": 1.921
+        },
+        {
+          "collected_at": "2026-11-13T22:17:00Z",
+          "flag": "high",
+          "result_id": "a34fc47e-4ff9-4867-8148-b15b912f2d51",
+          "value": 1.921
         }
       ],
       "reference": {
@@ -59,17 +77,17 @@
       },
       "stage_bands": null,
       "stats": {
-        "abs_change": 0.47,
+        "abs_change": 0.481,
         "direction": "worsening",
         "first": 1.44,
         "first_at": "2024-11-23T09:00:00+00:00",
-        "last": 1.91,
-        "last_at": "2026-10-24T09:00:00+00:00",
-        "n": 8,
-        "pct_change": 32.6,
+        "last": 1.921,
+        "last_at": "2026-11-13T22:17:00+00:00",
+        "n": 11,
+        "pct_change": 33.4,
         "rapid_decline": false,
-        "slope_per_year": 0.24,
-        "span_days": 700
+        "slope_per_year": 0.22,
+        "span_days": 721
       },
       "test_code": "CREAT",
       "unit": "mg/dL"
@@ -123,6 +141,24 @@
           "flag": "low",
           "result_id": "490474ba-c67c-43c2-90b7-f6bb6c4ddb06",
           "value": 38.0
+        },
+        {
+          "collected_at": "2026-11-13T20:54:00Z",
+          "flag": "critical_low",
+          "result_id": "cab11912-7ad9-4835-97c1-fde791f7d9b6",
+          "value": 9.0
+        },
+        {
+          "collected_at": "2026-11-13T22:16:00Z",
+          "flag": "low",
+          "result_id": "dcadc50f-0af4-4e35-b355-a97d17794e83",
+          "value": 36.0
+        },
+        {
+          "collected_at": "2026-11-13T22:17:00Z",
+          "flag": "low",
+          "result_id": "1fb4905c-5729-4da1-aed0-c5faf40dadf4",
+          "value": 36.0
         }
       ],
       "reference": {
@@ -156,17 +192,17 @@
         }
       ],
       "stats": {
-        "abs_change": -16.0,
+        "abs_change": -18.0,
         "direction": "worsening",
         "first": 54.0,
         "first_at": "2024-11-23T09:00:00+00:00",
-        "last": 38.0,
-        "last_at": "2026-10-24T09:00:00+00:00",
-        "n": 8,
-        "pct_change": -29.6,
+        "last": 36.0,
+        "last_at": "2026-11-13T22:17:00+00:00",
+        "n": 11,
+        "pct_change": -33.3,
         "rapid_decline": true,
-        "slope_per_year": -8.18,
-        "span_days": 700
+        "slope_per_year": -12.8,
+        "span_days": 721
       },
       "test_code": "EGFR",
       "unit": "mL/min/1.73m²"

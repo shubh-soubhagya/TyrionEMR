@@ -30,6 +30,36 @@
     },
     {
       "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease 221718",
+      "icd10_code": null,
+      "id": "96fe5594-4fec-4514-aeaf-37a92dd5ed9c",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease 221641",
+      "icd10_code": null,
+      "id": "d3b8d33e-e913-4ab4-ae36-d65fa24f0e18",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
+      "description": "Anemia in chronic kidney disease",
+      "icd10_code": "D63.1",
+      "id": "e3396391-4b2b-4fd2-ae9a-9aeaabaf15cd",
+      "is_primary": false,
+      "onset_date": "2026-11-14",
+      "resolved_date": null,
+      "status": "active"
+    },
+    {
+      "category": "comorbidity",
       "description": "Hyperlipidaemia",
       "icd10_code": "E78.5",
       "id": "bae29f8c-a235-4a97-a05a-32042c9fff47",
@@ -51,10 +81,52 @@
   ],
   "counts": {
     "drafts": 1,
-    "encounters": 4,
-    "final_encounters": 3
+    "encounters": 10,
+    "final_encounters": 9
   },
   "encounter_index": [
+    {
+      "encounter_date": "2026-11-13T22:17:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "dd79b393-0a9a-4c11-a680-6ab6eecf4dfb",
+      "status": "final"
+    },
+    {
+      "encounter_date": "2026-11-13T22:16:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "47d85bfa-b603-4e91-bd0e-03275925913a",
+      "status": "final"
+    },
+    {
+      "encounter_date": "2026-11-13T22:10:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "1cbb5ae8-2b9d-4011-a8e0-e7b18fe41550",
+      "status": "final"
+    },
+    {
+      "encounter_date": "2026-11-13T22:09:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "6afdb5e2-f30e-41fd-9ee4-cb6b0a21bab1",
+      "status": "final"
+    },
+    {
+      "encounter_date": "2026-11-13T22:08:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "6972309e-8c9a-40fe-a2d7-71e26e398eb3",
+      "status": "final"
+    },
+    {
+      "encounter_date": "2026-11-13T22:08:00Z",
+      "has_assessment_and_plan": true,
+      "has_vitals": false,
+      "id": "b232af8c-e554-4948-b5c8-208525d24575",
+      "status": "final"
+    },
     {
       "encounter_date": "2026-11-11T04:30:00Z",
       "has_assessment_and_plan": false,
@@ -139,43 +211,42 @@
   },
   "recent_encounters": [
     {
-      "assessment": null,
-      "chief_complaint": "Dietitian referral discussion",
-      "diagnoses": [],
-      "encounter_date": "2026-11-11T04:30:00Z",
+      "assessment": "Stable on current treatment.",
+      "chief_complaint": "E2E follow-up 221718",
+      "diagnoses": [
+        {
+          "description": "Anemia in chronic kidney disease 221718",
+          "icd10_code": null
+        }
+      ],
+      "encounter_date": "2026-11-13T22:17:00Z",
       "encounter_type": "follow_up",
       "examination_notes": null,
       "follow_up_date": null,
-      "id": "ce1cc26b-e6b6-4508-a026-b4d207cfe626",
-      "plan": null,
-      "status": "draft",
+      "id": "dd79b393-0a9a-4c11-a680-6ab6eecf4dfb",
+      "plan": "Continue; repeat labs in 3 months.",
+      "status": "final",
       "symptoms": [],
       "vitals": null
     },
     {
-      "assessment": "Persistent eGFR decline over two years. UACR in the severely increased range.",
-      "chief_complaint": "Review of recent laboratory results",
+      "assessment": "Stable on current treatment.",
+      "chief_complaint": "E2E follow-up 221641",
       "diagnoses": [
         {
-          "description": "Chronic kidney disease, stage 3b",
-          "icd10_code": "N18.32"
+          "description": "Anemia in chronic kidney disease 221641",
+          "icd10_code": null
         }
       ],
-      "encounter_date": "2026-10-25T04:30:00Z",
+      "encounter_date": "2026-11-13T22:16:00Z",
       "encounter_type": "follow_up",
       "examination_notes": null,
-      "follow_up_date": "2026-12-06",
-      "id": "799bfa79-c0cf-46d6-8f85-195ec23eabef",
-      "plan": "Discuss progression at next visit. Follow-up in 6 weeks.",
+      "follow_up_date": null,
+      "id": "47d85bfa-b603-4e91-bd0e-03275925913a",
+      "plan": "Continue; repeat labs in 3 months.",
       "status": "final",
       "symptoms": [],
-      "vitals": {
-        "diastolic_bp": 82,
-        "heart_rate": 74,
-        "systolic_bp": 138,
-        "temperature_c": 36.6,
-        "weight_kg": 72.9
-      }
+      "vitals": null
     }
   ]
 }

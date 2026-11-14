@@ -24,6 +24,12 @@
         "established_ckd_stage": null,
         "final_encounters": [
           {
+            "encounter_date": "2026-11-13T20:38:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": true,
+            "id": "2cc226c5-e2eb-4e92-a8ab-af82affc3a15"
+          },
+          {
             "encounter_date": "2026-10-15T04:30:00+00:00",
             "has_assessment_and_plan": true,
             "has_vitals": true,
@@ -74,6 +80,12 @@
         "established_ckd_stage": "G2",
         "final_encounters": [
           {
+            "encounter_date": "2026-11-13T20:24:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "19eebf1f-edea-43f4-ae90-2fddbeee2a0f"
+          },
+          {
             "encounter_date": "2026-09-15T04:30:00+00:00",
             "has_assessment_and_plan": true,
             "has_vitals": false,
@@ -95,6 +107,30 @@
         "date_of_birth": "1971-01-05",
         "established_ckd_stage": "G3a",
         "final_encounters": [
+          {
+            "encounter_date": "2026-11-13T22:16:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "fafc3a21-f735-4518-998d-a6ee8942e7d2"
+          },
+          {
+            "encounter_date": "2026-11-13T22:11:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "19ba92fb-f3c6-4a0b-812e-859325e5b848"
+          },
+          {
+            "encounter_date": "2026-11-13T22:11:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "789c7f90-bf90-45ec-b600-7d9763cdea82"
+          },
+          {
+            "encounter_date": "2026-11-13T10:00:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "4b48c515-ae5c-45d6-a403-6b5859a2ef1a"
+          },
           {
             "encounter_date": "2026-09-30T04:30:00+00:00",
             "has_assessment_and_plan": true,
@@ -229,6 +265,42 @@
         "date_of_birth": "1959-04-17",
         "established_ckd_stage": "G3b",
         "final_encounters": [
+          {
+            "encounter_date": "2026-11-13T22:17:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "dd79b393-0a9a-4c11-a680-6ab6eecf4dfb"
+          },
+          {
+            "encounter_date": "2026-11-13T22:16:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "47d85bfa-b603-4e91-bd0e-03275925913a"
+          },
+          {
+            "encounter_date": "2026-11-13T22:10:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "1cbb5ae8-2b9d-4011-a8e0-e7b18fe41550"
+          },
+          {
+            "encounter_date": "2026-11-13T22:09:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "6afdb5e2-f30e-41fd-9ee4-cb6b0a21bab1"
+          },
+          {
+            "encounter_date": "2026-11-13T22:08:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "6972309e-8c9a-40fe-a2d7-71e26e398eb3"
+          },
+          {
+            "encounter_date": "2026-11-13T22:08:00+00:00",
+            "has_assessment_and_plan": true,
+            "has_vitals": false,
+            "id": "b232af8c-e554-4948-b5c8-208525d24575"
+          },
           {
             "encounter_date": "2026-10-25T04:30:00+00:00",
             "has_assessment_and_plan": true,

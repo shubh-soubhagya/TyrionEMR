@@ -236,7 +236,8 @@ def build(spec: Spec, *, b20_fields: bool = True) -> dict:
            "uacr_collected_at": uacr_e["collected_at"] if uacr_e else None}
     latest_doc = {"patient_id": str(pid), "tests": tiles, "ckd": ckd, "has_critical": lab["has_critical"],
                   "rapid_decline": lab["rapid_decline"], "last_result_at": lab["last_result_at"],
-                  "status_version": len(reports)}
+                  "status_version": len(reports),
+                  "result_count": len(reports) * len(UNITS_PER_REPORT)}
     latest_doc |= {k: lab[k] for k in ("first_result_at", "egfr_lt60_run") if k in lab}
 
     def empty(c: str) -> dict:

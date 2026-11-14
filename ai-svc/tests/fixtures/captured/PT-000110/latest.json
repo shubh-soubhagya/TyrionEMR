@@ -18,6 +18,7 @@
   "last_result_at": "2026-10-19T09:00:00Z",
   "patient_id": "2740bd4c-820f-50a1-8cd1-8c86376b0a9e",
   "rapid_decline": true,
+  "result_count": 38,
   "status_version": 5,
   "tests": [
     {

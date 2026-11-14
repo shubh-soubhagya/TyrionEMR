@@ -1,71 +1,84 @@
 {
   "items": [
     {
-      "chief_complaint": "Dietitian referral discussion",
-      "diagnoses": [],
-      "encounter_date": "2026-11-11T04:30:00Z",
+      "chief_complaint": "E2E follow-up 221718",
+      "diagnoses": [
+        {
+          "description": "Anemia in chronic kidney disease 221718",
+          "icd10_code": null
+        }
+      ],
+      "encounter_date": "2026-11-13T22:17:00Z",
       "encounter_type": "follow_up",
       "follow_up_date": null,
-      "id": "ce1cc26b-e6b6-4508-a026-b4d207cfe626",
-      "status": "draft",
+      "id": "dd79b393-0a9a-4c11-a680-6ab6eecf4dfb",
+      "status": "final",
       "symptoms": [],
       "vitals": null
     },
     {
-      "chief_complaint": "Review of recent laboratory results",
+      "chief_complaint": "E2E follow-up 221641",
       "diagnoses": [
         {
-          "description": "Chronic kidney disease, stage 3b",
-          "icd10_code": "N18.32"
+          "description": "Anemia in chronic kidney disease 221641",
+          "icd10_code": null
         }
       ],
-      "encounter_date": "2026-10-25T04:30:00Z",
-      "encounter_type": "follow_up",
-      "follow_up_date": "2026-12-06",
-      "id": "799bfa79-c0cf-46d6-8f85-195ec23eabef",
-      "status": "final",
-      "symptoms": [],
-      "vitals": {
-        "diastolic_bp": 82,
-        "heart_rate": 74,
-        "systolic_bp": 138,
-        "temperature_c": 36.6,
-        "weight_kg": 72.9
-      }
-    },
-    {
-      "chief_complaint": "Swelling of both feet",
-      "diagnoses": [],
-      "encounter_date": "2026-08-06T04:30:00Z",
-      "encounter_type": "follow_up",
-      "follow_up_date": "2026-10-05",
-      "id": "6a27c390-b2cc-4399-896c-59424a7825fa",
-      "status": "final",
-      "symptoms": [],
-      "vitals": {
-        "diastolic_bp": 90,
-        "heart_rate": 78,
-        "systolic_bp": 150,
-        "temperature_c": null,
-        "weight_kg": 74.2
-      }
-    },
-    {
-      "chief_complaint": "Routine kidney review",
-      "diagnoses": [],
-      "encounter_date": "2026-04-28T04:30:00Z",
+      "encounter_date": "2026-11-13T22:16:00Z",
       "encounter_type": "follow_up",
       "follow_up_date": null,
-      "id": "5c1d47af-a1ec-4fc4-9d24-a35d02ccc134",
+      "id": "47d85bfa-b603-4e91-bd0e-03275925913a",
       "status": "final",
       "symptoms": [],
-      "vitals": {
-        "diastolic_bp": 86,
-        "heart_rate": 76,
-        "systolic_bp": 142,
-        "temperature_c": null,
-        "weight_kg": null
-      }
+      "vitals": null
+    },
+    {
+      "chief_complaint": "dbg",
+      "diagnoses": [
+        {
+          "description": "Dbg anemia x1",
+          "icd10_code": "D63.1"
+        }
+      ],
+      "encounter_date": "2026-11-13T22:10:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "1cbb5ae8-2b9d-4011-a8e0-e7b18fe41550",
+      "status": "final",
+      "symptoms": [],
+      "vitals": null
+    },
+    {
+      "chief_complaint": "E2E follow-up 220942",
+      "diagnoses": [
+        {
+          "description": "Anemia in chronic kidney disease 220942",
+          "icd10_code": "D63.1"
+        }
+      ],
+      "encounter_date": "2026-11-13T22:09:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "6afdb5e2-f30e-41fd-9ee4-cb6b0a21bab1",
+      "status": "final",
+      "symptoms": [],
+      "vitals": null
+    },
+    {
+      "chief_complaint": "E2E follow-up 220849",
+      "diagnoses": [
+        {
+          "description": "Anemia in chronic kidney disease",
+          "icd10_code": "D63.1"
+        }
+      ],
+      "encounter_date": "2026-11-13T22:08:00Z",
+      "encounter_type": "follow_up",
+      "follow_up_date": null,
+      "id": "6972309e-8c9a-40fe-a2d7-71e26e398eb3",
+      "status": "final",
+      "symptoms": [],
+      "vitals": null
     }
   ],
   "truncated": false
