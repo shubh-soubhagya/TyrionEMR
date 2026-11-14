@@ -120,6 +120,7 @@ class LatestOut(BaseModel):
     first_result_at: datetime | None
     egfr_lt60_run: Lt60Run | None
     status_version: int                # 0 when the patient has no results
+    result_count: int                  # current results (superseded rows excluded); 0 when the patient has no results
 
 
 # ---- batch summary (B7.6) ------------------------------------------------------------------------

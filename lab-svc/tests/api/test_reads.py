@@ -1,13 +1,17 @@
 """Phase 8: results history, trends, latest and batch summary (LLD B6.4-B6.7, B7.3-B7.6, B13.2)."""
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import httpx
+import jsonschema
 import pytest
 
 pytestmark = pytest.mark.api
+CONTRACTS = Path(__file__).resolve().parents[2] / "contracts" / "lab"
 BASE = datetime(2026, 1, 1, 9, 0, tzinfo=UTC)
 UNITS = {"CREAT": "mg/dL", "EGFR": "mL/min/1.73m²", "K": "mmol/L", "UACR": "mg/g", "HB": "g/dL", "BUN": "mg/dL"}
 
@@ -247,6 +251,27 @@ async def test_latest_etag_and_304(api, patients) -> None:
     await add(api, pid, 5, K=4.1)                                            # the status moves on
     changed = await api.get(f"/labs/patients/{pid}/latest", headers={"If-None-Match": etag})
     assert changed.status_code == 200 and changed.headers["etag"] == 'W/"status-2"'
+
+
+async def test_latest_result_count_counts_current_results_only(api, patients) -> None:
+    pid = patients.add()
+    schema = json.loads((CONTRACTS / "latest.schema.json").read_text(encoding="utf-8"))
+
+    async def latest() -> dict:
+        resp = await api.get(f"/labs/patients/{pid}/latest")
+        jsonschema.validate(resp.json(), schema)
+        return resp.json()
+
+    assert (await latest())["result_count"] == 0
+    report = await add(api, pid, 0, K=4.0, HB=12.0, BUN=20)
+    assert (await latest())["result_count"] == 3
+    k_id = next(r["id"] for r in report["results"] if r["test_code"] == "K")
+    assert (await correct(api, k_id, 4.2)).status_code in (200, 201)
+    assert (await latest())["result_count"] == 3                       # a correction supersedes, it does not add
+    await add(api, pid, 5, K=4.4, HB=12.5)
+    assert (await latest())["result_count"] == 5
+    mirror = (await api.get(f"/internal/labs/patients/{pid}/latest")).json()
+    assert mirror["result_count"] == 5
 
 
 # ---- summary (B7.6) -------------------------------------------------------------------------------------

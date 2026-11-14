@@ -151,7 +151,8 @@ class ReadService:
                          rapid_decline=bool(st and st.rapid_decline), last_result_at=st.last_result_at if st else None,
                          first_result_at=st.first_result_at if st else None,
                          egfr_lt60_run=_run(st.egfr_lt60_run) if st else None,
-                         status_version=st.version if st else 0)
+                         status_version=st.version if st else 0,
+                         result_count=st.result_count if st else 0)
 
     # ---- B6.7 batch summary ---------------------------------------------------------------------------
     async def summary(self, ids: Sequence[uuid.UUID], user: User) -> SummaryOut:

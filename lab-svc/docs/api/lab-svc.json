@@ -723,6 +723,10 @@
             "title": "Rapid Decline",
             "type": "boolean"
           },
+          "result_count": {
+            "title": "Result Count",
+            "type": "integer"
+          },
           "status_version": {
             "title": "Status Version",
             "type": "integer"
@@ -744,7 +748,8 @@
           "last_result_at",
           "first_result_at",
           "egfr_lt60_run",
-          "status_version"
+          "status_version",
+          "result_count"
         ],
         "title": "LatestOut",
         "type": "object"
