@@ -1,33 +1,119 @@
 # gateway
 
-The custom API gateway of the NephroCare EMR: the only component with a published port. Design:
-[docs/gateway-HLD-LLD.md](docs/gateway-HLD-LLD.md). Build plan: [PHASES.md](docs/PHASES.md).
+The single entry point of the NephroCare EMR and the only component with a published port. The gateway checks every request
+before it reaches a service: it refuses unsafe paths, applies rate limits, verifies the access token, enforces size limits,
+and forwards the call to the owning service with a request id. It has no business logic and no database.
 
-Self-contained like `auth-svc/` and `patient-svc/`: own `app/core`, no shared library.
+It owns: CORS, path safety, rate limiting, token verification at the edge, routing by prefix, request ids, header filtering,
+the mapping of upstream failures to the error envelope, the development Swagger page.
+It does not own: any data, any clinical rule, or token issue (auth-svc).
 
-## Network and ports
+## Endpoints
 
-- Docker network `nephro-net` (external). Postgres alias `postgres` (the gateway has no database).
-- Containers `auth-svc` and `patient-svc` listen on 8000 and publish nothing. Only the gateway publishes
-  `${GATEWAY_PORT:-8080}`.
-- Host-run ports: auth-svc 8001, patient-svc 8002, lab-svc 8003, ai-svc 8004, gateway 8080.
-- LLD R10 (standardise on `nephro-net` / alias `postgres`) is already satisfied: auth-svc and patient-svc
-  both use them.
-- All four upstream URLs are set in `.env.example` and `docker-compose.yml` (`http://<svc>:8000`). A prefix whose URL
-  is empty still answers `503 UPSTREAM_NOT_DEPLOYED`; the `Settings` defaults are empty.
+Gateway-owned routes. Every `/api/**` route belongs to a service: [docs/API.md](../docs/API.md).
 
-## Development
+| Method | Path | Purpose |
+|---|---|---|
+| any | `/api/**` | Routed by the first segment after `/api` (table below). `/api/internal/**` is never routed and answers `404` |
+| GET | `/health` | Liveness, always `200` while the process runs |
+| GET | `/ready` | Readiness: the upstreams named in `READY_REQUIRES` (default `auth`) are healthy (`503 NOT_READY` otherwise) |
+| GET | `/metrics` | Prometheus metrics; protected by `METRICS_TOKEN` in production |
+| GET | `/docs`, `/docs/{upstream}/openapi.json` | Aggregated Swagger UI, development only (`DOCS_ENABLED`) |
 
-```
-make install   # venv + dev dependencies (host Python 3.12)
-make test      # in-process tests, no Docker, no network
-make lint      # ruff + mypy
+### Route table
+
+The table is code (`app/routing/table.py`), reviewed like a contract. Only URLs and timeouts are configurable.
+
+| Prefix | Service | Timeout | Body limit | Notes |
+|---|---|---|---|---|
+| `/api/auth` | auth-svc | 5 s | 16 KiB | Forwards the refresh cookie and passes `Set-Cookie` back |
+| `/api/patients` | patient-svc | 5 s | 1 MiB | |
+| `/api/encounters` | patient-svc | 5 s | 1 MiB | |
+| `/api/labs` | lab-svc | 5 s | 1 MiB | |
+| `/api/ai` | ai-svc | 5 s | 1 MiB | `X-Mock-Scenario` forwarded outside production (D17) |
+| `/api/insights` | ai-svc | 10 s | 1 MiB | |
+
+Public routes (no token): `POST /api/auth/login`, `signup`, `refresh` and `logout`, matched on the exact path (no trailing
+slash). Everything else needs a bearer token.
+
+### Request pipeline
+
+`app/services/pipeline.py` defines the order in one method; cheap rejections come first and the network call last.
+
+1. URL length (24,576 bytes at most, else `414`).
+2. Path safety: encoded dots, slashes, backslashes and NUL are refused, not normalised (`400 INVALID_PATH`).
+3. Resolve the route by prefix (unknown prefix and `/api/internal/**` give `404`).
+4. Check the upstream is configured (`503 UPSTREAM_NOT_DEPLOYED` otherwise).
+5. Per-IP rate limits.
+6. Public route? Skip steps 7 and 8.
+7. Verify the RS256 token against the cached JWKS.
+8. Per-user rate limits.
+9. Read the body within the limit (`413` before reading when `Content-Length` is too large; chunked bodies are counted).
+10. Forward with an allow-listed set of headers, `X-Request-ID` and the client IP, and map the answer back.
+
+Rate-limit policies and numbers: [docs/API.md](../docs/API.md#conventions). CORS allows the origins in
+`CORS_ALLOWED_ORIGINS` (default `http://localhost:4200`).
+
+## Data
+
+None. The gateway keeps no database. Rate-limit buckets live in memory (per process, at most 100,000 keys).
+
+## Dependencies
+
+| Dependency | Used for | If it fails |
+|---|---|---|
+| auth-svc `/.well-known/jwks.json` | Token verification (`app/services/jwks_cache.py`: 5 min cache, refetch on an unknown key id at most every 30 s, up to 24 h stale) | Cached keys keep working; unknown key ids fail until it returns |
+| auth-svc, patient-svc, lab-svc, ai-svc | Forwarding. Connect timeout 1 s, per-route read timeouts above | `502 UPSTREAM_UNAVAILABLE`, `504 UPSTREAM_TIMEOUT`, or the upstream's own 5xx as `UPSTREAM_ERROR` (D5). A background probe records upstream health for `/ready` |
+
+## Run
+
+As part of the stack: see the root [README](../README.md#quick-start). Alone, for development (Python 3.12):
+
+```bash
+make install   # venv and dev dependencies
+make test      # in-process tests, no Docker and no network
+make lint      # ruff and mypy
 make up        # setup/network.sh, then build and start the container on nephro-net (publishes :8080)
-make smoke     # end-to-end check of the running gateway against the real services (setup/smoke-test.sh)
+make smoke     # end-to-end check against the running services (setup/smoke-test.sh, 19 checks)
 make down logs build
 ```
 
+Network: Docker network `nephro-net` (external). Containers listen on 8000 and publish nothing; only the gateway publishes
+`${GATEWAY_PORT:-8080}`. Host-run ports: auth-svc 8001, patient-svc 8002, lab-svc 8003, ai-svc 8004, gateway 8080. The four
+upstream URLs are set in `.env.example` and `docker-compose.yml` (`http://<service>:8000`); a prefix whose URL is empty
+answers `503 UPSTREAM_NOT_DEPLOYED`.
+
+## Configuration
+
+Service-specific settings. The full list is in [.env.example](.env.example); defaults are in `app/core/config.py`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AUTH_SVC_URL`, `PATIENT_SVC_URL`, `LAB_SVC_URL`, `AI_SVC_URL` | `http://<service>:8000` in compose | Upstream base URLs |
+| `ENVIRONMENT` | `development` | `production` turns on the startup guard (D3) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Allowed browser origins; `*` is refused |
+| `UPSTREAM_CONNECT_TIMEOUT_S` / `UPSTREAM_DEFAULT_TIMEOUT_S` / `INSIGHTS_TIMEOUT_S` | `1` / `5` / `10` | Upstream timeouts |
+| `MAX_BODY_BYTES` / `MAX_AUTH_BODY_BYTES` / `MAX_URL_BYTES` | `1048576` / `16384` / `24576` | Size limits |
+| `RL_*` | see [API.md](../docs/API.md#conventions) | Rate-limit rates and bursts per policy |
+| `DOCS_ENABLED` | `false` (`true` in compose) | Serve the aggregated Swagger UI |
+| `METRICS_ENABLED`, `METRICS_TOKEN` | | `/metrics`; production needs the token |
+
+## Tests
+
+```bash
+make test       # in-process, no Docker; upstreams are faked
+make lint
+make smoke      # the running stack
+```
+
+Last recorded full run: 457 passed; the smoke test passes 19 of 19. The tests cover path safety, route resolution, header
+handling, the auth gate, rate limits, CORS, URL pass-through byte for byte, error mapping, the production guard and
+log redaction.
+
 ## Design and deviations
+
+Design: [docs/gateway-HLD-LLD.md](docs/gateway-HLD-LLD.md). Build plan (kept as a record): [docs/PHASES.md](docs/PHASES.md).
+The row numbers skip D7 and D8, which were never used.
 
 | # | Design | Here | Why |
 |---|---|---|---|
@@ -48,12 +134,10 @@ make down logs build
 | D17 | LLD §8.3: the request-header allow-list has no `X-Mock-Scenario` | `x-mock-scenario` is forwarded **only** when `ENVIRONMENT` is not `production` **and** the route's upstream is `ai`; elsewhere it is dropped like any unknown header. CORS lists `X-Mock-Scenario` in `Access-Control-Allow-Headers` only outside production | The AI tab's demo options (ai-svc LLD B7.5, `LLM_PROVIDER=mock`, `APP_ENV=dev`) could never reach ai-svc. Tests: `tests/api/test_mock_scenario.py` |
 | D18 | LLD §29: compose for the gateway only | `docker-compose.yml` sets `AUTH_SVC_URL`, `PATIENT_SVC_URL`, `LAB_SVC_URL`, `AI_SVC_URL` to `http://<svc>:8000`, `DOCS_ENABLED: "true"`, container name `gateway`, `read_only`, 256 MiB, `stop_grace_period: 15s`; `.env` is optional (`required: false`) | Every value has a default, so a fresh checkout starts; the repo-root compose includes this file |
 
-## Status and open items
+## Known limitations
 
-- Image built and running on `nephro-net` (`make up`, healthy, no `.env` needed); `make test` 457 passed, `make lint` clean.
-- `make smoke` (19 checks) first ran against the running auth-svc and lab-svc only: the auth, CORS, routing and path-safety
-  checks passed. patient-svc and ai-svc were not running, so those two 200 checks returned 502 as they should. The full
-  PASS run against all four services is recorded by the repo-root `make smoke` (phase A5).
-- Observed on a busy Docker Desktop host: DNS lookups inside the container occasionally take a few hundred ms and, with
-  `UPSTREAM_CONNECT_TIMEOUT_S=1`, an occasional first request answers `502 UPSTREAM_UNAVAILABLE`. Raise the timeout in `.env` if
-  it shows up on your machine; the default follows the LLD.
+- Rate limits are in memory and per process; several gateway replicas would each keep their own buckets.
+- The image installs from `pyproject.toml` without hash locking, by decision (D1).
+- No CI workflow for the gateway; only auth-svc has one.
+- On a busy Docker Desktop host, a first request can occasionally answer `502 UPSTREAM_UNAVAILABLE` because DNS lookups
+  exceed the 1 s connect timeout. Raise `UPSTREAM_CONNECT_TIMEOUT_S` in `.env` if it shows up.
