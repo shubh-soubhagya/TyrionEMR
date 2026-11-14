@@ -68,6 +68,11 @@ On Windows, if `make --version` says "command not found", install it once with `
 
 Do not install Node or Angular: the website runs inside Docker.
 
+**Windows: use Git Bash for every command in this guide, not PowerShell or Command Prompt.** The commands are bash, and PowerShell
+rejects them (for example the `for ... do` line in step 3). To open Git Bash from PowerShell, run
+`& "C:\Program Files\Git\bin\bash.exe" -l`, or search for "Git Bash" in the Start menu. Then `cd` into the folder, for example
+`cd /c/Users/you/Desktop/TyrionEMR`.
+
 ### Step 2: get the code and open a terminal in it
 
 ```bash
