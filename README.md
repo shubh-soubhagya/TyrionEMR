@@ -56,6 +56,32 @@ Prerequisites: Docker with Compose v2.20 or later (`include:` is used), GNU make
 running Postgres container named `graphgpt-postgres` (the shared server; host port 5433). Python 3.12 is needed only to run
 the backend test suites on the host. The frontend runs in Docker only: never run node, npm or ng on the host.
 
+### Step 0: create the Postgres container (skip if you already have `graphgpt-postgres`)
+
+The services keep their data in one PostgreSQL server that runs as a Docker container. The name must be exactly
+`graphgpt-postgres`, because the Makefiles look for it.
+
+```bash
+docker run -d --name graphgpt-postgres   -e POSTGRES_PASSWORD=choose-a-superuser-password   -p 5433:5432   -v nephro-pgdata:/var/lib/postgresql/data   postgres:17
+docker exec graphgpt-postgres pg_isready      # repeat until it prints "accepting connections"
+```
+
+| Part | Meaning |
+|---|---|
+| `--name graphgpt-postgres` | The container name the Makefiles expect |
+| `-e POSTGRES_PASSWORD=...` | The password of the built-in `postgres` superuser; pick your own |
+| `-p 5433:5432` | Publishes Postgres on port 5433 of your machine (the `.env` files use 5433) |
+| `-v nephro-pgdata:...` | A named volume, so the data survives a restart or removal of the container |
+
+To use another container name, run the make targets with `PG_CONTAINER=your-name` and attach that container to
+`nephro-net` with the alias `postgres`. Start it again later with `docker start graphgpt-postgres`.
+
+### Step 1: set up and start
+
+The `cp` lines create the settings files; skip them if the `.env` files already exist. The database passwords you put in each
+service's `.env` are the ones `make init-dbs` gives the new database roles, so they must match the passwords inside that
+service's connection URLs.
+
 ```bash
 cp .env.example .env                  # then replace the change-me passwords; each service has its own .env.example
 for s in auth-svc patient-svc lab-svc ai-svc; do cp $s/.env.example $s/.env; done   # fill in the DB passwords
