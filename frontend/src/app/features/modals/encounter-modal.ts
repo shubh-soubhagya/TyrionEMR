@@ -30,6 +30,7 @@ import { PatientsApi } from '@core/data/patients.api';
 import { fmtDate, fmtDT, localInput } from '@core/format';
 import { ModalService } from '@core/ui/modal.service';
 import { EmrIcon } from '@shared/ui/icon/icon';
+import { EmrNonNegative } from '@shared/ui/number-keys/number-keys';
 import { EmrModalShell } from '@shared/ui/modal-shell/modal-shell';
 import { EmrRemoteState } from '@shared/ui/remote-state/remote-state';
 import { ToastService } from '@shared/ui/toast/toast.service';
@@ -51,11 +52,11 @@ const VIT: readonly {
   max: number;
   step: string;
 }[] = [
-  { key: 'sys', label: 'Systolic BP', unit: 'mmHg', min: 60, max: 260, step: 'any' },
-  { key: 'dia', label: 'Diastolic BP', unit: 'mmHg', min: 30, max: 160, step: 'any' },
-  { key: 'hr', label: 'Heart rate', unit: 'bpm', min: 30, max: 220, step: 'any' },
+  { key: 'sys', label: 'Systolic BP', unit: 'mmHg', min: 60, max: 260, step: '1' },
+  { key: 'dia', label: 'Diastolic BP', unit: 'mmHg', min: 30, max: 160, step: '1' },
+  { key: 'hr', label: 'Heart rate', unit: 'bpm', min: 30, max: 220, step: '1' },
   { key: 'temp', label: 'Temperature', unit: '°C', min: 34, max: 42, step: '0.1' },
-  { key: 'wt', label: 'Weight', unit: 'kg', min: 2, max: 300, step: 'any' },
+  { key: 'wt', label: 'Weight', unit: 'kg', min: 2, max: 300, step: '0.1' },
 ];
 const SYMPTOM_SUGGESTIONS = [
   'Fatigue',
@@ -215,7 +216,7 @@ export class EncounterViewModal {
 
 @Component({
   selector: 'emr-encounter-modal',
-  imports: [ReactiveFormsModule, EmrModalShell, EmrIcon],
+  imports: [ReactiveFormsModule, EmrModalShell, EmrIcon, EmrNonNegative],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './encounter-modal.html',
 })

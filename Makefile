@@ -6,7 +6,18 @@ SERVICES := auth-svc patient-svc lab-svc ai-svc gateway
 # one-off container of a service on nephro-net, entrypoint replaced (no dependencies started)
 RUN = MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --entrypoint
 
-.PHONY: network init-dbs keys migrate seed up rebuild web start down logs ps smoke test docs docs-check schema-dump
+.PHONY: network init-dbs keys migrate seed up rebuild restart web start down logs ps smoke test docs docs-check schema-dump
+
+# `up`, `rebuild`, `restart` and `logs` accept service names, so one service can be handled alone:
+#   make rebuild                      every service         make rebuild ai-svc patient-svc   only those two
+#   make logs ai-svc                  one service's logs    make restart gateway
+# Services: auth-svc patient-svc lab-svc ai-svc gateway. Make would treat the extra words as targets, so they are turned into
+# do-nothing targets here and handed to docker compose through SVC.
+ifneq ($(filter $(firstword $(MAKECMDGOALS)),up rebuild restart logs),)
+SVC := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: $(SVC)
+$(eval $(SVC):;@:)
+endif
 
 # 1. The external network every container shares, with the shared Postgres attached under the alias "postgres".
 #    Idempotent: creates the network only if missing, attaches the container only if it is not attached.
@@ -50,7 +61,7 @@ seed:
 # Starts the backend (gateway, auth, patient, lab, AI). Docker builds an image only when it does not exist yet, so a second
 # `make up` is fast and rebuilds nothing. It then waits until every container is healthy and prints the URLs.
 up: network
-	docker compose up -d
+	docker compose up -d $(SVC)
 	@make --no-print-directory ps
 	@echo ""
 	@echo "Backend is running."
@@ -59,8 +70,14 @@ up: network
 	@echo "Next: make seed (first time only), then make web to start the website."
 
 # After changing code, rebuild the images and restart the changed services, then wait until healthy.
+# `make rebuild` rebuilds all of them; `make rebuild ai-svc` or `make rebuild ai-svc patient-svc` rebuilds only those.
 rebuild: network
-	docker compose up --build -d
+	docker compose up --build -d $(SVC)
+	@make --no-print-directory ps
+
+# Restarts containers without rebuilding (for example after a settings change that needs no new image).
+restart:
+	docker compose restart $(SVC)
 	@make --no-print-directory ps
 
 # Starts the website (the Angular dev server in frontend/). The first compile takes up to a minute or two; this waits
@@ -83,7 +100,7 @@ down:
 	docker compose down
 	cd frontend && docker compose stop web
 logs:
-	docker compose logs -f --tail=100
+	docker compose logs -f --tail=100 $(SVC)
 
 # Waits until every backend container is healthy (up to 3 minutes), then shows only the image and its health.
 ps:

@@ -6,6 +6,7 @@ import { describeError, type ErrorView } from '@core/api/error-messages';
 import { AuthService } from '@core/auth/auth.service';
 import { safeReturnUrl } from '@core/auth/auth.guard';
 import { ToastService } from '@shared/ui/toast/toast.service';
+import { EmrPasswordField } from '@shared/ui/password-field/password-field';
 import { EmrIcon } from '@shared/ui/icon/icon';
 import { environment } from '@env/environment';
 import { AuthArt } from './auth-art';
@@ -13,7 +14,7 @@ import { AuthArt } from './auth-art';
 /** Sign-in (reference html:713-750). The demo accounts box is shown only outside production builds. */
 @Component({
   selector: 'emr-login-page',
-  imports: [ReactiveFormsModule, RouterLink, AuthArt, EmrIcon],
+  imports: [ReactiveFormsModule, RouterLink, AuthArt, EmrIcon, EmrPasswordField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="auth">
@@ -60,12 +61,14 @@ import { AuthArt } from './auth-art';
             </label>
             <label class="fld"
               ><span class="fld-l">Password</span>
-              <input
-                formControlName="password"
-                type="password"
-                autocomplete="current-password"
-                [class.invalid]="shown('password')"
-              />
+              <emr-password-field>
+                <input
+                  formControlName="password"
+                  type="password"
+                  autocomplete="current-password"
+                  [class.invalid]="shown('password')"
+                />
+              </emr-password-field>
               <span class="err">{{ shown('password') ? 'Enter your password.' : '' }}</span>
             </label>
             <button

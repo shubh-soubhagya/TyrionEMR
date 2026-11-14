@@ -34,6 +34,7 @@ import { localInput } from '@core/format';
 import { ModalService } from '@core/ui/modal.service';
 import { EmrIcon } from '@shared/ui/icon/icon';
 import { EmrLabFlag } from '@shared/ui/lab-flag/lab-flag';
+import { EmrNonNegative } from '@shared/ui/number-keys/number-keys';
 import { EmrModalShell } from '@shared/ui/modal-shell/modal-shell';
 import { EmrRemoteState } from '@shared/ui/remote-state/remote-state';
 import { ToastService } from '@shared/ui/toast/toast.service';
@@ -55,7 +56,14 @@ const NONE: FormProblem = { errors: {}, general: '', requestId: null, code: null
 
 @Component({
   selector: 'emr-lab-modal',
-  imports: [ReactiveFormsModule, EmrModalShell, EmrIcon, EmrLabFlag, EmrRemoteState],
+  imports: [
+    ReactiveFormsModule,
+    EmrModalShell,
+    EmrIcon,
+    EmrLabFlag,
+    EmrRemoteState,
+    EmrNonNegative,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lab-modal.html',
 })

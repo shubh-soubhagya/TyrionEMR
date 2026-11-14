@@ -11,6 +11,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ApiError } from '@core/api/api-error';
 import { describeError, type ErrorView } from '@core/api/error-messages';
 import { AuthService } from '@core/auth/auth.service';
+import { EmrPasswordField } from '@shared/ui/password-field/password-field';
 import { EmrIcon } from '@shared/ui/icon/icon';
 import { ToastService } from '@shared/ui/toast/toast.service';
 import {
@@ -30,7 +31,7 @@ const sameAsPassword = (c: AbstractControl): ValidationErrors | null => {
 /** Create account (reference html:713-750). New accounts are clinicians; the server decides everything else. */
 @Component({
   selector: 'emr-signup-page',
-  imports: [ReactiveFormsModule, RouterLink, AuthArt, EmrIcon],
+  imports: [ReactiveFormsModule, RouterLink, AuthArt, EmrIcon, EmrPasswordField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="auth">
@@ -85,30 +86,36 @@ const sameAsPassword = (c: AbstractControl): ValidationErrors | null => {
             </label>
             <label class="fld"
               ><span class="fld-l">Password</span>
-              <input
-                formControlName="password"
-                type="password"
-                autocomplete="new-password"
-                [class.invalid]="show('password')"
-                aria-describedby="pw-rules"
-              />
+              <emr-password-field>
+                <input
+                  formControlName="password"
+                  type="password"
+                  autocomplete="new-password"
+                  [class.invalid]="show('password')"
+                  aria-describedby="pw-rules"
+                />
+              </emr-password-field>
               <span class="err">{{
                 show('password') ? 'Password does not meet the rules below.' : ''
               }}</span>
             </label>
             <div class="pw-rules" id="pw-rules">
               @for (r of rules(); track r.line) {
-                <span [class.ok]="r.ok">{{ r.ok ? '✓ ' : '' }}{{ r.text }}</span>
+                <span [class.ok]="r.ok" [class.bad]="!r.ok && show('password')"
+                  >{{ r.ok ? '✓ ' : show('password') ? '✗ ' : '' }}{{ r.text }}</span
+                >
               }
             </div>
             <label class="fld"
               ><span class="fld-l">Confirm password</span>
-              <input
-                formControlName="confirm"
-                type="password"
-                autocomplete="new-password"
-                [class.invalid]="show('confirm')"
-              />
+              <emr-password-field>
+                <input
+                  formControlName="confirm"
+                  type="password"
+                  autocomplete="new-password"
+                  [class.invalid]="show('confirm')"
+                />
+              </emr-password-field>
               <span class="err">{{ show('confirm') ? 'Passwords do not match.' : '' }}</span>
             </label>
             <button

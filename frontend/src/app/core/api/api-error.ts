@@ -1,3 +1,4 @@
+import { friendlyIssue } from './issue-text';
 import { HttpErrorResponse } from '@angular/common/http';
 
 /** One entry of the envelope's `details` array (field-level validation problems and similar). */
@@ -31,7 +32,7 @@ export class ApiError extends Error {
     const out = new Map<string, string>();
     for (const d of this.details) {
       if (typeof d.field === 'string' && !out.has(d.field)) {
-        out.set(d.field, d.issue ?? this.message);
+        out.set(d.field, friendlyIssue(d.field, d.issue ?? this.message));
       }
     }
     return out;

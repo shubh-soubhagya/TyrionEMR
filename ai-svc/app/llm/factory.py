@@ -1,12 +1,15 @@
 """Builds the provider from settings (LLD B7.2). Groq is the real provider for now; the others are not built."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from app.core.config import Settings
 from app.llm.base import LLMProvider
 from app.llm.mock import MockProvider
 from app.llm.resilience import ResilienceConfig, ResilientLLM
+
+log = logging.getLogger("ai.llm")
 
 
 def read_api_key(s: Settings) -> str | None:
@@ -23,8 +26,15 @@ def build_provider(s: Settings) -> LLMProvider:
     if s.llm_provider == "mock":
         return MockProvider(s.llm_model if s.llm_model != "openai/gpt-oss-20b" else "mock-1", s.llm_mock_scenario)
     if s.llm_provider == "groq":
+        key = read_api_key(s)
+        if key is None and s.app_env != "production":
+            # Groq is the default provider, but a fresh checkout has no key. Outside production the service then runs
+            # on the deterministic mock so every feature works; the summary says which provider wrote it ("mock"), so
+            # this is never presented as a real model. Production keeps Groq and fails visibly without a key.
+            log.warning("llm.no_api_key_using_mock")
+            return MockProvider(s.llm_model if s.llm_model != "openai/gpt-oss-20b" else "mock-1", s.llm_mock_scenario)
         from app.llm.groq import GroqProvider  # imported lazily: the mock must run without an API key
-        return GroqProvider(s, read_api_key(s))
+        return GroqProvider(s, key)
     raise ValueError(f"unsupported LLM_PROVIDER {s.llm_provider!r}")
 
 

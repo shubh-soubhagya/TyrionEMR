@@ -80,6 +80,9 @@
           >
           <input
             type="number"
+            emrNonNegative
+            [attr.min]="x.min"
+            [attr.max]="x.max"
             [attr.step]="x.step"
             [formControlName]="x.key"
             [class.invalid]="errors()[x.key]"

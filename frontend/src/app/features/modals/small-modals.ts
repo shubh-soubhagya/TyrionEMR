@@ -9,6 +9,8 @@ import { ModalService } from '@core/ui/modal.service';
 import { EmrModalShell } from '@shared/ui/modal-shell/modal-shell';
 import { ToastService } from '@shared/ui/toast/toast.service';
 
+// ICD-10 as the server checks it: a letter, two characters, then an optional dot and one to four characters
+const ICD10 = /^[A-Za-z][0-9][0-9A-Za-z](\.[0-9A-Za-z]{1,4})?$/;
 const NONE: FormProblem = { errors: {}, general: '', requestId: null, code: null, conflict: false };
 
 @Component({
@@ -102,6 +104,9 @@ export class ConditionModal {
     const v = this.form.getRawValue();
     const errors: Record<string, string> = {};
     if (!v.desc.trim()) errors['desc'] = 'Description is required.';
+    // same shape the server checks (ICD-10: a letter, two characters, then an optional dot and 1 to 4 characters)
+    if (v.icd.trim() && !ICD10.test(v.icd.trim()))
+      errors['icd'] = 'Enter a valid ICD-10 code, for example N18.3 or E11.22.';
     if (v.onset && new Date(v.onset) > new Date())
       errors['onset'] = 'Onset cannot be in the future.';
     const n = Object.keys(errors).length;
@@ -116,7 +121,7 @@ export class ConditionModal {
       .addCondition(this.patientId(), {
         description: v.desc.trim(),
         category: v.cat,
-        ...(v.icd.trim() ? { icd10_code: v.icd.trim() } : {}),
+        ...(v.icd.trim() ? { icd10_code: v.icd.trim().toUpperCase() } : {}),
         ...(v.onset ? { onset_date: v.onset } : {}),
         is_primary: v.primary,
       })

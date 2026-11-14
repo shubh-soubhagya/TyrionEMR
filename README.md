@@ -191,6 +191,23 @@ docker stop graphgpt-postgres      # stops the database; your data is kept
 Next time: `docker start graphgpt-postgres`, then `make start`. You do not need
 steps 3 to 5, `make keys`, `make migrate` or `make seed` again. Other commands: `make logs` shows the backend logs, `make down` stops the backend and the website, `make test` runs the backend tests (needs Python 3.12).
 
+### Everyday commands
+
+| Command | What it does |
+|---|---|
+| `make start` | Starts the backend and the website, waits until ready, prints the addresses |
+| `make up` / `make web` | Starts only the backend / only the website |
+| `make ps` | Waits until all backend containers are healthy, then shows each image and its health |
+| `make rebuild` | Rebuilds every backend image after a code change and restarts them |
+| `make rebuild ai-svc` | Rebuilds only one service. Several work too: `make rebuild ai-svc patient-svc` |
+| `make restart gateway` | Restarts one service without rebuilding (omit the name to restart all) |
+| `make logs` / `make logs ai-svc` | Follows the logs of all backend services / of one |
+| `make down` | Stops the backend and the website |
+
+Service names: `auth-svc`, `patient-svc`, `lab-svc`, `ai-svc`, `gateway`. Frontend changes need no command: the website
+recompiles when you save a file. A changed `.env` file needs `make up` (it recreates the affected containers). Changed
+backend code needs `make rebuild`, because the services run from images that contain a copy of the code.
+
 ### A five-minute demo path
 
 | To see | Do this |
