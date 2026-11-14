@@ -94,8 +94,8 @@
                 ariaCurrentWhenActive="page"
               >
                 <emr-icon [name]="t.icon" [size]="16" />{{ t.label }}
-                @if (t.count; as c) {
-                  <span class="ct">{{ p.counts[c] }}</span>
+                @if (tabCount(t, p, store.latest()); as c) {
+                  <span class="ct">{{ c.n }}</span>
                 }
               </a>
             }

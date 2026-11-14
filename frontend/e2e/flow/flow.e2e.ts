@@ -67,6 +67,10 @@ test('sign in to AI summary and back out, with the data written by the user', as
   // 5. lab report with creatinine in umol/L: the preview converts, the history shows how it was entered
   await page.getByRole('link', { name: /^Labs/ }).click();
   await expect(page.locator('.latest-grid .lt')).toHaveCount(8);
+  // the Labs tab pill is lab-svc's result_count; a report with two results raises it by 2 without a reload
+  const labsPill = page.getByRole('link', { name: /^Labs/ }).locator('.ct');
+  await expect(labsPill).toBeVisible();
+  const pillBefore = Number(await labsPill.innerText());
   await page.getByRole('button', { name: 'Add lab report' }).first().click();
   const rows = page.locator('.lab-row');
   await rows.nth(0).locator('select[aria-label=Unit]').selectOption({ label: 'µmol/L' });
@@ -77,6 +81,7 @@ test('sign in to AI summary and back out, with the data written by the user', as
   await expect(
     page.locator('.toast', { hasText: 'Lab report saved with 2 results' }),
   ).toBeVisible();
+  await expect(labsPill).toHaveText(String(pillBefore + 2));
   const history = page.locator('.panel', { hasText: 'Result history' });
   await expect(history.locator('tbody tr', { hasText: '170 µmol/L' }).first()).toBeVisible();
   await expect(page.locator('.latest-grid .lt').first()).toContainText('1.92');

@@ -5,6 +5,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ApiError } from '@core/api/api-error';
 import { describeError } from '@core/api/error-messages';
 import type { PatientDetailDto } from '@core/api/dto/patient.dto';
+import type { LatestDto } from '@core/api/dto/lab.dto';
+import type { Remote } from '@core/api/remote';
 import { egfrLabel } from '@core/clinical/lab-tests';
 import { fmtDate } from '@core/format';
 import { ModalService } from '@core/ui/modal.service';
@@ -16,17 +18,31 @@ import { EmrRemoteState } from '@shared/ui/remote-state/remote-state';
 import { sexLabel } from '@shared/utils/labels';
 import { PatientStore } from './patient-store';
 
+type TabCount = (d: PatientDetailDto, l: Remote<LatestDto>) => number | null;
+const fromDetail =
+  (k: keyof PatientDetailDto['counts']): TabCount =>
+  (d) =>
+    d.counts[k];
+// the Labs pill is the number of current results (html:845); it waits for lab-svc, so it never shows a wrong number
+const labsCount: TabCount = (_d, l) => (l.state === 'ok' ? l.data.result_count : null);
+
 const TABS: readonly {
   key: string;
   label: string;
   icon: IconName;
-  count?: keyof PatientDetailDto['counts'];
+  /** Count shown in the pill, from patient-svc (detail) or lab-svc (latest); null hides the pill. */
+  count?: TabCount;
 }[] = [
   { key: 'overview', label: 'Overview', icon: 'user' },
-  { key: 'conditions', label: 'Conditions', icon: 'clip', count: 'conditions' },
-  { key: 'meds', label: 'Medications and allergies', icon: 'pill', count: 'active_medications' },
-  { key: 'encounters', label: 'Encounters', icon: 'file', count: 'encounters' },
-  { key: 'labs', label: 'Labs', icon: 'flask' },
+  { key: 'conditions', label: 'Conditions', icon: 'clip', count: fromDetail('conditions') },
+  {
+    key: 'meds',
+    label: 'Medications and allergies',
+    icon: 'pill',
+    count: fromDetail('active_medications'),
+  },
+  { key: 'encounters', label: 'Encounters', icon: 'file', count: fromDetail('encounters') },
+  { key: 'labs', label: 'Labs', icon: 'flask', count: labsCount },
   { key: 'ai', label: 'AI summary', icon: 'spark' },
 ];
 
@@ -53,6 +69,15 @@ export class PatientShellPage {
   readonly id = input.required<string>();
 
   protected readonly tabs = TABS;
+  /** Wrapped in an object so a count of 0 is truthy in `@if` and still shows as 0. */
+  protected readonly tabCount = (
+    t: (typeof TABS)[number],
+    d: PatientDetailDto,
+    l: Remote<LatestDto>,
+  ) => {
+    const n = t.count?.(d, l) ?? null;
+    return n === null ? null : { n };
+  };
   protected readonly sexLabel = sexLabel;
   protected readonly fmtDate = fmtDate;
   protected readonly egfrLabel = egfrLabel;

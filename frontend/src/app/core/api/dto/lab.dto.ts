@@ -138,6 +138,8 @@ export interface LatestDto {
   readonly first_result_at: string | null;
   readonly egfr_lt60_run: { readonly since: string; readonly n: number } | null;
   readonly status_version: number;
+  /** Current results (superseded rows excluded), 0 when none. */
+  readonly result_count: number;
 }
 
 export interface SummaryItemDto {

@@ -67,6 +67,7 @@ Ten patients, `PT-000101` to `PT-000110`, with the clinician "Dr. Anita Rao" (th
 - [x] Symptom chips, diagnosis rows (live: diagnosis rows; symptom chips unchanged and unit-tested only through the form)
 - [x] Lab range, stage bands, test filter, abnormal-only, paging
 - [x] Live lab flag and unit conversion
+- [x] Labs tab count pill: `result_count` from lab-svc `GET /labs/patients/{id}/latest`; hidden while loading or on error (unit; live: the flow test checks it rises by 2 after a two-result report)
 - ❌ Chart tooltips: component unchanged, not re-checked after the data source changed
 - [x] AI generate, regenerate, open source chip, open earlier summary (live); cache hit and copy (unit only: the live regenerate sends force=true, which skips the cache)
 - [x] AI failure scenarios (invalid, timeout, rate limit, upstream)
@@ -132,4 +133,3 @@ Ten patients, `PT-000101` to `PT-000110`, with the clinician "Dr. Anita Rao" (th
 ## G. Not done, with reasons
 
 - ❌ Visual parity at 1440, 1024, 768 and 375 px against the reference HTML: the parity harness compares pixels, and the data now comes from the services' seeds, so every screen differs in text. Differences that are data are listed in `docs/ui-inventory.md` section 8; layout was not changed.
-- ❌ Labs tab count pill: lab-svc has no count of results in the patient header, so the pill is gone (decision recorded in ui-inventory section 8).
