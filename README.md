@@ -1,6 +1,6 @@
 # NephroCare EMR (TyrionEMR)
 
-A General Nephrology EMR built for the technical assignment in [reference/assignment.pdf](reference/assignment.pdf). A nephrologist
+A General Nephrology EMR. A nephrologist
 can manage patients, record outpatient encounters, enter laboratory results and watch kidney function over time (CKD
 category, creatinine and eGFR trends, rapid-decline detection), and can ask for an AI clinical summary that is always
 labelled as AI output and never written into the chart.
@@ -9,22 +9,17 @@ Four FastAPI services (auth, patient, lab, AI) sit behind a custom API gateway, 
 gateway. All data is synthetic: the ten demo patients, their MRNs and the two demo clinicians are invented, and no real
 person's data is in the repository, the fixtures or the screenshots.
 
-## For reviewers
+## Documentation
 
-The six submission items of assignment section 5, and where each one is:
-
-| Submission item | Where |
+| Topic | Where |
 |---|---|
-| 1. Complete source code in a Git repository | This repository. Layout: [Repository layout](#repository-layout) |
-| 2. README with setup and execution instructions | This file: [Quick start](#quick-start) |
-| 3. Database schema and synthetic patient data | [docs/DATABASE.md](docs/DATABASE.md): tables, relationships, the ten patients and what each demonstrates |
-| 4. API documentation or endpoint descriptions | [docs/API.md](docs/API.md), with one OpenAPI file per service |
-| 5. Architecture and AI integration | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| 6. Screenshots | [Screenshots](#screenshots) |
-
-Every requirement in the assignment, with where to see it, the endpoint, the code and the test:
-[docs/ASSIGNMENT-CHECKLIST.md](docs/ASSIGNMENT-CHECKLIST.md). How the repository is organised and how AI coding tools were
-used: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+| Run the system | [Quick start](#quick-start) below |
+| Architecture and AI integration | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| API reference | [docs/API.md](docs/API.md), with one OpenAPI file per service |
+| Database schema and synthetic data | [docs/DATABASE.md](docs/DATABASE.md) |
+| Repository conventions and how to extend it | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| The full design | [docs/HLD.md](docs/HLD.md) and `<service>/docs/<service>-HLD-LLD.md` |
+| Screenshots | [Screenshots](#screenshots) below |
 
 ## Technology
 
@@ -32,7 +27,7 @@ used: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 |---|---|
 | Frontend | Angular 22, TypeScript, HTML, SCSS; standalone components and signals; Vitest and Playwright |
 | Charts | Chart.js 4 for the laboratory trend charts |
-| Backend | Python 3.12, FastAPI, SQLAlchemy (async), Alembic: four services and a custom gateway. The assignment allows any backend; Python was chosen for fast typed development, automatic OpenAPI and async I/O for the slow LLM calls (HLD ADR-013) |
+| Backend | Python 3.12, FastAPI, SQLAlchemy (async), Alembic: four services and a custom gateway. Python was chosen for fast typed development, automatic OpenAPI and async I/O for the slow LLM calls (HLD ADR-013) |
 | Database | PostgreSQL, one database and role per service |
 | AI | A provider adapter with a deterministic mock (default, no key) and Groq (free tier, `openai/gpt-oss-20b`) |
 | Runtime | Docker and Docker Compose |
@@ -148,18 +143,18 @@ All AI screenshots used the mock provider. The end-to-end flow (sign in, dashboa
 | `auth-svc/`, `patient-svc/`, `lab-svc/`, `ai-svc/` | One self-contained FastAPI service each: `app/`, `migrations/`, `tests/`, `docs/`, Dockerfile, README |
 | `gateway/` | The custom API gateway |
 | `frontend/` | The Angular app, its Docker setup and its end-to-end tests |
-| `docs/` | The reviewer documents, the full design ([HLD.md](docs/HLD.md)) and the screenshots |
-| `reference/` | The assignment PDF and the HTML prototype used as the visual reference |
+| `docs/` | Architecture, API, database and development documents, the full design ([HLD.md](docs/HLD.md)) and the screenshots |
+| `reference/` | The HTML prototype used as the visual reference, and the original brief |
 | `scripts/docs/` | Documentation tooling: link checker and API index generator |
 | `docker-compose.yml`, `Makefile`, `.env.example` | The whole stack, the common targets and the shared settings |
 
 ## Known limitations
 
-- **Reference ranges** are common adult intervals taken from the prototype; no ranges file came with the assignment
+- **Reference ranges** are common adult intervals taken from the prototype; no ranges file was provided
   ([DATABASE.md](docs/DATABASE.md#reference-ranges)).
 - **Rate limiting** is in memory in the gateway and **AI jobs** run in process: correct for one instance, not for replicas
   ([ARCHITECTURE.md](docs/ARCHITECTURE.md#trade-offs-and-what-would-change-at-scale)).
-- **The gateway image** installs from `pyproject.toml` without hash locking, by decision ([gateway README](gateway/README.md#design-and-deviations), D1).
+- **Images install from `pyproject.toml`** without hash locking, by decision (all services; [gateway README](gateway/README.md#design-and-deviations), D1).
 - **CI** exists for auth-svc only.
 - **The patient list cannot sort by eGFR** by design (ADR-020).
 - **Visual parity** with the reference HTML cannot be pixel-exact because the screens show seed data from the services

@@ -1,7 +1,7 @@
 # Database schema and synthetic data
 
 Each service owns one PostgreSQL database. The source of truth for every schema is the service's `migrations/` folder
-(Alembic). This page describes the result so a reviewer does not have to read the migrations. It was written from the
+(Alembic). This page describes the result so that the migrations do not have to be read. It was written from the
 migration files and the SQLAlchemy models, not from a running database.
 
 `make schema-dump` writes a schema-only `pg_dump` of each database to `docs/db/<service>.sql` (a readable snapshot of the
@@ -403,6 +403,6 @@ same deterministic ids, so a reseed restores the links.
 | Which tests are sex-specific? | Creatinine and hemoglobin have separate male and female rows. The others have one row for all patients. The table also supports age bands |
 | How is a range chosen? | By test, then a sex-specific row over an any-sex row, then an age-banded row over an open one, then the latest `effective_from` on or before the collection date. No match gives the flag `unknown`, never `normal` |
 | What is stored on a result? | A snapshot of the range used (`ref_low`, `ref_high`, `crit_low`, `crit_high`), so flags never change retroactively |
-| Where do the values come from? | No reference-ranges file was supplied with the assignment. The values are common adult reference intervals taken from the reference UI prototype (`reference/emr-ui.html`), marked in the `source` column as a placeholder |
+| Where do the values come from? | No reference-ranges file was provided. The values are common adult reference intervals taken from the reference UI prototype (`reference/emr-ui.html`), marked in the `source` column as a placeholder |
 | Classification | eGFR categories G1 to G5 and albuminuria categories A1 to A3 follow KDIGO 2012, with lower-inclusive boundaries (90, 60, 45, 30, 15; UACR 30 and 300) |
 | How would a supplied file be used? | Replace the values in `catalog_data.py` with a later `effective_from`. Old results keep their snapshots; new results use the new rows |

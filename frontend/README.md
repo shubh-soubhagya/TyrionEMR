@@ -4,8 +4,7 @@ The Angular app of the NephroCare EMR: sign in, a dashboard, a patient list and 
 medications and allergies, encounters, laboratory results with trend charts, and an AI summary tab. It talks only to the
 gateway and defines no clinical data of its own. Angular 22, standalone components, signals, SCSS, Vitest.
 
-The visual reference is [reference/emr-ui.html](../reference/emr-ui.html) and the functional reference is
-[reference/assignment.pdf](../reference/assignment.pdf). The standing rules for the code are in [CLAUDE.md](../CLAUDE.md).
+The visual reference is [reference/emr-ui.html](../reference/emr-ui.html). The standing rules for the code are in [CLAUDE.md](../CLAUDE.md).
 
 ## Run
 

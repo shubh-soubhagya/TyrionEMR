@@ -1,6 +1,6 @@
 # Architecture and AI integration
 
-A brief tour for a reviewer, about ten minutes. It explains the shape of the system and links to the files that implement
+A short tour, about ten minutes. It explains the shape of the system and links to the files that implement
 each claim. The full design is in [HLD.md](HLD.md) and in each service's `docs/<service>-HLD-LLD.md`. Where the build
 differs from the design, the service README has a deviations table.
 
@@ -127,17 +127,17 @@ engine reports it.
 
 ## AI integration
 
-The assignment asks for an AI assistant that summarises a patient, through a backend service, with prepared context,
-safe handling of missing data and failures, clear labelling and a clinical disclaimer. This is how the code does each part.
+The AI assistant summarises a patient through a backend service, with prepared context, safe handling of missing data and
+failures, clear labelling and a clinical disclaimer. This is how the code does each part.
 The design is [ai-svc/docs/ai-svc-HLD-LLD.md](../ai-svc/docs/ai-svc-HLD-LLD.md).
 
 **Deterministic first.** Numbers, flags, trends and gap findings are computed by the rules above and are never produced by
 the LLM. The LLM writes only four narrative sections and a short list of follow-up considerations. The response has three
 separately labelled panels: calculated facts, rule-based findings, and the AI narrative.
 
-### The six required outputs
+### The six outputs
 
-| Assignment output | Produced by | Where |
+| Output | Produced by | Where |
 |---|---|---|
 | 1. Summarise nephrology history | LLM (`history_summary`), from the minimised chart | [orchestrator.py](../ai-svc/app/orchestrator/orchestrator.py), [output_schema.py](../ai-svc/app/validation/output_schema.py) |
 | 2. Summarise conditions and comorbidities | LLM (`comorbidity_summary`) | same |
@@ -284,7 +284,7 @@ Charts: the two lab trend charts use Chart.js; the list sparkline is a small inl
 | gateway | Path safety, routing, header handling, rate limits, CORS, auth gate, upstream failure mapping | `make -C gateway test` |
 | frontend unit | Mappers, API services with a fake HTTP backend, auth and interceptors, forms, the live lab preview against the shared vectors, shell and tab components | `ng test` in the `web` container |
 | smoke | 19 checks through the gateway against the running stack | `make smoke` |
-| end to end | One browser flow of the assignment, plus tooltip and screenshot specs (Playwright) | `docker compose --profile tools run --rm flow` in `frontend/` |
+| end to end | One browser flow through the main features, plus tooltip and screenshot specs (Playwright) | `docker compose --profile tools run --rm flow` in `frontend/` |
 
 Last recorded counts per suite are in the root [README](../README.md#tests).
 

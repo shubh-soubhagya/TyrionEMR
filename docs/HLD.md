@@ -7,7 +7,7 @@
 
 ## Implementation differences
 
-The design below was written before the code. A reviewer comparing the two will meet these differences first. Each links to
+The design below was written before the code. These are the differences most likely to cause confusion. Each links to
 the deviation row that explains it; the service READMEs list the rest.
 
 | Design says | The build does | Explained in |

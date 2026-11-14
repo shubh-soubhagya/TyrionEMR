@@ -1,8 +1,7 @@
 # Development notes
 
-For someone who wants to read, change or extend the code. The reviewer-facing documents are the root
-[README](../README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [API.md](API.md), [DATABASE.md](DATABASE.md) and
-[ASSIGNMENT-CHECKLIST.md](ASSIGNMENT-CHECKLIST.md).
+For someone who wants to read, change or extend the code. The other documents are the root
+[README](../README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [API.md](API.md) and [DATABASE.md](DATABASE.md).
 
 Contents:
 
@@ -24,8 +23,8 @@ auth-svc/ patient-svc/ lab-svc/ ai-svc/     one self-contained service each
   setup/          one-time database and key scripts
 gateway/          the custom gateway: app/routing, app/services (pipeline, proxy, rate limiter, JWKS cache)
 frontend/         the Angular app, compose.yaml (dev server, flow and parity tools), e2e/
-docs/             reviewer documents, HLD.md (the full design), screenshots/
-reference/        assignment.pdf and the HTML prototype
+docs/             architecture, API and database documents, HLD.md (the full design), screenshots/
+reference/        the HTML prototype and the original brief
 scripts/docs/     check_links.py, gen_api_docs.py, schema_dump.sh
 docker-compose.yml   includes each service's compose file under the project name "tyrionemr"
 ```
@@ -52,7 +51,7 @@ purpose and kept identical by their tests, so a service can be built and deploye
 
 ## How AI coding agents were used
 
-The assignment encourages AI coding tools. They were used as follows, and every change was checked by tests and by reading
+AI coding tools were used to build this project, as follows, and every change was checked by tests and by reading
 the result.
 
 1. **Design first.** The system design ([HLD.md](HLD.md)) and one design per service (`<service>/docs/<service>-HLD-LLD.md`)
@@ -86,8 +85,7 @@ Example: a new read endpoint in lab-svc used by the Angular app.
 5. **Frontend.** Add the path to `core/api/endpoints.ts`, the DTO to `core/api/dto`, a mapper if the view model differs, a method on
    the feature's API service in `core/data`, and a test with the fake HTTP backend. Show the data inside `emr-remote-state`.
 6. **Documentation.** Run `make docs` (re-exports OpenAPI and rewrites the generated tables in [API.md](API.md)), add a
-   row to the service README's endpoint table, and update [ASSIGNMENT-CHECKLIST.md](ASSIGNMENT-CHECKLIST.md) if a requirement
-   moved. Then `make docs-check`.
+   row to the service README's endpoint table. Then `make docs-check`.
 
 ## Documentation tooling
 
