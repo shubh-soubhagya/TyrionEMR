@@ -92,23 +92,23 @@ ranges, flags, CKD categories and trends all come from the services.
 Standalone, OnPush, signal inputs and outputs, no services injected. "Used by" lists the places outside the component's own
 folder; `UI kit page` is the dev-only showcase at `/dev/ui-kit`.
 
-| Component | Purpose | Used by |
-|---|---|---|
-| `button[emr-button]` | Native button or link with variants; blocks clicks while disabled | Forms, modals, pages |
-| `emr-icon` | Inline SVG icons from the reference | Sidebar, header, auth, dashboard, chart, modals |
-| `emr-avatar` | Initials avatar | Header, patient chart, UI kit page |
-| `emr-badge`, `emr-lab-flag` | Status badge; abnormal-value flag with text and arrow, not colour alone | Dashboard, patient list, labs, modals |
-| `emr-ckd-stage-badge` | Established CKD stage chip | Patient list, patient chart |
-| `emr-remote-state` | Loading, empty and error states around a `Remote<T>` | Dashboard, patient chart, tabs, modals |
-| `emr-skeleton`, `emr-spinner`, `emr-empty-state`, `emr-error-state` | The state visuals | `emr-remote-state` and pages |
-| `emr-modal`, `emr-modal-shell` | Dialog with focus trap and Escape | Encounter, lab, patient and small modals |
-| `emr-toast-container` | Save confirmations (`aria-live`) | App root |
-| `emr-tooltip` with `emrTip` | One tooltip for every chart and bar | App shell, charts, dashboard |
-| `emr-line-chart` | Chart.js trend chart with reference band, stage lines and flag-coloured points | Overview kidney panel, Labs tab |
-| `emr-spark` | Small eGFR sparkline | Patient list |
-| `emr-trend-chips` | Direction, change and slope chips | Overview, Labs tab |
-| `emr-text-field`, `emr-textarea`, `emr-select`, `emr-date-field`, `emr-checkbox`, `emr-radio-group`, `emr-search-input`, `emr-form-field-error` | Labelled form controls with `aria-describedby` errors | UI kit page only; the forms in `features/modals` use plain labelled inputs with the same styles |
-| `emr-data-table`, `emr-pagination`, `emr-tabs`, `emr-panel`, `emr-kpi-strip`, `emr-alert`, `emr-value-with-unit` | Layout and data display | UI kit page only; the pages use the reference markup directly |
+| Component                                                                                                                                       | Purpose                                                                        | Used by                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `button[emr-button]`                                                                                                                            | Native button or link with variants; blocks clicks while disabled              | Forms, modals, pages                                                                            |
+| `emr-icon`                                                                                                                                      | Inline SVG icons from the reference                                            | Sidebar, header, auth, dashboard, chart, modals                                                 |
+| `emr-avatar`                                                                                                                                    | Initials avatar                                                                | Header, patient chart, UI kit page                                                              |
+| `emr-badge`, `emr-lab-flag`                                                                                                                     | Status badge; abnormal-value flag with text and arrow, not colour alone        | Dashboard, patient list, labs, modals                                                           |
+| `emr-ckd-stage-badge`                                                                                                                           | Established CKD stage chip                                                     | Patient list, patient chart                                                                     |
+| `emr-remote-state`                                                                                                                              | Loading, empty and error states around a `Remote<T>`                           | Dashboard, patient chart, tabs, modals                                                          |
+| `emr-skeleton`, `emr-spinner`, `emr-empty-state`, `emr-error-state`                                                                             | The state visuals                                                              | `emr-remote-state` and pages                                                                    |
+| `emr-modal`, `emr-modal-shell`                                                                                                                  | Dialog with focus trap and Escape                                              | Encounter, lab, patient and small modals                                                        |
+| `emr-toast-container`                                                                                                                           | Save confirmations (`aria-live`)                                               | App root                                                                                        |
+| `emr-tooltip` with `emrTip`                                                                                                                     | One tooltip for every chart and bar                                            | App shell, charts, dashboard                                                                    |
+| `emr-line-chart`                                                                                                                                | Chart.js trend chart with reference band, stage lines and flag-coloured points | Overview kidney panel, Labs tab                                                                 |
+| `emr-spark`                                                                                                                                     | Small eGFR sparkline                                                           | Patient list                                                                                    |
+| `emr-trend-chips`                                                                                                                               | Direction, change and slope chips                                              | Overview, Labs tab                                                                              |
+| `emr-text-field`, `emr-textarea`, `emr-select`, `emr-date-field`, `emr-checkbox`, `emr-radio-group`, `emr-search-input`, `emr-form-field-error` | Labelled form controls with `aria-describedby` errors                          | UI kit page only; the forms in `features/modals` use plain labelled inputs with the same styles |
+| `emr-data-table`, `emr-pagination`, `emr-tabs`, `emr-panel`, `emr-kpi-strip`, `emr-alert`, `emr-value-with-unit`                                | Layout and data display                                                        | UI kit page only; the pages use the reference markup directly                                   |
 
 The components used only by the UI kit page are built and styled but are not yet adopted by the feature pages.
 
@@ -122,25 +122,25 @@ sparkline is a small inline SVG. Why: [docs/decisions.md](docs/decisions.md#char
 
 ## Screens
 
-| Screen | Route | Screenshot |
-|---|---|---|
-| Sign in, sign up | `/login`, `/signup` | [sign in](../docs/screenshots/01-sign-in.png) |
-| Dashboard: KPIs, needs attention, eGFR categories, abnormal results, follow-ups, drafts | `/dashboard` | [dashboard](../docs/screenshots/02-dashboard.png) |
-| Patient list with search, filters, sort, sparklines | `/patients` | [list](../docs/screenshots/03-patient-list-filtered.png) |
-| Overview with the kidney panel | `/patients/:id/overview` | [overview](../docs/screenshots/04-overview-kidney-panel.png) |
-| Conditions with the stage mismatch | `/patients/:id/conditions` | [conditions](../docs/screenshots/05-conditions-stage-mismatch.png) |
-| Medications and allergies | `/patients/:id/meds` | |
-| Encounters and the encounter form | `/patients/:id/encounters` | [form](../docs/screenshots/06-encounter-form.png) |
-| Labs: latest values, trends, history; add report with live preview | `/patients/:id/labs` | [labs](../docs/screenshots/07-labs-table-and-trends.png), [add report](../docs/screenshots/08-add-lab-report-preview.png), [charts](../docs/screenshots/09-trend-charts.png), [tooltip](../docs/screenshots/15-chart-tooltip.png) |
-| AI summary: running, completed, degraded, failed, source chips | `/patients/:id/ai` | [running](../docs/screenshots/10-ai-summary-running.png), [completed](../docs/screenshots/11-ai-summary-completed.png), [degraded](../docs/screenshots/12-ai-summary-degraded.png), [failed](../docs/screenshots/13-ai-summary-failed.png), [source chip](../docs/screenshots/14-ai-source-chip-opens-record.png) |
+| Screen                                                                                  | Route                      | Screenshot                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sign in, sign up                                                                        | `/login`, `/signup`        | [sign in](../docs/screenshots/01-sign-in.png)                                                                                                                                                                                                                                                                     |
+| Dashboard: KPIs, needs attention, eGFR categories, abnormal results, follow-ups, drafts | `/dashboard`               | [dashboard](../docs/screenshots/02-dashboard.png)                                                                                                                                                                                                                                                                 |
+| Patient list with search, filters, sort, sparklines                                     | `/patients`                | [list](../docs/screenshots/03-patient-list-filtered.png)                                                                                                                                                                                                                                                          |
+| Overview with the kidney panel                                                          | `/patients/:id/overview`   | [overview](../docs/screenshots/04-overview-kidney-panel.png)                                                                                                                                                                                                                                                      |
+| Conditions with the stage mismatch                                                      | `/patients/:id/conditions` | [conditions](../docs/screenshots/05-conditions-stage-mismatch.png)                                                                                                                                                                                                                                                |
+| Medications and allergies                                                               | `/patients/:id/meds`       |                                                                                                                                                                                                                                                                                                                   |
+| Encounters and the encounter form                                                       | `/patients/:id/encounters` | [form](../docs/screenshots/06-encounter-form.png)                                                                                                                                                                                                                                                                 |
+| Labs: latest values, trends, history; add report with live preview                      | `/patients/:id/labs`       | [labs](../docs/screenshots/07-labs-table-and-trends.png), [add report](../docs/screenshots/08-add-lab-report-preview.png), [charts](../docs/screenshots/09-trend-charts.png), [tooltip](../docs/screenshots/15-chart-tooltip.png)                                                                                 |
+| AI summary: running, completed, degraded, failed, source chips                          | `/patients/:id/ai`         | [running](../docs/screenshots/10-ai-summary-running.png), [completed](../docs/screenshots/11-ai-summary-completed.png), [degraded](../docs/screenshots/12-ai-summary-degraded.png), [failed](../docs/screenshots/13-ai-summary-failed.png), [source chip](../docs/screenshots/14-ai-source-chip-opens-record.png) |
 
 ## Tests
 
-| Suite | Count | Command |
-|---|---|---|
-| Unit and component tests (Vitest, HTTP faked) | 136 test cases in 26 spec files, counted from the sources | `docker compose exec web npx ng test --watch=false` |
-| End to end (Playwright, against the running stack) | The flow, tooltip and screenshot specs in `e2e/flow/` | `docker compose --profile tools run --rm flow` |
-| Visual parity against the reference HTML | Pixel diff at 1440, 1024, 768 and 375 px | `docker compose --profile tools run --rm parity` |
+| Suite                                              | Count                                                     | Command                                             |
+| -------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| Unit and component tests (Vitest, HTTP faked)      | 136 test cases in 26 spec files, counted from the sources | `docker compose exec web npx ng test --watch=false` |
+| End to end (Playwright, against the running stack) | The flow, tooltip and screenshot specs in `e2e/flow/`     | `docker compose --profile tools run --rm flow`      |
+| Visual parity against the reference HTML           | Pixel diff at 1440, 1024, 768 and 375 px                  | `docker compose --profile tools run --rm parity`    |
 
 Notes:
 

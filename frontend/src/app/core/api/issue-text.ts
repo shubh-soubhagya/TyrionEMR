@@ -1,7 +1,7 @@
 // Turns the raw wording of a server validation message (pydantic's) into a sentence a clinician can act on. The server stays
 // the authority; this only rewords what it says. Unknown messages pass through unchanged.
 
-const FIELD_HINTS: ReadonlyArray<readonly [RegExp, string]> = [
+const FIELD_HINTS: readonly (readonly [RegExp, string])[] = [
   [/icd/i, 'Enter a valid ICD-10 code, for example N18.3 or E11.22.'],
   [/phone/i, 'Enter a valid phone number, for example +91 98200 10101.'],
   [/email/i, 'Enter a valid email address.'],
