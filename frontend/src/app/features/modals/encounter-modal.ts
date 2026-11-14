@@ -27,6 +27,7 @@ import { AuthService } from '@core/auth/auth.service';
 import { EncountersApi, type EncounterSaved } from '@core/data/encounters.api';
 import type { Encounter, EncounterType, Vitals } from '@core/data/models';
 import { PatientsApi } from '@core/data/patients.api';
+import { ICD10_HINT, isIcd10 } from '@core/clinical/icd10';
 import { fmtDate, fmtDT, localInput } from '@core/format';
 import { ModalService } from '@core/ui/modal.service';
 import { EmrIcon } from '@shared/ui/icon/icon';
@@ -404,6 +405,12 @@ export class EncounterModal {
       .map((d) => ({ icd: t(d.icd).toUpperCase(), desc: t(d.desc), prob: d.prob }))
       .filter((d) => d.icd || d.desc);
     if (dx.some((d) => !d.desc)) errs['dx'] = 'Each diagnosis needs a description.';
+    else {
+      const bad = dx.findIndex((d) => d.icd && !isIcd10(d.icd));
+      if (bad >= 0)
+        errs['dx'] =
+          `Diagnosis ${bad + 1}: ${ICD10_HINT} Leave the code empty if you do not have one.`;
+    }
     if (mode === 'final') {
       if (!t(v.cc)) errs['cc'] = 'Chief complaint is required to finalize.';
       if (!t(v.assessment)) errs['assessment'] = 'Assessment is required to finalize.';

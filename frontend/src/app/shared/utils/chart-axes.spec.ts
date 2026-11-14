@@ -54,3 +54,14 @@ describe('bandRanges', () => {
     expect(DEFAULT_STAGE_BANDS).toHaveLength(6);
   });
 });
+
+describe('trendAxes headroom', () => {
+  it('leaves a gridline above a value that would sit on the top one', () => {
+    const a = trendAxes([T0], [20], null, null, false);
+    expect(a.ymax).toBeGreaterThan(20);
+  });
+  it('does not add headroom to the eGFR stage view, which already spans 0 to 100', () => {
+    const a = trendAxes([T0, T0 + 90 * DAY], [30, 50], null, null, true);
+    expect(a.ymax).toBe(100);
+  });
+});

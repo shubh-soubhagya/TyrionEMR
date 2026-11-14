@@ -69,5 +69,9 @@ export function trendAxes(
   for (let t = Math.floor(ymin / step) * step; t <= ymax + step * 0.01; t += step) {
     ticks.push(Math.round(t * 1000) / 1000);
   }
+  // headroom: a value sitting on the top gridline would have its label cut off, so add one more step above it
+  const top = Math.max(...values, high ?? -Infinity);
+  const last = ticks[ticks.length - 1] ?? ymax;
+  if (!stage && last - top < step * 0.4) ticks.push(Math.round((last + step) * 1000) / 1000);
   return { tmin, tmax, ymin: ticks[0] ?? ymin, ymax: ticks[ticks.length - 1] ?? ymax, ticks };
 }

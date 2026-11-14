@@ -190,7 +190,8 @@ export class EmrLineChart {
           ctx.font = `600 12px ${font}`;
           ctx.fillStyle = '#10202b';
           ctx.textAlign = el.x > chart.width - 90 ? 'right' : 'center';
-          ctx.fillText(fmtVal(test, last.v), el.x, el.y - 12);
+          // above the point, or below it when the point is too close to the top for the label to fit
+          ctx.fillText(fmtVal(test, last.v), el.x, el.y - 12 < a.top + 4 ? el.y + 20 : el.y - 12);
         }
         ctx.font = `500 11px ${font}`;
         ctx.fillStyle = inkMuted;

@@ -1,6 +1,7 @@
 // html:885-889 (condition), 903-907 (medication), 909-913 (allergy), 640-642 (confirm)
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ICD10_HINT, isIcd10 } from '@core/clinical/icd10';
 import { toFormProblem, type FormProblem } from '@core/api/form-errors';
 import { ROUTE_OPTIONS } from '@core/api/mappers/patient.mapper';
 import { ChartApi } from '@core/data/chart.api';
@@ -9,8 +10,6 @@ import { ModalService } from '@core/ui/modal.service';
 import { EmrModalShell } from '@shared/ui/modal-shell/modal-shell';
 import { ToastService } from '@shared/ui/toast/toast.service';
 
-// ICD-10 as the server checks it: a letter, two characters, then an optional dot and one to four characters
-const ICD10 = /^[A-Za-z][0-9][0-9A-Za-z](\.[0-9A-Za-z]{1,4})?$/;
 const NONE: FormProblem = { errors: {}, general: '', requestId: null, code: null, conflict: false };
 
 @Component({
@@ -105,8 +104,7 @@ export class ConditionModal {
     const errors: Record<string, string> = {};
     if (!v.desc.trim()) errors['desc'] = 'Description is required.';
     // same shape the server checks (ICD-10: a letter, two characters, then an optional dot and 1 to 4 characters)
-    if (v.icd.trim() && !ICD10.test(v.icd.trim()))
-      errors['icd'] = 'Enter a valid ICD-10 code, for example N18.3 or E11.22.';
+    if (v.icd.trim() && !isIcd10(v.icd)) errors['icd'] = ICD10_HINT;
     if (v.onset && new Date(v.onset) > new Date())
       errors['onset'] = 'Onset cannot be in the future.';
     const n = Object.keys(errors).length;

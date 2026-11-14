@@ -86,13 +86,16 @@ export class PatientListPage {
   protected readonly flag = (f: string): Flag => f as Flag;
   protected readonly stageOptions = ['G1', 'G2', 'G3a', 'G3b', 'G4', 'G5'];
 
+  // With no sort in the URL the list shows the most recently registered patients first: MRNs are sequential, so the
+  // highest MRN is the newest patient. Choosing a column sort puts `sort` (and `dir`) in the URL.
   protected readonly sortKey = computed<ListSort>(() => {
     const s = this.sort() as ListSort | undefined;
-    return s && SORTS.includes(s) ? s : 'name';
+    return s && SORTS.includes(s) ? s : 'mrn';
   });
-  protected readonly sortDir = computed<'asc' | 'desc'>(() =>
-    this.dir() === 'desc' ? 'desc' : 'asc',
-  );
+  protected readonly sortDir = computed<'asc' | 'desc'>(() => {
+    if (this.dir()) return this.dir() === 'desc' ? 'desc' : 'asc';
+    return this.sort() ? 'asc' : 'desc';
+  });
   protected readonly onlyAttention = computed(() => this.attention() === 'true');
   protected readonly pageNo = computed(() => Math.max(1, Number(this.page()) || 1));
 

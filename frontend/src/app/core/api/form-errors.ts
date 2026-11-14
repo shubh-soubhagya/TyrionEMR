@@ -36,7 +36,9 @@ export function toFormProblem(
     const errors: Record<string, string> = {};
     let unplaced = false;
     for (const [field, issue] of e.fieldIssues()) {
-      const control = fieldMap[field] ?? fieldMap[field.replace(/\[\d+]/g, '[]')];
+      // a list item is `diagnoses[1].icd10_code` or, from pydantic, `diagnoses.1.icd10_code`; both map to `diagnoses[]...`
+      const control =
+        fieldMap[field] ?? fieldMap[field.replace(/\[\d+]/g, '[]').replace(/\.\d+(?=\.|$)/g, '[]')];
       if (control) errors[control] = issue;
       else unplaced = true;
     }
