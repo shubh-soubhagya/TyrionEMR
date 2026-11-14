@@ -68,7 +68,7 @@ Ten patients, `PT-000101` to `PT-000110`, with the clinician "Dr. Anita Rao" (th
 - [x] Lab range, stage bands, test filter, abnormal-only, paging
 - [x] Live lab flag and unit conversion
 - [x] Labs tab count pill: `result_count` from lab-svc `GET /labs/patients/{id}/latest`; hidden while loading or on error (unit; live: the flow test checks it rises by 2 after a two-result report)
-- ❌ Chart tooltips: component unchanged, not re-checked after the data source changed
+- [x] Chart tooltips: text built by `shared/utils/chart-tips.ts` from service data (unit-tested); live check at 1440 and 375 px for the dashboard bar, the list sparkline and trend points on Overview and Labs (`e2e/flow/tooltips.e2e.ts`). Data points are not focusable, so no keyboard tooltip yet (follow-up)
 - [x] AI generate, regenerate, open source chip, open earlier summary (live); cache hit and copy (unit only: the live regenerate sends force=true, which skips the cache)
 - [x] AI failure scenarios (invalid, timeout, rate limit, upstream)
 - [x] Toasts

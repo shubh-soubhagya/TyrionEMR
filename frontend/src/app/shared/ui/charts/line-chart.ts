@@ -6,8 +6,8 @@ import {
   TestCode,
   TrendPoint,
 } from '../../../core/clinical/lab-tests';
-import { DAY, fmtDate } from '../../../core/format';
-import { FLAG_VIEWS } from '../lab-flag/lab-flag';
+import { DAY } from '../../../core/format';
+import { pointTip } from '../../utils/chart-tips';
 import { EmrTip } from '../tooltip/tooltip';
 
 const niceStep = (r: number): number => {
@@ -129,11 +129,7 @@ export class EmrLineChart {
         x: sx(p.t),
         y: sy(p.v),
         fill: flagColor(p.flag),
-        tip: [
-          `${fmtVal(test, p.v)} ${unit}`,
-          p.flag ? (FLAG_VIEWS[p.flag]?.text ?? '') : '',
-          fmtDate(p.t),
-        ],
+        tip: pointTip(test, p, unit),
         label: i === pts.length - 1 ? fmtVal(test, p.v) : null,
       })),
     };

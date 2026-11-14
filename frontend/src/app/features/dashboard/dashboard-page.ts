@@ -15,6 +15,7 @@ import type { DashboardDto } from '@core/api/dto/ai.dto';
 import type { DashboardEncountersDto } from '@core/api/dto/patient.dto';
 import { IDLE, toRemote, type Remote } from '@core/api/remote';
 import { AuthService } from '@core/auth/auth.service';
+import { distTip } from '@shared/utils/chart-tips';
 import { egfrLabel, fmtVal, LAB_TESTS, type TestCode } from '@core/clinical/lab-tests';
 import { EncountersApi } from '@core/data/encounters.api';
 import { InsightsApi } from '@core/data/insights.api';
@@ -54,6 +55,7 @@ export class DashboardPage {
   protected readonly stages = STAGES;
   protected readonly stageCol = STAGE_COL;
   protected readonly egfrLabel = egfrLabel;
+  protected readonly distTip = distTip;
   protected readonly fmtDate = fmtDate;
   protected readonly typeLabel = typeLabel;
   protected readonly flag = (f: string): Flag => f as Flag;

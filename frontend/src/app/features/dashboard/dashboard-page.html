@@ -98,12 +98,7 @@
           <div class="panel-b">
             @for (s of stages; track s) {
               @let n = r.data.egfr_distribution[s] ?? 0;
-              <div
-                class="hbar"
-                [emrTip]="[
-                  n + ' patient' + (n === 1 ? '' : 's') + ' in ' + s + ': ' + egfrLabel(s),
-                ]"
-              >
+              <div class="hbar" [emrTip]="distTip(n, s)">
                 <span
                   >{{ s }} <span class="muted small">{{ egfrLabel(s).split(',')[0] }}</span></span
                 >

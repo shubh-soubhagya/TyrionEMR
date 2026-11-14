@@ -81,6 +81,7 @@ Taken from the running stack with the seeded data (`docs/screenshots/`):
 [labs table with flags and trends](docs/screenshots/07-labs-table-and-trends.png),
 [add lab report with the live preview](docs/screenshots/08-add-lab-report-preview.png),
 [trend charts](docs/screenshots/09-trend-charts.png),
+[a chart tooltip](docs/screenshots/15-chart-tooltip.png),
 AI summary: [running](docs/screenshots/10-ai-summary-running.png), [completed](docs/screenshots/11-ai-summary-completed.png),
 [degraded](docs/screenshots/12-ai-summary-degraded.png), [failed](docs/screenshots/13-ai-summary-failed.png),
 and [a source chip opening a record](docs/screenshots/14-ai-source-chip-opens-record.png).

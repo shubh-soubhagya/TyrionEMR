@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { fmtVal, TrendStats } from '../../../core/clinical/lab-tests';
+import { TrendStats } from '../../../core/clinical/lab-tests';
+import { sparkTip } from '../../utils/chart-tips';
 import { EmrTip } from '../tooltip/tooltip';
 
 /** Tiny eGFR trend line for list rows (html `spark()`, html:1259). */
@@ -66,10 +67,7 @@ export class EmrSpark {
       d: pts.map((p, i) => (i ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' '),
       cx: x(last.t).toFixed(1),
       cy: y(last.v).toFixed(1),
-      tip: [
-        `eGFR ${fmtVal('EGFR', s.first)} to ${fmtVal('EGFR', s.last)}`,
-        `${s.n} results, ${s.direction}`,
-      ],
+      tip: sparkTip(s),
     };
   });
 }
