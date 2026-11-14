@@ -84,6 +84,10 @@ These are in the shell but not in the HTML. All are approved.
 
 **Placeholder user.** "Dr. Anita Rao" / "Nephrologist" is defined in exactly one place, `src/app/layout/placeholder-user.ts` (`PLACEHOLDER_USER`), imported by the shell. The file is marked `TODO(phase-5): remove`. Phase 5 replaces it with the signed-in user from `AuthService` and deletes the file.
 
+## Charting library
+
+The assignment (section 2) asks for a charting library for laboratory trends. The reference HTML draws its charts by hand in SVG, so the first build did the same. The two lab trend charts now use **Chart.js 4** (`chart.js`, registered tree-shaken: line controller, line element, point element, linear scale). The alternative, the `ng2-charts` wrapper, would add a second dependency for no gain. The look is kept: the reference band, the dashed eGFR stage lines and labels, the flag-coloured points with a white ring, the hover crosshair and the last-value label are drawn by one small Chart.js plugin in `shared/ui/charts/line-chart.ts`. The tooltip is not Chart.js's own: hover feeds the shared tooltip component with the text from `shared/utils/chart-tips.ts`, so every tooltip in the app looks and behaves the same. Axis maths lives in `shared/utils/chart-axes.ts` and is unit-tested. The list sparkline stays hand-drawn SVG (a 86 by 26 px inline element, outside what the assignment asks for).
+
 ## Still open
 
 - Whether ai-svc's disclaimer string will be aligned to D2 (backend change).

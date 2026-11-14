@@ -50,7 +50,7 @@ test('screenshots of every screen the submission shows', async ({ page }) => {
 
   // 4 overview with the kidney panel
   await openPatient(page, 'PT-000101');
-  await expect(page.locator('emr-line-chart svg').first()).toBeVisible();
+  await expect(page.locator('emr-line-chart canvas').first()).toBeVisible();
   await expect(page.locator('.ckd-strip')).toContainText('G3b');
   await shot(page, '04-overview-kidney-panel', true);
 
@@ -72,7 +72,7 @@ test('screenshots of every screen the submission shows', async ({ page }) => {
   // 7 labs: table with flags, 8 add-report modal with the live preview, 9 trend charts
   await page.getByRole('link', { name: /^Labs/ }).click();
   await expect(page.locator('.latest-grid .lt')).toHaveCount(8);
-  await expect(page.locator('emr-line-chart svg').first()).toBeVisible();
+  await expect(page.locator('emr-line-chart canvas').first()).toBeVisible();
   await shot(page, '07-labs-table-and-trends', true);
   await page.locator('emr-line-chart').first().scrollIntoViewIfNeeded();
   await page

@@ -12,6 +12,19 @@ async function signIn(page: Page): Promise<void> {
 
 const tooltip = (page: Page) => page.locator('#tooltip.show');
 
+/** Hovers a data point of a Chart.js canvas: the chart writes each point's pixel position to `data-points`. */
+async function hoverPoint(page: Page, chart: ReturnType<Page['locator']>, which: 'first' | 'last') {
+  const canvas = chart.locator('canvas');
+  await expect(canvas).toHaveAttribute('data-points', /\[\{/);
+  const pts = JSON.parse((await canvas.getAttribute('data-points')) ?? '[]') as {
+    x: number;
+    y: number;
+  }[];
+  const p = which === 'first' ? pts[0] : pts[pts.length - 1];
+  if (!p) throw new Error('chart has no points');
+  await canvas.hover({ position: { x: p.x, y: p.y } });
+}
+
 for (const width of [1440, 375]) {
   test(`tooltips at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 800 });
@@ -40,9 +53,9 @@ for (const width of [1440, 375]) {
 
     // trend point on the overview kidney panel, then on the labs tab
     await page.locator('tbody tr.click').first().click();
-    await expect(page.locator('emr-line-chart svg').first()).toBeVisible();
-    const point = page.locator('emr-line-chart svg g.hp').last();
-    await point.locator('circle.pt').hover({ force: true });
+    await expect(page.locator('emr-line-chart canvas').first()).toBeVisible();
+    await expect(page.locator('emr-line-chart canvas').first()).toBeVisible();
+    await hoverPoint(page, page.locator('emr-line-chart').first(), 'last');
     await expect(tooltip(page)).toContainText(/[\d.]+ (mL\/min\/1\.73m²|mg\/dL)/);
     await expect(tooltip(page)).toContainText(/\d{2} \w{3} \d{4}/);
     if (width === 1440) await page.screenshot({ path: '/shots/15-chart-tooltip.png' });
@@ -53,8 +66,8 @@ for (const width of [1440, 375]) {
     await expect(page.locator('#tooltip.show')).toHaveCount(0);
 
     await page.getByRole('link', { name: /^Labs/ }).click();
-    await expect(page.locator('emr-line-chart svg').first()).toBeVisible();
-    await page.locator('emr-line-chart svg g.hp circle.pt').first().hover({ force: true });
+    await expect(page.locator('emr-line-chart canvas').first()).toBeVisible();
+    await hoverPoint(page, page.locator('emr-line-chart').first(), 'first');
     await expect(tooltip(page)).toContainText(/[\d.]+ [^\s]+/);
 
     expect(consoleErrors).toEqual([]);

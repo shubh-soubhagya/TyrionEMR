@@ -1,4 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import {
+  Chart,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  type ChartEvent,
+  type Plugin,
+} from 'chart.js';
 import {
   flagColor,
   fmtVal,
@@ -6,132 +26,264 @@ import {
   TestCode,
   TrendPoint,
 } from '../../../core/clinical/lab-tests';
-import { DAY } from '../../../core/format';
+import { bandRanges, DEFAULT_STAGE_BANDS, trendAxes, type StageBand } from '../../utils/chart-axes';
 import { pointTip } from '../../utils/chart-tips';
-import { EmrTip } from '../tooltip/tooltip';
+import { TooltipService } from '../tooltip/tooltip';
 
-const niceStep = (r: number): number => {
-  const p = Math.pow(10, Math.floor(Math.log10(r)));
-  const f = r / p;
-  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
-};
+// Only what a line chart needs, so the bundle stays small (tree-shaken registration).
+Chart.register(LineController, LineElement, PointElement, LinearScale);
 
-const STAGE_BANDS: readonly (readonly [number, number, string])[] = [
-  [90, 100, 'G1'],
-  [60, 90, 'G2'],
-  [45, 60, 'G3a'],
-  [30, 45, 'G3b'],
-  [15, 30, 'G4'],
-  [0, 15, 'G5'],
-];
-
-/** [lower, upper, code] from the server's `{code, lower}` list (descending thresholds; the top band ends at 100). */
-function serverBands(
-  b: readonly { readonly code: string; readonly lower: number }[] | null,
-): readonly (readonly [number, number, string])[] | null {
-  if (!b || b.length === 0) return null;
-  const sorted = [...b].sort((x, y) => y.lower - x.lower);
-  return sorted.map(
-    (x, i) => [x.lower, i === 0 ? 100 : (sorted[i - 1]?.lower ?? 100), x.code] as const,
-  );
+interface Xy {
+  x: number;
+  y: number;
 }
 
 /**
- * Hand-built SVG line chart, ported from the HTML's `lineChart()` (html:983-1004) so the look is
- * identical: grid, reference band, optional KDIGO stage lines, series line, flag-coloured points.
+ * Lab trend line chart, drawn with Chart.js (the assignment asks for a charting library). The look follows the HTML
+ * hand-drawn `lineChart()` (html:983-1004): grid, reference band, optional KDIGO stage lines, teal series line,
+ * flag-coloured points with a white ring, a hover crosshair and a label on the last value. The band, stage lines,
+ * crosshair, unit and last-value label are one small Chart.js plugin; the tooltip text comes from `chart-tips.ts` and
+ * is shown by the shared tooltip component, so it looks and behaves like every other tooltip.
  */
 @Component({
   selector: 'emr-line-chart',
-  imports: [EmrTip],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './line-chart.html',
+  styles: `
+    .lc {
+      position: relative;
+      width: 100%;
+    }
+  `,
 })
 export class EmrLineChart {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly tooltip = inject(TooltipService);
+  private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('cv');
+  private chart: Chart<'line', Xy[]> | null = null;
+
   readonly pts = input.required<readonly TrendPoint[]>();
   readonly test = input.required<TestCode>();
   readonly low = input<number | null>(null);
   readonly high = input<number | null>(null);
   readonly stage = input(false);
   /** eGFR stage thresholds from lab-svc (`stage_bands`); the built-in KDIGO list is only the fallback. */
-  readonly bands = input<readonly { readonly code: string; readonly lower: number }[] | null>(null);
+  readonly bands = input<readonly StageBand[] | null>(null);
 
   protected readonly name = computed(() => LAB_TESTS[this.test()].name);
-
-  protected readonly g = computed(() => {
+  protected readonly hasData = computed(() => this.pts().length > 0);
+  protected readonly aria = computed(() => {
     const pts = this.pts();
-    if (!pts.length) return null;
-    const test = this.test();
+    const last = pts[pts.length - 1];
+    if (!last) return '';
+    const t = this.test();
+    return `${this.name()} over time. ${pts.length} results. Latest ${fmtVal(t, last.v)} ${LAB_TESTS[t].canon}.`;
+  });
+
+  constructor() {
+    effect(() => {
+      const cv = this.canvas()?.nativeElement;
+      const pts = this.pts();
+      const test = this.test();
+      const low = this.low();
+      const high = this.high();
+      const stage = this.stage();
+      const bands = this.bands();
+      untracked(() => {
+        this.chart?.destroy();
+        this.chart = null;
+        // no 2D context (a test DOM without a canvas): skip drawing, the aria label still describes the series
+        if (cv && pts.length && cv.getContext('2d')) {
+          this.chart = this.build(cv, pts, test, low, high, stage, bands);
+        }
+      });
+    });
+    inject(DestroyRef).onDestroy(() => {
+      this.chart?.destroy();
+      this.tooltip.hide();
+    });
+  }
+
+  private build(
+    cv: HTMLCanvasElement,
+    pts: readonly TrendPoint[],
+    test: TestCode,
+    low: number | null,
+    high: number | null,
+    stage: boolean,
+    bands: readonly StageBand[] | null,
+  ): Chart<'line', Xy[]> {
+    // canvas cannot read CSS variables, so resolve the few tokens it needs once per chart
+    const css = getComputedStyle(this.host.nativeElement);
+    const font = css.getPropertyValue('--font').trim() || 'sans-serif';
+    const teal = css.getPropertyValue('--teal').trim() || '#0e6b75';
+    const inkMuted = css.getPropertyValue('--ink-3').trim() || '#6b7f8c';
     const unit = LAB_TESTS[test].canon;
     const dec = LAB_TESTS[test].dec;
-    const low = this.low();
-    const high = this.high();
-    const stage = this.stage();
-    const stageBands = serverBands(this.bands()) ?? STAGE_BANDS;
-    const W = 640;
-    const H = 270;
-    const m = { l: 48, r: stage ? 64 : 22, t: 16, b: 32 };
-    let tmin = (pts[0] as TrendPoint).t;
-    let tmax = (pts[pts.length - 1] as TrendPoint).t;
-    if (tmax - tmin < 30 * DAY) {
-      tmin -= 15 * DAY;
-      tmax += 15 * DAY;
-    }
-    const vals = pts.map((p) => p.v);
-    let ymin = Math.min(...vals, low == null ? Infinity : low);
-    let ymax = Math.max(...vals, high == null ? -Infinity : high);
-    if (stage) {
-      ymin = 0;
-      ymax = Math.max(ymax, 100);
-    } else {
-      const pd = (ymax - ymin || 1) * 0.18;
-      ymin = Math.max(0, ymin - pd);
-      ymax += pd;
-    }
-    const step = niceStep((ymax - ymin) / 4);
-    const ticks: number[] = [];
-    for (let t = Math.floor(ymin / step) * step; t <= ymax + step * 0.01; t += step) {
-      ticks.push(Math.round(t * 1000) / 1000);
-    }
-    ymin = ticks[0] as number;
-    ymax = ticks[ticks.length - 1] as number;
-    const sx = (t: number) => m.l + ((t - tmin) / (tmax - tmin)) * (W - m.l - m.r);
-    const sy = (v: number) => H - m.b - ((v - ymin) / (ymax - ymin)) * (H - m.t - m.b);
-    const yTop = sy(Math.min(high == null ? ymax : high, ymax));
-    const yBot = sy(Math.max(low == null ? ymin : low, ymin));
-
+    const ax = trendAxes(
+      pts.map((p) => p.t),
+      pts.map((p) => p.v),
+      low,
+      high,
+      stage,
+    );
+    const ranges = bandRanges(bands) ?? DEFAULT_STAGE_BANDS;
     const last = pts[pts.length - 1] as TrendPoint;
-    return {
-      W,
-      H,
-      m,
-      unit,
-      aria: `${this.name()} over time. ${pts.length} results. Latest ${fmtVal(test, last.v)} ${unit}.`,
-      ticks: ticks.map((t) => ({ y: sy(t), label: String(+t.toFixed(dec + 1)) })),
-      xlabels: [0, 1, 2, 3, 4].map((i) => {
-        const t = tmin + ((tmax - tmin) * i) / 4;
-        return {
-          x: sx(t),
-          label: new Date(t).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
-        };
-      }),
-      band:
-        high != null || low != null ? { y: Math.min(yTop, yBot), h: Math.abs(yBot - yTop) } : null,
-      stages: stage
-        ? stageBands.map((b) => {
-            const c = (Math.max(b[0], ymin) + Math.min(b[1], ymax)) / 2;
-            return { line: b[0] > 0 && b[0] < ymax ? sy(b[0]) : null, ty: sy(c) + 4, label: b[2] };
-          })
-        : [],
-      path: pts
-        .map((p, i) => (i ? 'L' : 'M') + sx(p.t).toFixed(1) + ' ' + sy(p.v).toFixed(1))
-        .join(' '),
-      points: pts.map((p, i) => ({
-        x: sx(p.t),
-        y: sy(p.v),
-        fill: flagColor(p.flag),
-        tip: pointTip(test, p, unit),
-        label: i === pts.length - 1 ? fmtVal(test, p.v) : null,
-      })),
+    const tip = this.tooltip;
+
+    const decor: Plugin<'line'> = {
+      id: 'emrDecor',
+      beforeDatasetsDraw: (chart) => {
+        const { ctx, chartArea: a, scales } = chart;
+        const y = scales['y'];
+        if (!y) return;
+        ctx.save();
+        if (high != null || low != null) {
+          const top = y.getPixelForValue(Math.min(high ?? ax.ymax, ax.ymax));
+          const bot = y.getPixelForValue(Math.max(low ?? ax.ymin, ax.ymin));
+          ctx.globalAlpha = 0.75;
+          ctx.fillStyle = '#e5f5ee'; // html .band
+          ctx.fillRect(a.left, Math.min(top, bot), a.right - a.left, Math.abs(bot - top));
+          ctx.globalAlpha = 1;
+        }
+        if (stage) {
+          ctx.font = `10.5px ${font}`;
+          ctx.fillStyle = inkMuted;
+          ctx.textAlign = 'left';
+          ctx.strokeStyle = '#b8c6cd'; // html .stage-l, token --color-chart-stage-line
+          ctx.setLineDash([3, 4]);
+          for (const [lower, upper, code] of ranges) {
+            if (lower > 0 && lower < ax.ymax) {
+              const py = y.getPixelForValue(lower);
+              ctx.beginPath();
+              ctx.moveTo(a.left, py);
+              ctx.lineTo(a.right, py);
+              ctx.stroke();
+            }
+            const centre = (Math.max(lower, ax.ymin) + Math.min(upper, ax.ymax)) / 2;
+            ctx.fillText(code, a.right + 6, y.getPixelForValue(centre) + 4);
+          }
+          ctx.setLineDash([]);
+        }
+        const hot = chart.getActiveElements()[0];
+        if (hot) {
+          ctx.strokeStyle = '#9fb0b8'; // html .xhair
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(hot.element.x, a.top);
+          ctx.lineTo(hot.element.x, a.bottom);
+          ctx.stroke();
+        }
+        ctx.restore();
+      },
+      // pixel position of each point (CSS px, relative to the canvas), so the end-to-end test can hover a real point
+      afterRender: (chart) => {
+        cv.dataset['points'] = JSON.stringify(
+          chart.getDatasetMeta(0).data.map((e) => ({ x: Math.round(e.x), y: Math.round(e.y) })),
+        );
+      },
+      afterDatasetsDraw: (chart) => {
+        const { ctx, chartArea: a } = chart;
+        const el = chart.getDatasetMeta(0).data[pts.length - 1];
+        ctx.save();
+        if (el) {
+          ctx.font = `600 12px ${font}`;
+          ctx.fillStyle = '#10202b';
+          ctx.textAlign = el.x > chart.width - 90 ? 'right' : 'center';
+          ctx.fillText(fmtVal(test, last.v), el.x, el.y - 12);
+        }
+        ctx.font = `500 11px ${font}`;
+        ctx.fillStyle = inkMuted;
+        ctx.textAlign = 'left';
+        ctx.fillText(unit, a.left, 11);
+        ctx.restore();
+      },
     };
-  });
+
+    const onHover = (event: ChartEvent, active: readonly { index: number }[]): void => {
+      const native = event.native;
+      const hit = active[0];
+      const p = hit ? pts[hit.index] : undefined;
+      if (hit && p && native instanceof MouseEvent) tip.show(pointTip(test, p, unit), native);
+      else tip.hide();
+    };
+
+    const chart = new Chart<'line', Xy[]>(cv, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            data: pts.map((p) => ({ x: p.t, y: p.v })),
+            borderColor: teal,
+            borderWidth: 2,
+            borderJoinStyle: 'round',
+            borderCapStyle: 'round',
+            tension: 0,
+            pointRadius: 5,
+            pointHoverRadius: 5,
+            pointHitRadius: 14,
+            pointBackgroundColor: pts.map((p) => flagColor(p.flag)),
+            pointBorderColor: '#fff', // html .pt: a white ring
+            pointBorderWidth: 2,
+            pointHoverBorderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 640 / 270, // the HTML's viewBox
+        animation: false,
+        layout: { padding: { top: 16, right: stage ? 56 : 14, bottom: 0, left: 0 } },
+        interaction: { mode: 'nearest', intersect: true },
+        events: ['mousemove', 'mouseout'],
+        onHover,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: {
+          x: {
+            type: 'linear',
+            min: ax.tmin,
+            max: ax.tmax,
+            border: { display: false },
+            grid: { display: false },
+            afterBuildTicks: (s) => {
+              s.ticks = [0, 1, 2, 3, 4].map((i) => ({
+                value: ax.tmin + ((ax.tmax - ax.tmin) * i) / 4,
+              }));
+            },
+            ticks: {
+              color: inkMuted,
+              font: { family: font, size: 11 },
+              padding: 8,
+              maxRotation: 0,
+              callback: (v) =>
+                new Date(Number(v)).toLocaleDateString('en-GB', {
+                  month: 'short',
+                  year: '2-digit',
+                }),
+            },
+          },
+          y: {
+            type: 'linear',
+            min: ax.ymin,
+            max: ax.ymax,
+            border: { display: false },
+            grid: { color: '#e6ecef', lineWidth: 1 }, // html .grid-l
+            afterBuildTicks: (s) => {
+              s.ticks = ax.ticks.map((value) => ({ value }));
+            },
+            ticks: {
+              color: inkMuted,
+              font: { family: font, size: 11 },
+              padding: 8,
+              callback: (v) => String(+Number(v).toFixed(dec + 1)),
+            },
+          },
+        },
+      },
+      plugins: [decor],
+    });
+    cv.addEventListener('mouseleave', () => tip.hide());
+    return chart;
+  }
 }
