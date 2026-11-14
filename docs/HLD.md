@@ -5,6 +5,25 @@
 **Data:** Synthetic patients only. No real PHI anywhere in this repository.
 **Version:** v2. Aligned feature-for-feature with the product prototype `nephrocare-emr-platform.html`. Section 0 lists what changed from v1 and why.
 
+## Implementation differences
+
+The design below was written before the code. A reviewer comparing the two will meet these differences first. Each links to
+the deviation row that explains it; the service READMEs list the rest.
+
+| Design says | The build does | Explained in |
+|---|---|---|
+| `services/`, `libs/common` and `infra/` folders (§17) | One self-contained folder per service at the repository root; no shared library. Shared pieces such as the error envelope and the JWKS cache are copied and kept identical by tests | [auth-svc D3](../auth-svc/README.md#design-and-deviations) |
+| Databases `auth_db`, `patient_db`, `lab_db`, `ai_db` | `nephro_auth_db`, `nephro_patient_db`, `nephro_lab_db`, `nephro_ai_db` on the existing Postgres container (host port 5433, network alias `postgres`) | [auth-svc D1](../auth-svc/README.md#design-and-deviations), [patient-svc D1 to D3](../patient-svc/README.md#design-and-deviations), [lab-svc](../lab-svc/README.md#design-and-deviations) |
+| One database role per service (§5.1) | auth-svc has two: `auth_migrator` owns the schema and `auth_app` runs the service with no schema rights | [auth-svc D22](../auth-svc/README.md#design-and-deviations) |
+| Chart.js through `ng2-charts` with the annotation plugin (§15, ADR-014) | Chart.js used directly, with a small custom plugin for the reference band and the eGFR stage lines. The list sparkline is inline SVG | [frontend decisions](../frontend/docs/decisions.md#charting-library) |
+| Clinician name from a JWT claim | Tokens carry no personal data; patient-svc reads the name from auth-svc `/auth/me` and stores it as nullable | [patient-svc D6](../patient-svc/README.md#design-and-deviations) |
+| Patient list sorted by lateral joins | `patients.last_visit` and `patients.primary_dx_sort` keep the two sorts fast | [patient-svc D11](../patient-svc/README.md#design-and-deviations) |
+| A supplied reference-ranges file | No file was supplied; the prototype's ranges are loaded as a placeholder | [lab-svc](../lab-svc/README.md#design-and-deviations), [DATABASE.md](DATABASE.md#reference-ranges) |
+| Gateway Swagger with an Authorize button; no environment concept | A production start-up guard, a dev-only `X-Mock-Scenario` pass-through to ai-svc, and the Swagger CDN assets | [gateway D3, D15, D17](../gateway/README.md#design-and-deviations) |
+| LLM providers `mock`, `gemini`, `groq`, `ollama` | `mock` and `groq` are built | [ai-svc D2](../ai-svc/README.md#design-and-deviations) |
+| Seed ids not specified | UUIDv5 ids from one namespace, shared by the three seeding services | [DATABASE.md](DATABASE.md#synthetic-data), [auth-svc D28](../auth-svc/README.md#design-and-deviations) |
+
+
 ---
 
 ## Table of Contents
