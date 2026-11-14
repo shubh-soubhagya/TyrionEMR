@@ -1,38 +1,92 @@
 # patient-svc
 
-The clinical chart service of the Nephro EMR. Design: [docs/patient-svc-HLD-LLD.md](docs/patient-svc-HLD-LLD.md). Build plan: [PHASES.md](docs/PHASES.md).
-Layout, tooling and container setup mirror `auth-svc`.
+The clinical chart service. patient-svc stores patients and everything in their chart that a clinician writes: demographics
+and history, the problem list (conditions), medications, allergies and outpatient encounters with vitals and diagnoses. It
+runs the encounter lifecycle (draft, then final and immutable) and keeps an audit trail of every write.
 
-## Run it (development)
+It owns: patients, conditions, medications, allergies, encounters, vitals, encounter diagnoses, the audit trail.
+It does not own: laboratory results (lab-svc), accounts and tokens (auth-svc), AI output (ai-svc). It calls no service
+except auth-svc, for token keys and the clinician's name.
 
-Uses the same existing Postgres container as auth-svc (`graphgpt-postgres`, attached to the external
-network `nephro-net` with the alias `postgres`; see `../auth-svc/README.md`).
+Synthetic data only.
+
+## Endpoints
+
+Full reference: [docs/API.md](../docs/API.md#patient-svc). Paths are reached through the gateway under `/api`.
+
+| Method | Gateway path | Purpose |
+|---|---|---|
+| GET, POST | `/api/patients` | List with search (`q`), filters (`sex`, `stage`, `ids`), sort (`name`, `mrn`, `age`, `dx`, `visit`) and paging; register a patient |
+| GET, PATCH, DELETE | `/api/patients/{id}` | Read, edit with `version`, soft delete |
+| GET, POST | `/api/patients/{id}/conditions` | The problem list |
+| PATCH, DELETE | `/api/patients/{id}/conditions/{cid}` | Edit, set primary, resolve or reactivate; soft delete |
+| GET, POST | `/api/patients/{id}/medications` | Medications |
+| PATCH | `/api/patients/{id}/medications/{mid}` | Edit or discontinue |
+| GET, POST, DELETE | `/api/patients/{id}/allergies` | Allergies; adding or removing one updates the patient's allergy status |
+| GET, POST | `/api/patients/{id}/encounters` | List and create (draft or final) |
+| GET, PATCH, DELETE | `/api/patients/{id}/encounters/{eid}` | Read, edit a draft, delete a draft |
+| POST | `/api/patients/{id}/encounters/{eid}/finalize` | Freeze the encounter and update the problem list |
+| GET | `/api/encounters` | Cross-patient lists for the dashboard: drafts and upcoming follow-ups |
+
+Not routed by the gateway:
+
+| Path | Caller |
+|---|---|
+| `GET /internal/patients/charts`, `/internal/patients/{id}/basic`, `/chart`, `/conditions`, `/encounters`, `/medications-allergies` | ai-svc (and lab-svc for `basic`), on the private network. No names, MRNs or contact details; contract files in `contracts/patient/` guard each response |
+| `GET /health`, `GET /ready` | Docker health checks and the gateway |
+
+### Encounter lifecycle
+
+A new encounter is a `draft`: it can be edited and deleted. Finalising checks that chief complaint, assessment and plan are
+present, links each diagnosis marked "add to problem list" to an existing condition or creates one, and sets the status to
+`final` in one transaction. After that a database trigger rejects any change (`409 ENCOUNTER_FINAL`). Edits to patients and
+drafts carry the `version` the client read; a stale version answers `409 VERSION_CONFLICT`. Every write adds one audit row
+holding field names, never values.
+
+## Data
+
+Database `nephro_patient_db` (tests use `nephro_patient_db_test`). Schema and relationships:
+[docs/DATABASE.md](../docs/DATABASE.md#patient-svc).
+
+| Table | Holds |
+|---|---|
+| `patients` | Demographics, history, allergy status, established CKD stage, two derived list-sort columns |
+| `encounters` | Visits with a draft or final status |
+| `encounter_vitals`, `encounter_diagnoses` | Vitals and diagnoses of one encounter |
+| `patient_conditions` | The problem list, with one active primary condition per patient |
+| `medications`, `allergies` | Current and past medications; allergens |
+| `audit_events` | Append-only audit trail |
+
+Migrations: `0001` baseline, `0002` diagnosis category, `0003` nullable clinician name, `0004` list-sort columns.
+
+## Dependencies
+
+| Dependency | Used for | If it fails |
+|---|---|---|
+| `patient_db` (shared Postgres container) | everything | `/ready` fails, requests return 503 |
+| auth-svc `/.well-known/jwks.json` | verifying access tokens | cached keys keep working; new key ids fail until it is back |
+| auth-svc `/auth/me` | the clinician name stored on a new encounter | the name is null and the write still succeeds; the same clinician's later edit or finalize fills it in |
+
+## Run
+
+As part of the stack: see the root [README](../README.md#quick-start). Alone, for development (Python 3.12 and the shared
+Postgres container `graphgpt-postgres` on host port 5433):
 
 ```bash
-cp .env.example .env            # then set PATIENT_DB_PW and the two URLs (host port 5433)
-export PATIENT_DB_PW=...        # same value
-make init-db init-test-db       # idempotent: role patient_svc + nephro_patient_db(+_test)
+cp .env.example .env            # set PATIENT_DB_PW and the two URLs
+export PATIENT_DB_PW=...        # the same value
+make init-db init-test-db       # idempotent: role patient_svc and nephro_patient_db (+ _test)
 make install                    # local venv
-make test                       # unit tests + API tests (API tests need the test database)
-make run                        # uvicorn on :8002 (needs JWKS_URL reachable for /ready)
+make migrate                    # alembic upgrade head
+make seed                       # the ten synthetic patients (idempotent); make seed-reset wipes first (dev only)
+make run                        # uvicorn on http://localhost:8002 (needs JWKS_URL reachable for /ready)
 make up                         # Docker, on nephro-net, no published port
+make openapi                    # re-export docs/api/openapi.json
 ```
 
-## Status
+## Configuration
 
-All ten phases of [PHASES.md](docs/PHASES.md) are implemented: schema and immutability triggers, patients, conditions,
-medications, allergies, encounters (draft, edit, finalize, delete, problem-list linkage), dashboard queries,
-internal endpoints with JSON Schema contracts (`contracts/patient/`), audit trail, metrics, seed data,
-OpenAPI export (`docs/api/openapi.json`) and measured query plans (`docs/db/explain/`).
-
-```bash
-make migrate      # alembic upgrade head on the dev database
-make seed         # the ten synthetic demo patients (idempotent); make seed-reset wipes first (dev only)
-make openapi      # docs/api/openapi.json
-```
-
-
-## Configuration (service-specific settings)
+Service-specific settings. The full list is in [.env.example](.env.example).
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -45,15 +99,14 @@ make openapi      # docs/api/openapi.json
 | `CLINIC_TZ` | `Asia/Kolkata` | "today" for date-only rules |
 | `MAX_BODY_BYTES` | 1048576 | request bodies above this are rejected with `413 PAYLOAD_TOO_LARGE` |
 
-## Runtime dependencies
+## Tests
 
-| Dependency | Used for | If it fails |
-|---|---|---|
-| `patient_db` (shared Postgres container) | everything | `/ready` fails, requests return 503 |
-| auth-svc `/.well-known/jwks.json` | verifying access tokens | cached keys keep working; new key ids fail until it is back |
-| auth-svc `/auth/me` | the clinician name stored on a new encounter | the name is null and the write still succeeds; the same clinician's later edit or finalize fills it in |
+```bash
+make test       # unit and API tests; API tests need the test database. REQUIRE_DB_TESTS=1 fails instead of skipping
+make lint       # ruff and mypy
+```
 
-## Rules the tests prove
+Last recorded full run: 230 passed. Rules the tests prove:
 
 | Rule | Test |
 |---|---|
@@ -68,16 +121,10 @@ make openapi      # docs/api/openapi.json
 | Every demo scenario fact survives a seed change | `tests/api/test_seed.py` |
 | Layering: `domain` is pure and routers never touch repositories | `tests/unit/test_layers.py` |
 
-## Open items
+## Design and deviations
 
-| # | Item |
-|---|---|
-| O1 | **Resolved.** Seed namespace: this service, lab-svc (`app/domain/seed_ids.py`) and auth-svc's demo users (`app/cli/seed_users.py`, `uuid5(NS, "user:" + email)`) all use `9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10`. A development database seeded before that keeps its old random user ids until the two demo users are deleted and reseeded (see auth-svc README). |
-| O2 | **Resolved** by D11. Sort by last visit now takes about 46 ms and by primary diagnosis about 29 ms at 10,000 patients / 200,000 encounters (target 150 ms; was about 270 ms). See `docs/db/explain/README.txt`. |
-| O3 | **Resolved.** The image is built and runs healthy with the other services (`make up` at the repo root); `GET /api/patients` answers 200 through the gateway (`make smoke`). |
-| O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
-
-## Deviations from the design document
+Design: [docs/patient-svc-HLD-LLD.md](docs/patient-svc-HLD-LLD.md). Build plan (kept as a record): [docs/PHASES.md](docs/PHASES.md).
+Measured query plans at 10,000 patients and 200,000 encounters: [docs/db/explain/README.txt](docs/db/explain/README.txt).
 
 | # | Design | Here | Why |
 |---|---|---|---|
@@ -97,3 +144,14 @@ Manual h11 check (no database needed): serve any ASGI app with `uvicorn.Config(a
 h11_max_incomplete_event_size=N)`, send `GET /patients?ids=<500 uuids>` in 1,400-byte pieces on a raw socket. With
 `N=16384` the connection is aborted; with `N=32768` the answer is `200 OK` (checked on 13 Nov 2026, uvicorn 0.54).
 
+## Known limitations
+
+| # | Item |
+|---|---|
+| O1 | **Resolved.** Seed namespace: this service, lab-svc (`app/domain/seed_ids.py`) and auth-svc's demo users (`app/cli/seed_users.py`, `uuid5(NS, "user:" + email)`) all use `9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10`. A development database seeded before that keeps its old random user ids until the two demo users are deleted and reseeded (see auth-svc README). |
+| O2 | **Resolved** by D11. Sort by last visit now takes about 46 ms and by primary diagnosis about 29 ms at 10,000 patients / 200,000 encounters (target 150 ms; was about 270 ms). See `docs/db/explain/README.txt`. |
+| O3 | **Resolved.** The image is built and runs healthy with the other services (`make up` at the repo root); `GET /api/patients` answers 200 through the gateway (`make smoke`). |
+| O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
+
+- No sorting by latest eGFR in the patient list (ADR-020); the list shows eGFR from lab-svc for the visible page only.
+- Patient registration has no duplicate detection beyond the generated MRN.
