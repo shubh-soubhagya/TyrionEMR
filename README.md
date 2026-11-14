@@ -137,7 +137,7 @@ make migrate
 make up
 ```
 
-`make up` builds five Docker images, so the first run takes several minutes. When it finishes, check that everything is
+The first `make up` builds five Docker images, so it takes several minutes. Later runs reuse the images and start in seconds; after you change code, run `make rebuild` instead. When it finishes, check that everything is
 healthy (it can take a minute after `make up`):
 
 ```bash

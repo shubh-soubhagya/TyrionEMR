@@ -6,7 +6,7 @@ SERVICES := auth-svc patient-svc lab-svc ai-svc gateway
 # one-off container of a service on nephro-net, entrypoint replaced (no dependencies started)
 RUN = MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --entrypoint
 
-.PHONY: network init-dbs keys migrate seed up down logs ps smoke test docs docs-check schema-dump
+.PHONY: network init-dbs keys migrate seed up rebuild down logs ps smoke test docs docs-check schema-dump
 
 # 1. The external network every container shares, with the shared Postgres attached under the alias "postgres".
 #    Idempotent: creates the network only if missing, attaches the container only if it is not attached.
@@ -47,7 +47,11 @@ seed:
 	$(RUN) python lab-svc -m app.cli.seed_catalog
 	$(RUN) python lab-svc -m app.cli.seed_labs
 
+# Starts the stack. Docker builds an image only when it does not exist yet, so a second `make up` is fast and rebuilds nothing.
 up: network
+	docker compose up -d
+# After changing code, rebuild the images and restart the changed services.
+rebuild: network
 	docker compose up --build -d
 down:
 	docker compose down
