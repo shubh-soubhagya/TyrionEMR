@@ -91,6 +91,6 @@ sign out and back in) is `frontend/e2e/flow/flow.e2e.ts`; see `frontend/README.m
 ## Known limitations
 
 Each service's README has a deviations table: [auth-svc](auth-svc/README.md), [patient-svc](patient-svc/README.md),
-[lab-svc](lab-svc/README.md), [ai-svc](ai-svc/README.md), [gateway](gateway/README.md). Notable: the gateway image is not
-yet built from hash-locked requirements (gateway README D1); CI workflows exist for auth-svc only; sorting the patient list
+[lab-svc](lab-svc/README.md), [ai-svc](ai-svc/README.md), [gateway](gateway/README.md). Notable: the gateway installs from
+`pyproject.toml` without hash locking, by decision (gateway README D1); CI workflows exist for auth-svc only; sorting the patient list
 by eGFR is not offered by design (ADR-020).

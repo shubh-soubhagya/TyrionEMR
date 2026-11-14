@@ -119,7 +119,7 @@ under test is the real migration. They need `AUTH_TEST_DATABASE_URL` in `.env`.
 | D6 | `Retry-After` is `ceil(remaining seconds)` | The LLD's `+1` made a fresh 15-minute lock say "16 minutes". |
 | D7 | OpenAPI export is `docs/api/openapi.json` | Per the requested tree (the original task said `docs/api/auth-svc.json`). |
 | D8 | Route label in logs/metrics is rebuilt from the real path | FastAPI reports router-relative paths (`/login`), which would collide across prefixes. |
-| D9 | JWKS cache/refetch verifier is not included | It is gateway-side. Deferred with the gateway. |
+| D9 | JWKS cache/refetch verifier is not included | **Resolved.** The cache and refetch logic live in `gateway/app/services/jwks_cache.py` (patient-svc, lab-svc and ai-svc each keep their own copy with the same rules); auth-svc only publishes the keys | The verifier is consumer-side, not part of the issuer |
 | D10 | Login reserves an attempt atomically **before** verifying the password; new column `users.last_failed_at` (migration 0002); failures older than `LOGIN_FAILURE_WINDOW_MINUTES` stop counting | Parallel guesses bypassed the lockout (N tried instead of 5) and a correct guess could log in after the account locked. LLD §19.2 |
 | D11 | In-process per-IP rate limit on `/auth/login` and `/auth/signup` (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth until the gateway exists. Limits are **per process** (2 workers = up to 2x). LLD §28 |
 | D12 | `ENVIRONMENT=production` startup guard; docs/schema off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe config must not reach production. LLD §28 |

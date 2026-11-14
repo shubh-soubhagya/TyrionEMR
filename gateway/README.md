@@ -22,7 +22,6 @@ Self-contained like `auth-svc/` and `patient-svc/`: own `app/core`, no shared li
 make install   # venv + dev dependencies (host Python 3.12)
 make test      # in-process tests, no Docker, no network
 make lint      # ruff + mypy
-make lock      # regenerate hash-locked requirements inside the pinned image (needs Docker)
 make up        # setup/network.sh, then build and start the container on nephro-net (publishes :8080)
 make smoke     # end-to-end check of the running gateway against the real services (setup/smoke-test.sh)
 make down logs build
@@ -32,7 +31,7 @@ make down logs build
 
 | # | Design | Here | Why |
 |---|---|---|---|
-| D1 | LLD §15/§29.1: unhashed `pip install`, wheels stage | **Not done yet:** `make lock` (hash-locked `requirements*.lock`, `--require-hashes`) was skipped by decision, so the image installs from `pyproject.toml` unhashed. Target: `requirements*.lock` with hashes (`make lock` in the pinned image), digest-pinned base image, `--require-hashes`, non-root uid 10001, CI workflow | Same supply-chain rules as auth-svc (D13) and patient-svc |
+| D1 | LLD §15/§29.1: unhashed `pip install`, wheels stage | The image installs from `pyproject.toml` with version floors and no hashes, by decision | Kept simple; the gateway has seven direct dependencies and no database |
 | D2 | `pydantic-settings>=2.3` | `>=2.7` | `NoDecode` (CSV settings) needs 2.7 |
 | D3 | No environment concept | `ENVIRONMENT` (development / test / production) and `app/core/guard.py`; production refuses to start with localhost or `*` CORS, `DOCS_ENABLED`, `METRICS_ENABLED` without `METRICS_TOKEN`, `RATE_LIMIT_ENABLED=false`, `HSTS_ENABLED=false`. New `METRICS_ENABLED`. `docker-compose.prod.yml` | Same pattern as auth-svc D12 and D18 |
 | D4 | Route label rebuilt from the path / scope | Label read from `scope["state"]["route"]`, set by the pipeline; literal labels for gateway-owned routes; `preflight` and `origin_rejected` from CORS; otherwise `unmatched`. `/health`, `/ready`, `/metrics` stay out of the histogram but are access-logged | A catch-all route cannot give a useful template; ids must never become labels |
@@ -58,4 +57,3 @@ make down logs build
 - Observed on a busy Docker Desktop host: DNS lookups inside the container occasionally take a few hundred ms and, with
   `UPSTREAM_CONNECT_TIMEOUT_S=1`, an occasional first request answers `502 UPSTREAM_UNAVAILABLE`. Raise the timeout in `.env` if
   it shows up on your machine; the default follows the LLD.
-- Open: `make lock` (D1). Hash-locked requirements and `--require-hashes` in the Dockerfile.

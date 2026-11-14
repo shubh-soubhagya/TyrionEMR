@@ -10,16 +10,7 @@ export
 # Same digest as auth-svc's Dockerfile. Refresh it deliberately in both places.
 PYTHON_IMAGE ?= python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 
-.PHONY: lock venv install run test test-unit test-api lint fmt routes build up down logs smoke
-
-# Regenerate the hash-locked requirements inside the SAME pinned Linux image the Dockerfile uses, so
-# platform-specific packages (uvloop, ...) resolve for production, not for the developer's OS.
-lock:
-	MSYS_NO_PATHCONV=1 docker run --rm -e PIP_DEFAULT_TIMEOUT=120 -e PIP_RETRIES=10 -v "$$(pwd -W 2>/dev/null || pwd):/w" -w /w $(PYTHON_IMAGE) sh -c ' \
-	  pip install -q pip-tools && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe -o requirements.lock pyproject.toml && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe --extra dev -o requirements-dev.lock pyproject.toml && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe -o requirements-build.lock requirements-build.in'
+.PHONY: venv install run test test-unit test-api lint fmt routes build up down logs smoke
 
 venv:
 	python -m venv .venv

@@ -7,9 +7,7 @@ FROM ${PYTHON_IMAGE} AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PATH=/opt/venv/bin:$PATH
 RUN python -m venv /opt/venv
 WORKDIR /src
-# NOT hash-locked yet (deviation D1 in the README): `make lock` was skipped by decision, so the dependencies resolve
-# from pyproject.toml at build time. When requirements.lock and requirements-build.lock exist, replace this block
-# with auth-svc's two `pip install --require-hashes --no-deps -r ...lock` steps.
+# Installs come from pyproject.toml, not hash-locked, by decision (README D1).
 COPY pyproject.toml ./
 COPY app ./app
 RUN pip install --no-cache-dir .

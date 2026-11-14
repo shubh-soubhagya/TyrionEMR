@@ -31,7 +31,6 @@ make seed         # the ten synthetic demo patients (idempotent); make seed-rese
 make openapi      # docs/api/patient-svc.json
 ```
 
-Not verified yet: the Docker image build and `docker compose up` (see "Open items").
 
 ## Configuration (service-specific settings)
 
@@ -75,8 +74,8 @@ Not verified yet: the Docker image build and `docker compose up` (see "Open item
 |---|---|
 | O1 | **Resolved.** Seed namespace: this service, lab-svc (`app/domain/seed_ids.py`) and auth-svc's demo users (`app/cli/seed_users.py`, `uuid5(NS, "user:" + email)`) all use `9b3f6a52-7c1e-4d0b-9a58-2f4e8c1d7a10`. A development database seeded before that keeps its old random user ids until the two demo users are deleted and reseeded (see auth-svc README). |
 | O2 | List sorted by last visit or primary diagnosis takes about 270 ms at 10,000 patients / 200,000 encounters (target 150 ms). The design's upgrade path is a `last_visit` column maintained at finalize. Everything else meets its target; see `docs/db/explain/README.txt`. |
-| O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
 | O3 | **Resolved.** The image is built and runs healthy with the other services (`make up` at the repo root); `GET /api/patients` answers 200 through the gateway (`make smoke`). |
+| O5 | CI for patient-svc (workflow, `requirements-dev.lock`) is deferred by decision. `tests/conftest.py` already fails instead of skipping when `REQUIRE_DB_TESTS=1` is set, ready for it. |
 
 ## Deviations from the design document
 
