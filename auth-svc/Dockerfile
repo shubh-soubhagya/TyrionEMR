@@ -6,15 +6,10 @@ FROM ${PYTHON_IMAGE} AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PATH=/opt/venv/bin:$PATH
 RUN python -m venv /opt/venv
 WORKDIR /src
-# 1. Build tooling and runtime dependencies come ONLY from hash-locked files (--require-hashes rejects
-#    any package whose hash is not in the lock, so a tampered or substituted package fails the build).
-COPY requirements-build.lock requirements.lock ./
-RUN pip install --require-hashes --no-deps -r requirements-build.lock \
- && pip install --require-hashes --no-deps -r requirements.lock
-# 2. Our own package, built offline against the pinned setuptools, installed into the venv.
+# Dependencies resolve from pyproject.toml at build time. Hash-locked requirements were dropped by decision.
 COPY pyproject.toml ./
 COPY app ./app
-RUN pip install --no-build-isolation --no-deps .
+RUN pip install --no-cache-dir .
 
 FROM ${PYTHON_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PATH=/opt/venv/bin:$PATH

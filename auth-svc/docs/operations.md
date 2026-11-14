@@ -33,13 +33,8 @@ Other services and the gateway need only `JWKS_URL=http://auth-svc:8000/.well-kn
 
 ## Reproducible builds
 
-Dependencies are locked with hashes, generated inside the pinned Linux image:
-
-```bash
-make lock    # rewrites requirements.lock, requirements-dev.lock and requirements-build.lock
-```
-
-The Dockerfile and CI install with `pip install --require-hashes`. The base image is pinned by digest.
+The image installs from `pyproject.toml` (version floors, no hashes; hash-locked requirements were dropped by decision). The
+base image is pinned by digest. CI installs with `pip install -e ".[dev]"` and scans with `pip-audit`.
 
 ## Everyday tasks
 

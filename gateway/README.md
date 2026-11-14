@@ -137,7 +137,7 @@ The row numbers skip D7 and D8, which were never used.
 ## Known limitations
 
 - Rate limits are in memory and per process; several gateway replicas would each keep their own buckets.
-- The image installs from `pyproject.toml` without hash locking, by decision (D1).
+- The image installs from `pyproject.toml` without hash locking, by decision (D1), like every other service.
 - No CI workflow for the gateway; only auth-svc has one.
 - On a busy Docker Desktop host, a first request can occasionally answer `502 UPSTREAM_UNAVAILABLE` because DNS lookups
   exceed the 1 s connect timeout. Raise `UPSTREAM_CONNECT_TIMEOUT_S` in `.env` if it shows up.

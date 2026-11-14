@@ -13,15 +13,6 @@ export
 PYTHON_IMAGE := $(shell sed -n 's/^ARG PYTHON_IMAGE=//p' Dockerfile)
 
 
-# Regenerate the hash-locked requirements inside the SAME pinned Linux image the Dockerfile uses, so
-# platform-specific packages (uvloop, ...) resolve for production, not for the developer's OS.
-lock:
-	MSYS_NO_PATHCONV=1 docker run --rm -e PIP_DEFAULT_TIMEOUT=120 -e PIP_RETRIES=10 -v "$$(pwd -W 2>/dev/null || pwd):/w" -w /w $(PYTHON_IMAGE) sh -c ' \
-	  pip install -q pip-tools && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe -o requirements.lock pyproject.toml && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe --extra dev -o requirements-dev.lock pyproject.toml && \
-	  pip-compile -q --generate-hashes --strip-extras --no-header --allow-unsafe -o requirements-build.lock requirements-build.in'
-
 venv:
 	python -m venv .venv
 install: venv

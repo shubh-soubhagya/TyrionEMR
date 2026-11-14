@@ -146,7 +146,7 @@ Design: [docs/ai-svc-HLD-LLD.md](docs/ai-svc-HLD-LLD.md). Build plan (kept as a 
 | # | Design says | Here | Why |
 |---|---|---|---|
 | D1 | FastAPI `redirect_slashes=True` | `redirect_slashes=False`: `/insights/dashboard/` is a 404 | A 307 through the gateway would leak the upstream path (gateway LLD R14) |
-| D2 | Providers `mock`, `gemini`, `groq`, `ollama` | `mock` and `groq` are built; the database check accepts the other names | The free tier and the mock cover the assignment |
+| D2 | Providers `mock`, `gemini`, `groq`, `ollama` | `mock` and `groq` are built; the database check accepts the other names | The free tier and the mock cover the need |
 
 ## Known limitations
 

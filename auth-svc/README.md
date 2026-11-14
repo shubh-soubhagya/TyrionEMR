@@ -168,7 +168,7 @@ Design: [docs/auth-svc-HLD-LLD.md](docs/auth-svc-HLD-LLD.md) (the highest author
 | D10 | Login verifies, then counts | Login reserves an attempt atomically before verifying; `users.last_failed_at` (migration 0002); old failures stop counting | Parallel guesses bypassed the lockout. LLD §19.2 |
 | D11 | No in-service limiter | Per-IP limit on login and signup (`429 RATE_LIMITED`); hash slots wait at most `ARGON2_QUEUE_TIMEOUT_S` then `503 SERVICE_BUSY` | Defense in depth behind the gateway. Limits are per process. LLD §28 |
 | D12 | No environment concept | `ENVIRONMENT=production` startup guard; docs off in production; `seed_users` refuses; `docker-compose.prod.yml` | Unsafe configuration must not reach production |
-| D13 | Plain install | Hash-locked requirements, base image pinned by digest, CI workflow | Reproducible, verifiable builds |
+| D13 | Plain install | Base image pinned by digest and a CI workflow. Hash-locked requirements were added, then dropped by decision: the image installs from `pyproject.toml` | Reproducible base image; kept simple like the other services |
 | D14 | No timeouts | Statement, lock and idle-in-transaction timeouts on every connection; `503 SERVICE_BUSY` | A stuck query must not hang requests |
 | D15 | No TLS setting | `AUTH_DB_SSLMODE` and `AUTH_DB_SSLROOTCERT`; production refuses `disable` | Encrypt database traffic |
 | D16 | Log exception messages | Unhandled exceptions log type, cause chain and stack, never messages or locals | Debuggable without leaking request data |
