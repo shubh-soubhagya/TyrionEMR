@@ -44,9 +44,12 @@ seed-reset:
 	$(PY) -m app.cli.seed_patients --reset
 openapi:
 	$(PY) -m app.cli.export_openapi
-# Plans at the LLD 26 scale: fill the TEST database (PATIENT_DATABASE_URL=$$PATIENT_TEST_DATABASE_URL), then explain
+# Plans at the LLD 26 scale. ALWAYS against the TEST database: `--reset` truncates every table, and the `-include .env`
+# above would otherwise win over a PATIENT_DATABASE_URL set in the shell and point this at the development database.
 explain:
-	$(PY) -m app.cli.seed_patients --reset --scale 10000 && $(PY) -m app.cli.explain
+	@test -n "$(PATIENT_TEST_DATABASE_URL)" || (echo "PATIENT_TEST_DATABASE_URL is not set"; exit 1)
+	@PATIENT_DATABASE_URL="$(PATIENT_TEST_DATABASE_URL)" $(PY) -m app.cli.seed_patients --reset --scale 10000
+	@PATIENT_DATABASE_URL="$(PATIENT_TEST_DATABASE_URL)" $(PY) -m app.cli.explain
 
 run:
 	$(PY) -m uvicorn app.main:app --reload --port 8002 --h11-max-incomplete-event-size 32768

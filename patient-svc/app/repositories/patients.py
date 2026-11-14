@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import func, select, text, update
@@ -10,8 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.search import SearchSpec, order_by_sql
 from app.models import Patient
-
-PAGE_FIRST_SORTS = frozenset({"name", "mrn", "age"})
 
 
 async def lock_active(session: AsyncSession, pid: uuid.UUID) -> Patient | None:
@@ -62,6 +60,26 @@ async def bump_version(session: AsyncSession, pid: uuid.UUID, user_id: uuid.UUID
         .values(**values, version=Patient.version + 1, updated_by=user_id)
         .returning(Patient.version).execution_options(synchronize_session=False))
     return res.scalar_one()
+
+
+async def raise_last_visit(session: AsyncSession, pid: uuid.UUID, visit: datetime) -> None:
+    """Final encounters are immutable and only drafts can be deleted, so the last visit can only move forward.
+    Writes only ``last_visit`` (no version bump: it is a derived sort key)."""
+    await session.execute(
+        text("UPDATE patients SET last_visit = :v WHERE id = :p AND (last_visit IS NULL OR last_visit < :v)"),
+        {"v": visit, "p": pid})
+
+
+async def refresh_primary_dx_sort(session: AsyncSession, pid: uuid.UUID) -> None:
+    """Recompute ``primary_dx_sort`` from the problem list. Called at the end of every transaction that can change
+    the active primary condition (never a trigger). Writes only that column and only when it changes."""
+    await session.execute(text("""
+        WITH v AS (
+          SELECT (SELECT lower(c.description) FROM patient_conditions c
+                  WHERE c.patient_id = :p AND c.is_primary AND c.status = 'active' AND c.deleted_at IS NULL
+                  LIMIT 1) AS val)
+        UPDATE patients SET primary_dx_sort = v.val FROM v
+        WHERE id = :p AND primary_dx_sort IS DISTINCT FROM v.val"""), {"p": pid})
 
 
 async def soft_delete(session: AsyncSession, pid: uuid.UUID, user_id: uuid.UUID) -> None:
@@ -137,28 +155,19 @@ async def list_patients(session: AsyncSession, *, sex: str | None, stage: str | 
         params["relevance_q"] = relevance_q
     filtered = f"""
           SELECT p.id, p.mrn, p.first_name, p.last_name, p.date_of_birth, p.sex, p.phone,
-                 p.established_ckd_stage, p.allergy_status, p.search_name
+                 p.established_ckd_stage, p.allergy_status, p.search_name, p.last_visit AS last_visit_key,
+                 p.primary_dx_sort
           FROM patients p WHERE {where}"""
-    if sort in PAGE_FIRST_SORTS:
-        # name/mrn/age do not depend on the lateral joins, so slice the page first and probe the two lateral
-        # indexes for at most `size` rows instead of for every filtered patient (measured: ~470 ms -> ms)
-        head = f"""WITH filtered AS ({filtered}),
+    # Every sort key is a column of the patient row (the last two since migration 0004), so the page is sliced first
+    # and the two lateral probes run for at most `size` rows, not for every filtered patient.
+    head = f"""WITH filtered AS ({filtered}),
         paged AS (SELECT f.*, count(*) OVER () AS total FROM filtered f ORDER BY {order} LIMIT :size OFFSET :offset)
         SELECT f.id, f.mrn, f.first_name, f.last_name, f.sex, f.phone, f.established_ckd_stage, f.allergy_status,
                date_part('year', age(CAST(:today AS date), f.date_of_birth))::int AS age,
                pc.icd10_code AS primary_icd10, pc.description AS primary_description,
                lv.last_visit, f.total
         FROM paged f"""
-        tail = f"ORDER BY {order}"
-    else:
-        # dx/visit sort by a lateral value, so it must be computed for every filtered row before LIMIT
-        head = f"""WITH filtered AS ({filtered})
-        SELECT f.id, f.mrn, f.first_name, f.last_name, f.sex, f.phone, f.established_ckd_stage, f.allergy_status,
-               date_part('year', age(CAST(:today AS date), f.date_of_birth))::int AS age,
-               pc.icd10_code AS primary_icd10, pc.description AS primary_description,
-               lv.last_visit, count(*) OVER () AS total
-        FROM filtered f"""
-        tail = f"ORDER BY {order} LIMIT :size OFFSET :offset"
+    tail = f"ORDER BY {order}"
     sql = f"""
         {head}
         LEFT JOIN LATERAL (

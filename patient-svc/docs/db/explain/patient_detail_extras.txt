@@ -1,56 +1,62 @@
-Result  (cost=100.71..100.72 rows=1 width=44) (actual time=0.882..0.892 rows=1 loops=1)
-  Buffers: shared hit=40
+Result  (cost=201.35..201.36 rows=1 width=44) (actual time=0.797..0.802 rows=1 loops=1)
+  Buffers: shared hit=82
   InitPlan 1 (returns $0)
-    ->  Aggregate  (cost=4.31..4.32 rows=1 width=8) (actual time=0.139..0.142 rows=1 loops=1)
+    ->  Aggregate  (cost=8.30..8.31 rows=1 width=8) (actual time=0.139..0.141 rows=1 loops=1)
           Buffers: shared hit=3
-          ->  Index Only Scan using conditions_patient_icd on patient_conditions  (cost=0.29..4.30 rows=1 width=0) (actual time=0.126..0.129 rows=1 loops=1)
-                Index Cond: (patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid)
-                Heap Fetches: 0
+          ->  Index Only Scan using conditions_patient_icd on patient_conditions  (cost=0.29..8.30 rows=1 width=0) (actual time=0.129..0.131 rows=1 loops=1)
+                Index Cond: (patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
+                Heap Fetches: 1
                 Buffers: shared hit=3
   InitPlan 2 (returns $1)
-    ->  Aggregate  (cost=4.31..4.32 rows=1 width=8) (actual time=0.072..0.073 rows=1 loops=1)
+    ->  Aggregate  (cost=8.31..8.32 rows=1 width=8) (actual time=0.050..0.051 rows=1 loops=1)
           Buffers: shared hit=3
-          ->  Index Only Scan using conditions_patient on patient_conditions patient_conditions_1  (cost=0.29..4.30 rows=1 width=0) (actual time=0.068..0.069 rows=1 loops=1)
-                Index Cond: ((patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid) AND (status = 'active'::text))
-                Heap Fetches: 0
+          ->  Index Scan using conditions_patient_icd on patient_conditions patient_conditions_1  (cost=0.29..8.30 rows=1 width=0) (actual time=0.042..0.043 rows=1 loops=1)
+                Index Cond: (patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
+                Filter: (status = 'active'::text)
                 Buffers: shared hit=3
   InitPlan 3 (returns $2)
-    ->  Aggregate  (cost=4.35..4.36 rows=1 width=8) (actual time=0.119..0.120 rows=1 loops=1)
-          Buffers: shared hit=3
-          ->  Index Only Scan using meds_patient_active on medications  (cost=0.29..4.34 rows=3 width=0) (actual time=0.113..0.115 rows=3 loops=1)
-                Index Cond: (patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid)
-                Heap Fetches: 0
-                Buffers: shared hit=3
+    ->  Aggregate  (cost=15.64..15.65 rows=1 width=8) (actual time=0.080..0.081 rows=1 loops=1)
+          Buffers: shared hit=5
+          ->  Bitmap Heap Scan on medications  (cost=4.31..15.63 rows=3 width=0) (actual time=0.073..0.079 rows=3 loops=1)
+                Recheck Cond: ((patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid) AND (status = 'active'::text) AND (deleted_at IS NULL))
+                Heap Blocks: exact=3
+                Buffers: shared hit=5
+                ->  Bitmap Index Scan on meds_patient_active  (cost=0.00..4.31 rows=3 width=0) (actual time=0.054..0.054 rows=3 loops=1)
+                      Index Cond: (patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
+                      Buffers: shared hit=2
   InitPlan 4 (returns $3)
-    ->  Aggregate  (cost=4.82..4.83 rows=1 width=8) (actual time=0.119..0.121 rows=1 loops=1)
-          Buffers: shared hit=4
-          ->  Index Only Scan using encounters_patient_date on encounters  (cost=0.42..4.77 rows=20 width=0) (actual time=0.107..0.112 rows=20 loops=1)
-                Index Cond: (patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid)
-                Heap Fetches: 0
-                Buffers: shared hit=4
+    ->  Aggregate  (cost=82.18..82.19 rows=1 width=8) (actual time=0.404..0.404 rows=1 loops=1)
+          Buffers: shared hit=44
+          ->  Bitmap Heap Scan on encounters  (cost=4.58..82.13 rows=20 width=0) (actual time=0.301..0.395 rows=20 loops=1)
+                Recheck Cond: ((patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid) AND (deleted_at IS NULL))
+                Heap Blocks: exact=40
+                Buffers: shared hit=44
+                ->  Bitmap Index Scan on encounters_patient_date  (cost=0.00..4.57 rows=20 width=0) (actual time=0.088..0.089 rows=40 loops=1)
+                      Index Cond: (patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
+                      Buffers: shared hit=4
   InitPlan 6 (returns $5)
-    ->  Result  (cost=0.64..0.65 rows=1 width=8) (actual time=0.099..0.100 rows=1 loops=1)
+    ->  Result  (cost=4.64..4.65 rows=1 width=8) (actual time=0.051..0.052 rows=1 loops=1)
           Buffers: shared hit=4
           InitPlan 5 (returns $4)
-            ->  Limit  (cost=0.42..0.64 rows=1 width=8) (actual time=0.096..0.097 rows=1 loops=1)
+            ->  Limit  (cost=0.42..4.64 rows=1 width=8) (actual time=0.049..0.050 rows=1 loops=1)
                   Buffers: shared hit=4
-                  ->  Index Only Scan using encounters_patient_final on encounters encounters_1  (cost=0.42..4.82 rows=20 width=8) (actual time=0.093..0.094 rows=1 loops=1)
-                        Index Cond: ((patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid) AND (encounter_date IS NOT NULL))
-                        Heap Fetches: 0
+                  ->  Index Only Scan using encounters_patient_final on encounters encounters_1  (cost=0.42..84.82 rows=20 width=8) (actual time=0.048..0.048 rows=1 loops=1)
+                        Index Cond: ((patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid) AND (encounter_date IS NOT NULL))
+                        Heap Fetches: 1
                         Buffers: shared hit=4
   InitPlan 7 (returns $7)
-    ->  Aggregate  (cost=82.23..82.24 rows=1 width=4) (actual time=0.317..0.318 rows=1 loops=1)
+    ->  Aggregate  (cost=82.23..82.24 rows=1 width=4) (actual time=0.063..0.064 rows=1 loops=1)
           Buffers: shared hit=23
-          ->  Bitmap Heap Scan on encounters encounters_2  (cost=4.57..82.22 rows=1 width=4) (actual time=0.077..0.299 rows=1 loops=1)
-                Recheck Cond: ((patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid) AND (status = 'final'::text) AND (deleted_at IS NULL))
-                Filter: (follow_up_date >= '2026-11-12'::date)
+          ->  Bitmap Heap Scan on encounters encounters_2  (cost=4.57..82.22 rows=1 width=4) (actual time=0.044..0.060 rows=1 loops=1)
+                Recheck Cond: ((patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid) AND (status = 'final'::text) AND (deleted_at IS NULL))
+                Filter: (follow_up_date >= '2026-11-14'::date)
                 Rows Removed by Filter: 19
                 Heap Blocks: exact=20
                 Buffers: shared hit=23
-                ->  Bitmap Index Scan on encounters_patient_final  (cost=0.00..4.57 rows=20 width=0) (actual time=0.055..0.055 rows=20 loops=1)
-                      Index Cond: (patient_id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid)
+                ->  Bitmap Index Scan on encounters_patient_final  (cost=0.00..4.57 rows=20 width=0) (actual time=0.037..0.038 rows=20 loops=1)
+                      Index Cond: (patient_id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
                       Buffers: shared hit=3
 Planning:
   Buffers: shared hit=96
-Planning Time: 5.180 ms
-Execution Time: 2.129 ms
+Planning Time: 3.321 ms
+Execution Time: 1.659 ms

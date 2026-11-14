@@ -1,28 +1,28 @@
-Limit  (cost=87699.35..87699.36 rows=5 width=112) (actual time=154.777..154.781 rows=5 loops=1)
-  Buffers: shared hit=50178
-  ->  Sort  (cost=87699.35..87724.35 rows=10000 width=112) (actual time=154.775..154.778 rows=5 loops=1)
+Limit  (cost=88091.43..88091.45 rows=5 width=112) (actual time=145.560..145.563 rows=5 loops=1)
+  Buffers: shared hit=50571
+  ->  Sort  (cost=88091.43..88116.43 rows=10000 width=112) (actual time=145.557..145.559 rows=5 loops=1)
         Sort Key: e.follow_up_date, (((p.first_name || ' '::text) || p.last_name)), e.id
         Sort Method: top-N heapsort  Memory: 26kB
-        Buffers: shared hit=50178
-        ->  Nested Loop  (cost=4.65..87533.25 rows=10000 width=112) (actual time=0.363..146.731 rows=10000 loops=1)
-              Buffers: shared hit=50175
-              ->  Seq Scan on patients p  (cost=0.00..272.00 rows=10000 width=42) (actual time=0.017..6.243 rows=10000 loops=1)
+        Buffers: shared hit=50571
+        ->  Nested Loop  (cost=4.65..87925.34 rows=10000 width=112) (actual time=0.975..138.186 rows=10000 loops=1)
+              Buffers: shared hit=50568
+              ->  Seq Scan on patients p  (cost=0.00..665.00 rows=10000 width=42) (actual time=0.682..6.269 rows=10000 loops=1)
                     Filter: (deleted_at IS NULL)
-                    Buffers: shared hit=172
-              ->  Subquery Scan on e  (cost=4.65..8.71 rows=1 width=70) (actual time=0.013..0.013 rows=1 loops=10000)
-                    Filter: (e.follow_up_date >= '2026-11-12'::date)
+                    Buffers: shared hit=565
+              ->  Subquery Scan on e  (cost=4.65..8.71 rows=1 width=70) (actual time=0.012..0.012 rows=1 loops=10000)
+                    Filter: (e.follow_up_date >= '2026-11-14'::date)
                     Buffers: shared hit=50003
-                    ->  Limit  (cost=4.65..8.70 rows=1 width=330) (actual time=0.012..0.012 rows=1 loops=10000)
+                    ->  Limit  (cost=4.65..8.70 rows=1 width=330) (actual time=0.011..0.012 rows=1 loops=10000)
                           Buffers: shared hit=50003
                           ->  Incremental Sort  (cost=4.65..85.67 rows=20 width=330) (actual time=0.011..0.011 rows=1 loops=10000)
                                 Sort Key: x.encounter_date DESC, x.created_at DESC
                                 Presorted Key: x.encounter_date
                                 Full-sort Groups: 10000  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
                                 Buffers: shared hit=50003
-                                ->  Index Scan using encounters_patient_final on encounters x  (cost=0.42..84.77 rows=20 width=330) (actual time=0.007..0.009 rows=2 loops=10000)
+                                ->  Index Scan using encounters_patient_final on encounters x  (cost=0.42..84.77 rows=20 width=330) (actual time=0.007..0.008 rows=2 loops=10000)
                                       Index Cond: (patient_id = p.id)
                                       Buffers: shared hit=50000
 Planning:
   Buffers: shared hit=4
-Planning Time: 1.562 ms
-Execution Time: 155.109 ms
+Planning Time: 1.052 ms
+Execution Time: 145.980 ms

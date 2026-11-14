@@ -28,6 +28,9 @@ class Patient(Base):
     social_history: Mapped[str | None]
     allergy_status: Mapped[str] = mapped_column(server_default="unknown")
     established_ckd_stage: Mapped[str | None]
+    # derived sort keys for the list, kept in the writing transaction (migration 0004); never bump `version`
+    last_visit: Mapped[datetime | None]
+    primary_dx_sort: Mapped[str | None]
     version: Mapped[int] = mapped_column(server_default="1")
     created_at: Mapped[datetime] = mapped_column(server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(server_default=text("now()"))

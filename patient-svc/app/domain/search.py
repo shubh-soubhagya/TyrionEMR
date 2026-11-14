@@ -43,8 +43,9 @@ SORT_TERMS: dict[str, tuple[tuple[str, bool], ...]] = {
     "name": (("lower(f.last_name)", False), ("lower(f.first_name)", False)),
     "mrn": (("f.mrn", False),),                   # zero-padded, so text order = numeric order
     "age": (("f.date_of_birth", True),),          # youngest first for ascending age
-    "dx": (("lower(pc.description)", False),),
-    "visit": (("lv.last_visit", False),),
+    # both keys are columns kept on the patient row (migration 0004), so the sort needs no lateral join
+    "dx": (("f.primary_dx_sort", False),),
+    "visit": (("f.last_visit_key", False),),
 }
 SORTS_NULLS_LAST = frozenset({"dx", "visit"})
 SORT_KEYS = tuple(SORT_TERMS)

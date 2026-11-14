@@ -1,19 +1,19 @@
-Limit  (cost=14.38..14.43 rows=2 width=112) (actual time=0.096..0.098 rows=0 loops=1)
-  Buffers: shared hit=2
-  ->  Incremental Sort  (cost=14.38..14.43 rows=2 width=112) (actual time=0.095..0.095 rows=0 loops=1)
+Limit  (cost=14.51..14.55 rows=2 width=112) (actual time=0.828..0.831 rows=0 loops=1)
+  Buffers: shared hit=221
+  ->  Incremental Sort  (cost=14.51..14.55 rows=2 width=112) (actual time=0.825..0.827 rows=0 loops=1)
         Sort Key: e.encounter_date DESC, e.id
         Presorted Key: e.encounter_date
         Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
-        Buffers: shared hit=2
-        ->  Nested Loop  (cost=0.58..14.37 rows=1 width=112) (actual time=0.058..0.058 rows=0 loops=1)
-              Buffers: shared hit=2
-              ->  Index Scan using encounters_status_date on encounters e  (cost=0.29..6.06 rows=1 width=70) (actual time=0.057..0.057 rows=0 loops=1)
+        Buffers: shared hit=221
+        ->  Nested Loop  (cost=0.71..14.50 rows=1 width=112) (actual time=0.786..0.788 rows=0 loops=1)
+              Buffers: shared hit=221
+              ->  Index Scan using encounters_status_date on encounters e  (cost=0.42..6.19 rows=1 width=70) (actual time=0.784..0.785 rows=0 loops=1)
                     Index Cond: (status = 'draft'::text)
-                    Buffers: shared hit=2
+                    Buffers: shared hit=221
               ->  Index Scan using patients_pkey on patients p  (cost=0.29..8.30 rows=1 width=42) (never executed)
                     Index Cond: (id = e.patient_id)
                     Filter: (deleted_at IS NULL)
 Planning:
-  Buffers: shared hit=7
-Planning Time: 0.862 ms
-Execution Time: 0.292 ms
+  Buffers: shared hit=9
+Planning Time: 0.971 ms
+Execution Time: 1.009 ms

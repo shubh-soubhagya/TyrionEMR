@@ -156,6 +156,6 @@ def test_parse_name_tokens_escape_and_truncate():
 def test_order_by_sql():
     assert order_by_sql("name", "asc") == "lower(f.last_name) ASC, lower(f.first_name) ASC, f.id"
     assert order_by_sql("age", "asc").startswith("f.date_of_birth DESC")
-    assert order_by_sql("visit", "desc") == "lv.last_visit DESC NULLS LAST, f.id"
+    assert order_by_sql("visit", "desc") == "f.last_visit_key DESC NULLS LAST, f.id"
     with pytest.raises(KeyError):
         order_by_sql("egfr", "asc")

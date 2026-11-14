@@ -42,6 +42,7 @@ class ConditionService:
             await audit.record(self.session, actor_id=user.id, action="condition.add", resource="condition",
                                patient_id=pid, resource_id=cond.id,
                                details=audit.fields(k for k, v in body.model_dump().items() if v not in (None, False)))
+            await patients_repo.refresh_primary_dx_sort(self.session, pid)      # derived sort key, same transaction
             return cond
 
     async def patch(self, pid: uuid.UUID, cid: uuid.UUID, body: ConditionPatch,
@@ -75,6 +76,7 @@ class ConditionService:
             touched = {*changes, *(["status"] if new_status else []), *(["is_primary"] if make_primary else [])}
             await audit.record(self.session, actor_id=user.id, action="condition.update", resource="condition",
                                patient_id=pid, resource_id=cid, details=audit.fields(touched))
+            await patients_repo.refresh_primary_dx_sort(self.session, pid)      # set primary, resolve, rename
             return cond, primary_cleared
 
     async def delete(self, pid: uuid.UUID, cid: uuid.UUID, user: User) -> None:
@@ -88,6 +90,7 @@ class ConditionService:
             await repo.apply(self.session, cond, {"deleted_at": func.now(), "is_primary": False, "updated_by": user.id})
             await audit.record(self.session, actor_id=user.id, action="condition.delete", resource="condition",
                                patient_id=pid, resource_id=cid)
+            await patients_repo.refresh_primary_dx_sort(self.session, pid)
 
     # ---- used by the encounter finalize transaction (same transaction, lock already held) -------------
     async def link_or_create(self, *, patient_id: uuid.UUID, icd10: str | None, description: str,

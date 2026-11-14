@@ -1,8 +1,8 @@
-Index Scan using patients_pkey on patients  (cost=0.29..8.30 rows=1 width=22) (actual time=0.097..0.100 rows=1 loops=1)
-  Index Cond: (id = '0d6be9f4-c435-48d2-bd04-dfa40f69674d'::uuid)
+Index Scan using patients_pkey on patients  (cost=0.29..8.30 rows=1 width=22) (actual time=0.091..0.096 rows=1 loops=1)
+  Index Cond: (id = '0cac5a97-0dd8-4908-bc0b-20e115c91853'::uuid)
   Filter: (deleted_at IS NULL)
-  Buffers: shared hit=3
+  Buffers: shared hit=6
 Planning:
   Buffers: shared hit=1
-Planning Time: 0.217 ms
-Execution Time: 0.270 ms
+Planning Time: 0.189 ms
+Execution Time: 0.189 ms

@@ -210,6 +210,7 @@ class EncounterService:
             changes.count(kind)
         # 2. then flip the status (an encounter never sets or changes the primary diagnosis)
         await repo.mark_final(self.session, eid, user.id)
+        await patients_repo.raise_last_visit(self.session, patient.id, enc.encounter_date)   # sort key, same tx
         # Counters and logs carry counts only, never names, notes or values (§20.1)
         ENCOUNTERS_FINALIZED.inc()
         for kind in ("added", "reactivated", "linked"):

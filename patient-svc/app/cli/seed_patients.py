@@ -149,6 +149,15 @@ async def seed_scale(engine: AsyncEngine, patients: int, encounters_each: int = 
             INSERT INTO encounter_vitals (encounter_id, systolic_bp, diastolic_bp, heart_rate)
             SELECT id, 130, 80, 72 FROM encounters WHERE random() < 0.9"""))
         await conn.execute(text("UPDATE encounters SET status = 'final', finalized_at = now()"))
+        # the bulk SQL bypasses the services, so fill the two derived list-sort columns the way the services keep them
+        await conn.execute(text("""
+            UPDATE patients p SET last_visit = v.last_visit
+            FROM (SELECT patient_id, max(encounter_date) AS last_visit FROM encounters
+                  WHERE status = 'final' AND deleted_at IS NULL GROUP BY patient_id) v
+            WHERE v.patient_id = p.id"""))
+        await conn.execute(text("""
+            UPDATE patients p SET primary_dx_sort = lower(c.description) FROM patient_conditions c
+            WHERE c.patient_id = p.id AND c.is_primary AND c.status = 'active' AND c.deleted_at IS NULL"""))
         await conn.execute(text("ANALYZE"))
 
 

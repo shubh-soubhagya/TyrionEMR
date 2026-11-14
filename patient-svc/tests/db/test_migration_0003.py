@@ -90,6 +90,6 @@ async def test_backfill_guard_and_round_trip(db_engine, migrated_db):
             nullable = (await conn.execute(text(
                 "SELECT is_nullable FROM information_schema.columns "
                 "WHERE table_name='encounters' AND column_name='clinician_name'"))).scalar_one()
-        assert head == "0003" and nullable == "YES"
+        assert head == "0004" and nullable == "YES"
     finally:
         await check.dispose()
